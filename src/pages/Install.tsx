@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BookOpen, Download, Check, Smartphone, Monitor, Share, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { ThemeToggle } from '@/components/notoria/ThemeToggle';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -57,11 +58,12 @@ const Install = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="p-6 border-b border-border">
+      <header className="p-6 border-b border-border flex items-center justify-between">
         <a href="/" className="flex items-center gap-2 w-fit">
           <BookOpen className="w-6 h-6 text-gold" />
           <span className="font-display text-xl font-semibold">Notoria</span>
         </a>
+        <ThemeToggle />
       </header>
 
       {/* Main Content */}

@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Workspace } from '@/lib/db';
 import { cn } from '@/lib/utils';
-import { User, Briefcase, Lightbulb, Folder, Hash, Settings } from 'lucide-react';
+import { User, Briefcase, Lightbulb, Folder, Hash } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 
 const iconMap: Record<string, React.ElementType> = {
   user: User,
@@ -89,10 +90,7 @@ export function MobileHeader({
 
             {/* Footer */}
             <div className="p-3 border-t border-border">
-              <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground">
-                <Settings className="w-4 h-4" />
-                Settings
-              </Button>
+              <ThemeToggle />
             </div>
           </div>
         </SheetContent>
