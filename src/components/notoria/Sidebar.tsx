@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Workspace } from '@/lib/db';
 import {
@@ -6,7 +5,6 @@ import {
   PanelLeft,
   Plus,
   Search,
-  Settings,
   BookOpen,
   User,
   Briefcase,
@@ -15,6 +13,7 @@ import {
   Hash,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from './ThemeToggle';
 
 const iconMap: Record<string, React.ElementType> = {
   user: User,
@@ -148,15 +147,8 @@ export function Sidebar({
       </div>
 
       {/* Footer */}
-      <div className={cn('p-3 border-t border-sidebar-border', collapsed && 'flex justify-center')}>
-        <Button
-          variant="ghost"
-          size={collapsed ? 'icon' : 'sm'}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <Settings className="w-4 h-4" />
-          {!collapsed && <span className="ml-2">Settings</span>}
-        </Button>
+      <div className={cn('p-3 border-t border-sidebar-border', collapsed && 'flex flex-col items-center gap-2')}>
+        <ThemeToggle collapsed={collapsed} />
       </div>
     </aside>
   );
