@@ -43,6 +43,7 @@ export function useNotes(workspaceId?: string) {
         content,
         workspace,
         isPinned: false,
+        isStarred: false,
         createdAt: new Date(),
         updatedAt: new Date(),
         tags,
@@ -90,6 +91,16 @@ export function useNotes(workspaceId?: string) {
     [updateNote]
   );
 
+  const toggleStar = useCallback(
+    async (id: string) => {
+      const existing = await getNote(id);
+      if (existing) {
+        await updateNote(id, { isStarred: !existing.isStarred });
+      }
+    },
+    [updateNote]
+  );
+
   const search = useCallback(async (query: string) => {
     if (!query.trim()) {
       return [];
@@ -105,6 +116,7 @@ export function useNotes(workspaceId?: string) {
     updateNote,
     removeNote,
     togglePin,
+    toggleStar,
     search,
     refresh: loadNotes,
   };

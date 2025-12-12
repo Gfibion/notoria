@@ -30,6 +30,7 @@ const Index = () => {
     updateNote,
     removeNote,
     togglePin,
+    toggleStar,
     refresh,
   } = useNotes(selectedWorkspace || undefined);
 
@@ -110,14 +111,6 @@ const Index = () => {
     [selectedNote, removeNote, toast]
   );
 
-  const handleTogglePin = useCallback(async () => {
-    if (selectedNote) {
-      await togglePin(selectedNote.id);
-      const updatedNote = { ...selectedNote, isPinned: !selectedNote.isPinned };
-      setSelectedNote(updatedNote);
-    }
-  }, [selectedNote, togglePin]);
-
   const handleSearchSelect = useCallback((note: Note) => {
     setSelectedNote(note);
     setIsEditorOpen(true);
@@ -164,7 +157,6 @@ const Index = () => {
               setSelectedNote(null);
               refresh();
             }}
-            onTogglePin={handleTogglePin}
           />
         ) : (
           <>
@@ -201,6 +193,7 @@ const Index = () => {
                   workspaces={workspaces}
                   onNoteClick={handleNoteClick}
                   onPinNote={togglePin}
+                  onStarNote={toggleStar}
                   onDeleteNote={handleDeleteNote}
                 />
               )}

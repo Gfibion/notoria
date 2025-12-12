@@ -6,6 +6,7 @@ export interface Note {
   content: string;
   workspace: string;
   isPinned: boolean;
+  isStarred: boolean;
   createdAt: Date;
   updatedAt: Date;
   tags: string[];
