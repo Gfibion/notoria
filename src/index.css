@@ -164,6 +164,12 @@
     font-family: 'Inter', system-ui, sans-serif;
   }
 
+  .editor-content:empty::before {
+    content: attr(data-placeholder);
+    @apply text-muted-foreground/50;
+    pointer-events: none;
+  }
+
   .editor-content h1,
   .editor-content h2,
   .editor-content h3 {
