@@ -6,6 +6,7 @@ interface NotesGridProps {
   workspaces: Workspace[];
   onNoteClick: (note: Note) => void;
   onPinNote: (id: string) => void;
+  onStarNote: (id: string) => void;
   onDeleteNote: (id: string) => void;
 }
 
@@ -14,6 +15,7 @@ export function NotesGrid({
   workspaces,
   onNoteClick,
   onPinNote,
+  onStarNote,
   onDeleteNote,
 }: NotesGridProps) {
   const getWorkspace = (id: string) => workspaces.find((ws) => ws.id === id);
@@ -40,6 +42,7 @@ export function NotesGrid({
                   workspace={getWorkspace(note.workspace)}
                   onClick={() => onNoteClick(note)}
                   onPin={() => onPinNote(note.id)}
+                  onStar={() => onStarNote(note.id)}
                   onDelete={() => onDeleteNote(note.id)}
                 />
               </div>
@@ -68,6 +71,7 @@ export function NotesGrid({
                   workspace={getWorkspace(note.workspace)}
                   onClick={() => onNoteClick(note)}
                   onPin={() => onPinNote(note.id)}
+                  onStar={() => onStarNote(note.id)}
                   onDelete={() => onDeleteNote(note.id)}
                 />
               </div>

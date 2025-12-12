@@ -3,7 +3,6 @@ import { Note, Workspace } from '@/lib/db';
 import { cn } from '@/lib/utils';
 import {
   ArrowLeft,
-  Pin,
   Tag,
   Bold,
   Italic,
@@ -35,19 +34,33 @@ interface NoteEditorProps {
   workspaces: Workspace[];
   onSave: (note: Partial<Note>) => void;
   onClose: () => void;
-  onTogglePin: () => void;
 }
 
-export function NoteEditor({ note, workspaces, onSave, onClose, onTogglePin }: NoteEditorProps) {
+// Formatting button tooltips
+const FORMAT_TOOLTIPS: Record<string, string> = {
+  bold: 'Bold: Makes text thicker and more prominent',
+  italic: 'Italic: Slants text for emphasis',
+  h1: 'Heading 1: Largest heading for main titles',
+  h2: 'Heading 2: Subheading for sections',
+  ul: 'Bullet List: Unordered list with bullet points',
+  ol: 'Numbered List: Ordered list with numbers',
+  quote: 'Quote: Indented block for quotations',
+  code: 'Code Block: Monospace text for code',
+};
+
+export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProps) {
   const [title, setTitle] = useState(note?.title || '');
   const [workspace, setWorkspace] = useState(note?.workspace || workspaces[0]?.id || '');
   const [tags, setTags] = useState<string[]>(note?.tags || []);
   const [newTag, setNewTag] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
   
   const contentRef = useRef<HTMLDivElement>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const tooltipTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedRef = useRef({ title: note?.title || '', content: note?.content || '', tags: note?.tags || [] });
   const { toast } = useToast();
 
@@ -100,7 +113,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, onTogglePin }: N
       if (checkChanges()) {
         performSave(true);
       }
-    }, 2000); // 2 second debounce
+    }, 2000);
   }, [checkChanges]);
 
   // Perform save
@@ -135,10 +148,8 @@ export function NoteEditor({ note, workspaces, onSave, onClose, onTogglePin }: N
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasChanges) {
-        // Save before unload
         const content = contentRef.current?.innerHTML || '';
         onSave({ title, content, workspace, tags });
-        
         e.preventDefault();
         e.returnValue = '';
       }
@@ -163,12 +174,12 @@ export function NoteEditor({ note, workspaces, onSave, onClose, onTogglePin }: N
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [hasChanges, title, workspace, tags, onSave]);
 
-  // Cleanup auto-save timer on unmount
+  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current);
-      }
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+      if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
     };
   }, []);
 
@@ -190,32 +201,44 @@ export function NoteEditor({ note, workspaces, onSave, onClose, onTogglePin }: N
     triggerAutoSave();
   };
 
+  // Show tooltip on long press
+  const handleToolbarButtonLongPressStart = (tooltipKey: string) => {
+    longPressTimerRef.current = setTimeout(() => {
+      setActiveTooltip(tooltipKey);
+      // Auto-hide after 3 seconds
+      tooltipTimerRef.current = setTimeout(() => {
+        setActiveTooltip(null);
+      }, 3000);
+    }, 500);
+  };
+
+  const handleToolbarButtonLongPressEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
   // Format commands with proper toggling
   const execCommand = (command: string, value?: string) => {
     const selection = window.getSelection();
     if (!selection || !contentRef.current) return;
 
-    // Save selection before executing command
     const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
 
     if (command === 'formatBlock') {
-      // For block-level formatting, check if already applied
       const currentBlock = document.queryCommandValue('formatBlock');
       if (currentBlock.toLowerCase() === value?.toLowerCase()) {
-        // Remove formatting by setting to paragraph
         document.execCommand('formatBlock', false, 'p');
       } else {
         document.execCommand('formatBlock', false, value);
       }
     } else {
-      // For inline formatting (bold, italic), execCommand handles toggle
       document.execCommand(command, false, value);
     }
 
-    // Restore focus and trigger change detection
     contentRef.current.focus();
     
-    // Restore selection if possible
     if (range) {
       selection.removeAllRanges();
       selection.addRange(range);
@@ -229,6 +252,24 @@ export function NoteEditor({ note, workspaces, onSave, onClose, onTogglePin }: N
   const handleContentInput = () => {
     checkChanges();
     triggerAutoSave();
+    
+    // Auto-scroll to cursor position
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      const editorContainer = contentRef.current?.closest('.overflow-y-auto');
+      
+      if (editorContainer && rect) {
+        const containerRect = editorContainer.getBoundingClientRect();
+        const cursorBottom = rect.bottom;
+        const containerBottom = containerRect.bottom - 100; // 100px buffer from bottom
+        
+        if (cursorBottom > containerBottom) {
+          editorContainer.scrollTop += cursorBottom - containerBottom + 20;
+        }
+      }
+    }
   };
 
   // Handle title change
@@ -241,15 +282,6 @@ export function NoteEditor({ note, workspaces, onSave, onClose, onTogglePin }: N
   const handleWorkspaceChange = (value: string) => {
     setWorkspace(value);
     triggerAutoSave();
-  };
-
-  // Check active format states
-  const isFormatActive = (command: string, value?: string): boolean => {
-    if (command === 'formatBlock') {
-      const currentBlock = document.queryCommandValue('formatBlock');
-      return currentBlock.toLowerCase() === value?.toLowerCase();
-    }
-    return document.queryCommandState(command);
   };
 
   // Track format state for UI
@@ -275,8 +307,43 @@ export function NoteEditor({ note, workspaces, onSave, onClose, onTogglePin }: N
     return () => document.removeEventListener('selectionchange', updateFormatState);
   }, []);
 
+  // Toolbar button component with long-press tooltip
+  const ToolbarButton = ({ 
+    tooltipKey, 
+    isActive, 
+    onClick, 
+    children 
+  }: { 
+    tooltipKey: string; 
+    isActive?: boolean; 
+    onClick: () => void; 
+    children: React.ReactNode;
+  }) => (
+    <Button
+      variant="ghost"
+      size="icon"
+      className={cn('h-8 w-8 shrink-0 relative', isActive && 'bg-accent text-accent-foreground')}
+      onClick={onClick}
+      onTouchStart={() => handleToolbarButtonLongPressStart(tooltipKey)}
+      onTouchEnd={handleToolbarButtonLongPressEnd}
+      onTouchCancel={handleToolbarButtonLongPressEnd}
+      onMouseDown={() => handleToolbarButtonLongPressStart(tooltipKey)}
+      onMouseUp={handleToolbarButtonLongPressEnd}
+      onMouseLeave={handleToolbarButtonLongPressEnd}
+    >
+      {children}
+    </Button>
+  );
+
   return (
     <div className="h-full flex flex-col bg-background animate-fade-in">
+      {/* Tooltip Display */}
+      {activeTooltip && FORMAT_TOOLTIPS[activeTooltip] && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-popover border border-border rounded-lg px-4 py-2 shadow-elevated animate-fade-in">
+          <p className="text-sm text-foreground">{FORMAT_TOOLTIPS[activeTooltip]}</p>
+        </div>
+      )}
+
       {/* Header */}
       <header className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center gap-2 md:gap-4">
@@ -312,89 +379,44 @@ export function NoteEditor({ note, workspaces, onSave, onClose, onTogglePin }: N
               <span className="text-gold">Unsaved</span>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onTogglePin}
-            className={cn(note?.isPinned && 'text-gold')}
-          >
-            <Pin className={cn('w-5 h-5', note?.isPinned && 'fill-current')} />
-          </Button>
           <Button onClick={handleSave} disabled={!hasChanges} size="sm" className="gap-2">
             <Save className="w-4 h-4" />
             <span className="hidden sm:inline">Save</span>
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="w-5 h-5" />
           </Button>
         </div>
       </header>
 
       {/* Toolbar */}
       <div className="flex items-center gap-1 px-4 md:px-6 py-2 border-b border-border bg-muted/30 overflow-x-auto">
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn('h-8 w-8 shrink-0', formatState.bold && 'bg-accent text-accent-foreground')}
-          onClick={() => execCommand('bold')}
-        >
+        <ToolbarButton tooltipKey="bold" isActive={formatState.bold} onClick={() => execCommand('bold')}>
           <Bold className="w-4 h-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn('h-8 w-8 shrink-0', formatState.italic && 'bg-accent text-accent-foreground')}
-          onClick={() => execCommand('italic')}
-        >
+        </ToolbarButton>
+        <ToolbarButton tooltipKey="italic" isActive={formatState.italic} onClick={() => execCommand('italic')}>
           <Italic className="w-4 h-4" />
-        </Button>
+        </ToolbarButton>
         <Separator orientation="vertical" className="h-5 mx-1" />
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn('h-8 w-8 shrink-0', formatState.h1 && 'bg-accent text-accent-foreground')}
-          onClick={() => execCommand('formatBlock', 'h1')}
-        >
+        <ToolbarButton tooltipKey="h1" isActive={formatState.h1} onClick={() => execCommand('formatBlock', 'h1')}>
           <Heading1 className="w-4 h-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn('h-8 w-8 shrink-0', formatState.h2 && 'bg-accent text-accent-foreground')}
-          onClick={() => execCommand('formatBlock', 'h2')}
-        >
+        </ToolbarButton>
+        <ToolbarButton tooltipKey="h2" isActive={formatState.h2} onClick={() => execCommand('formatBlock', 'h2')}>
           <Heading2 className="w-4 h-4" />
-        </Button>
+        </ToolbarButton>
         <Separator orientation="vertical" className="h-5 mx-1" />
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          onClick={() => execCommand('insertUnorderedList')}
-        >
+        <ToolbarButton tooltipKey="ul" onClick={() => execCommand('insertUnorderedList')}>
           <List className="w-4 h-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          onClick={() => execCommand('insertOrderedList')}
-        >
+        </ToolbarButton>
+        <ToolbarButton tooltipKey="ol" onClick={() => execCommand('insertOrderedList')}>
           <ListOrdered className="w-4 h-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          onClick={() => execCommand('formatBlock', 'blockquote')}
-        >
+        </ToolbarButton>
+        <ToolbarButton tooltipKey="quote" onClick={() => execCommand('formatBlock', 'blockquote')}>
           <Quote className="w-4 h-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          onClick={() => execCommand('formatBlock', 'pre')}
-        >
+        </ToolbarButton>
+        <ToolbarButton tooltipKey="code" onClick={() => execCommand('formatBlock', 'pre')}>
           <Code className="w-4 h-4" />
-        </Button>
+        </ToolbarButton>
       </div>
 
       {/* Content */}
@@ -433,7 +455,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, onTogglePin }: N
             />
           </div>
 
-          {/* Editor - No dangerouslySetInnerHTML to prevent cursor jumping */}
+          {/* Editor */}
           <div
             ref={contentRef}
             contentEditable
