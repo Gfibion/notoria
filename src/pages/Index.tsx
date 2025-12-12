@@ -8,6 +8,7 @@ import { NoteEditor } from '@/components/notoria/NoteEditor';
 import { SearchDialog } from '@/components/notoria/SearchDialog';
 import { EmptyState } from '@/components/notoria/EmptyState';
 import { NotesGrid } from '@/components/notoria/NotesGrid';
+import { InstallBanner } from '@/components/notoria/InstallBanner';
 import { Plus, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -209,6 +210,9 @@ const Index = () => {
         workspaces={workspaces}
         onSelectNote={handleSearchSelect}
       />
+
+      {/* Install Banner */}
+      <InstallBanner />
     </div>
   );
 };
