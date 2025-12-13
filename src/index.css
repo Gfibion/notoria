@@ -148,7 +148,11 @@
 
 @layer components {
   /* Note Card Styles */
-  .note-card {
+.note-card {
+  @apply bg-card rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200;
+}
+
+.note-card-compact {
     @apply bg-card rounded-lg border border-border p-5 transition-all duration-300 ease-out;
     box-shadow: var(--shadow-soft);
   }

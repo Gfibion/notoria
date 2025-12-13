@@ -1,9 +1,9 @@
 import { useState, useRef, useCallback } from 'react';
 import { Note, Workspace } from '@/lib/db';
 import { cn } from '@/lib/utils';
-import { Pin, Trash2, Star, Calendar, X } from 'lucide-react';
+import { Pin, Trash2, Star, Info, X, Calendar, Clock, FileText, Tag as TagIcon, HardDrive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 
 interface NoteCardProps {
   note: Note;
@@ -14,16 +14,37 @@ interface NoteCardProps {
   onDelete: () => void;
 }
 
+// Calculate approximate storage size of a note
+function calculateNoteSize(note: Note): string {
+  const json = JSON.stringify(note);
+  const bytes = new Blob([json]).size;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+// Count words in HTML content
+function countWords(content: string): number {
+  const text = content.replace(/<[^>]*>/g, ' ').trim();
+  if (!text) return 0;
+  return text.split(/\s+/).filter(word => word.length > 0).length;
+}
+
 export function NoteCard({ note, workspace, onClick, onPin, onStar, onDelete }: NoteCardProps) {
   const [showContextMenu, setShowContextMenu] = useState(false);
+  const [showInfoPopup, setShowInfoPopup] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const cardRef = useRef<HTMLElement>(null);
 
-  const previewContent = note.content
-    .replace(/<[^>]*>/g, '')
-    .slice(0, 150)
-    .trim();
+  // Get first words if no title
+  const getPreviewText = () => {
+    const text = note.content.replace(/<[^>]*>/g, '').trim();
+    if (!note.title && text) {
+      return text.slice(0, 40) + (text.length > 40 ? '...' : '');
+    }
+    return text.slice(0, 60) + (text.length > 60 ? '...' : '');
+  };
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
@@ -51,75 +72,167 @@ export function NoteCard({ note, workspace, onClick, onPin, onStar, onDelete }: 
     setShowContextMenu(false);
   }, []);
 
+  const handleInfoClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowInfoPopup(true);
+  }, []);
+
+  const wordCount = countWords(note.content);
+  const noteSize = calculateNoteSize(note);
+
   return (
     <>
       <article
         ref={cardRef}
         className={cn(
-          'note-card group cursor-pointer relative animate-fade-in',
+          'note-card group cursor-pointer relative animate-fade-in p-3',
           note.isPinned && 'ring-1 ring-gold/30'
         )}
-        onClick={() => !showContextMenu && onClick()}
+        onClick={() => !showContextMenu && !showInfoPopup && onClick()}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchMove={handleTouchEnd}
         onContextMenu={handleContextMenu}
       >
-        {/* Status indicators */}
-        <div className="absolute top-3 right-3 flex items-center gap-1">
+        {/* Status indicators and Info button */}
+        <div className="absolute top-2 right-2 flex items-center gap-1">
+          <button
+            onClick={handleInfoClick}
+            className="h-5 w-5 flex items-center justify-center rounded-full bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Info className="w-3 h-3" />
+          </button>
           {note.isStarred && (
-            <Star className="w-4 h-4 text-gold fill-gold" />
+            <Star className="w-3.5 h-3.5 text-gold fill-gold" />
           )}
           {note.isPinned && (
-            <Pin className="w-4 h-4 text-gold fill-gold" />
+            <Pin className="w-3.5 h-3.5 text-gold fill-gold" />
           )}
         </div>
 
-        {/* Header */}
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="font-display text-lg font-semibold text-foreground line-clamp-1 pr-12">
-            {note.title || 'Untitled'}
-          </h3>
-        </div>
+        {/* Title or Preview */}
+        <h3 className="font-display text-sm font-semibold text-foreground line-clamp-1 pr-16 mb-1">
+          {note.title || getPreviewText() || 'Untitled'}
+        </h3>
 
-        {/* Preview content */}
-        <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
-          {previewContent || 'No content yet...'}
-        </p>
+        {/* Short preview - only if title exists */}
+        {note.title && (
+          <p className="text-xs text-muted-foreground line-clamp-1 mb-2">
+            {getPreviewText() || 'No content yet...'}
+          </p>
+        )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          {workspace && (
-            <span
-              className="workspace-badge"
-              style={{ backgroundColor: `${workspace.color}20`, color: workspace.color }}
-            >
-              {workspace.name}
-            </span>
-          )}
-          <div className="flex items-center gap-1">
-            <Calendar className="w-3 h-3" />
-            <span>{formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true })}</span>
-          </div>
-        </div>
-
-        {/* Tags */}
-        {note.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-3">
-            {note.tags.slice(0, 3).map((tag) => (
-              <span
-                key={tag}
-                className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground"
-              >
-                #{tag}
+        <div className="flex items-center justify-between text-xs text-muted-foreground mt-auto">
+          <div className="flex items-center gap-2">
+            {/* Tags preview */}
+            {note.tags.length > 0 && (
+              <span className="text-xs px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
+                #{note.tags[0]}
               </span>
-            ))}
-            {note.tags.length > 3 && (
-              <span className="text-xs text-muted-foreground">+{note.tags.length - 3} more</span>
+            )}
+            {note.tags.length > 1 && (
+              <span className="text-xs text-muted-foreground">+{note.tags.length - 1}</span>
             )}
           </div>
-        )}
+          <span className="text-xs">
+            {format(new Date(note.updatedAt), 'MMM d')}
+          </span>
+        </div>
       </article>
+
+      {/* Info Popup */}
+      {showInfoPopup && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+          onClick={() => setShowInfoPopup(false)}
+        >
+          <div
+            className="bg-popover border border-border rounded-lg shadow-elevated p-4 w-full max-w-sm animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-display font-semibold text-foreground">Note Info</h4>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setShowInfoPopup(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Info Content */}
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center gap-3">
+                <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="text-muted-foreground text-xs">Created</p>
+                  <p className="text-foreground">{format(new Date(note.createdAt), 'MMM d, yyyy h:mm a')}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="text-muted-foreground text-xs">Last Modified</p>
+                  <p className="text-foreground">{format(new Date(note.updatedAt), 'MMM d, yyyy h:mm a')}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="text-muted-foreground text-xs">Word Count</p>
+                  <p className="text-foreground">{wordCount} words</p>
+                </div>
+              </div>
+
+              {workspace && (
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-4 h-4 rounded shrink-0" 
+                    style={{ backgroundColor: workspace.color }}
+                  />
+                  <div>
+                    <p className="text-muted-foreground text-xs">Category</p>
+                    <p className="text-foreground">{workspace.name}</p>
+                  </div>
+                </div>
+              )}
+
+              {note.tags.length > 0 && (
+                <div className="flex items-start gap-3">
+                  <TagIcon className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-muted-foreground text-xs">Tags</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {note.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3">
+                <HardDrive className="w-4 h-4 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="text-muted-foreground text-xs">Storage Size</p>
+                  <p className="text-foreground">{noteSize}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Context Menu Overlay */}
       {showContextMenu && (
