@@ -32,6 +32,7 @@ const Index = () => {
     removeNote,
     togglePin,
     toggleStar,
+    updateNoteColor,
     refresh,
   } = useNotes(selectedWorkspace || undefined);
 
@@ -196,6 +197,7 @@ const Index = () => {
                   onPinNote={togglePin}
                   onStarNote={toggleStar}
                   onDeleteNote={handleDeleteNote}
+                  onColorChange={updateNoteColor}
                 />
               )}
             </div>

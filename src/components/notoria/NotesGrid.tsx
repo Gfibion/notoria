@@ -8,6 +8,7 @@ interface NotesGridProps {
   onPinNote: (id: string) => void;
   onStarNote: (id: string) => void;
   onDeleteNote: (id: string) => void;
+  onColorChange?: (id: string, color: string) => void;
 }
 
 export function NotesGrid({
@@ -17,6 +18,7 @@ export function NotesGrid({
   onPinNote,
   onStarNote,
   onDeleteNote,
+  onColorChange,
 }: NotesGridProps) {
   const getWorkspace = (id: string) => workspaces.find((ws) => ws.id === id);
   const pinnedNotes = notes.filter((n) => n.isPinned);
@@ -30,7 +32,7 @@ export function NotesGrid({
             <span className="w-1.5 h-1.5 rounded-full bg-gold" />
             Pinned
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {pinnedNotes.map((note, index) => (
               <div
                 key={note.id}
@@ -44,6 +46,7 @@ export function NotesGrid({
                   onPin={() => onPinNote(note.id)}
                   onStar={() => onStarNote(note.id)}
                   onDelete={() => onDeleteNote(note.id)}
+                  onColorChange={onColorChange ? (color) => onColorChange(note.id, color) : undefined}
                 />
               </div>
             ))}
@@ -59,7 +62,7 @@ export function NotesGrid({
               Recent
             </h2>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {unpinnedNotes.map((note, index) => (
               <div
                 key={note.id}
@@ -73,6 +76,7 @@ export function NotesGrid({
                   onPin={() => onPinNote(note.id)}
                   onStar={() => onStarNote(note.id)}
                   onDelete={() => onDeleteNote(note.id)}
+                  onColorChange={onColorChange ? (color) => onColorChange(note.id, color) : undefined}
                 />
               </div>
             ))}

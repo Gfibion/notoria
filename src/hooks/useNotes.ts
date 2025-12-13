@@ -42,6 +42,8 @@ export function useNotes(workspaceId?: string) {
         title,
         content,
         workspace,
+        subcategory: '',
+        color: '',
         isPinned: false,
         isStarred: false,
         createdAt: new Date(),
@@ -101,6 +103,13 @@ export function useNotes(workspaceId?: string) {
     [updateNote]
   );
 
+  const updateNoteColor = useCallback(
+    async (id: string, color: string) => {
+      await updateNote(id, { color });
+    },
+    [updateNote]
+  );
+
   const search = useCallback(async (query: string) => {
     if (!query.trim()) {
       return [];
@@ -117,6 +126,7 @@ export function useNotes(workspaceId?: string) {
     removeNote,
     togglePin,
     toggleStar,
+    updateNoteColor,
     search,
     refresh: loadNotes,
   };
