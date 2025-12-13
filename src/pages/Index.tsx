@@ -136,7 +136,7 @@ const Index = () => {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden relative">
         {/* Mobile Header */}
         {!isEditorOpen && (
           <MobileHeader
@@ -199,6 +199,15 @@ const Index = () => {
                 />
               )}
             </div>
+
+            {/* Floating Action Button - only visible when not in editor */}
+            <Button
+              onClick={handleNewNote}
+              size="icon"
+              className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-elevated bg-gold/80 hover:bg-gold text-background z-40 backdrop-blur-sm"
+            >
+              <Plus className="w-6 h-6" />
+            </Button>
           </>
         )}
       </main>

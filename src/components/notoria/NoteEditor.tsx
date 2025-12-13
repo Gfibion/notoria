@@ -15,6 +15,8 @@ import {
   Save,
   X,
   Check,
+  Undo,
+  Pencil,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +48,7 @@ const FORMAT_TOOLTIPS: Record<string, string> = {
   ol: 'Numbered List: Ordered list with numbers',
   quote: 'Quote: Indented block for quotations',
   code: 'Code Block: Monospace text for code',
+  undo: 'Undo: Reverse your last action',
 };
 
 export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProps) {
@@ -56,6 +59,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
   const [hasChanges, setHasChanges] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(!note); // New notes start in edit mode
   
   const contentRef = useRef<HTMLDivElement>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -83,6 +87,9 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
       lastSavedRef.current = { title: note.title, content: note.content, tags: [...note.tags] };
       setHasChanges(false);
       setAutoSaveStatus('saved');
+      setIsEditMode(false); // Existing notes open in reading mode
+    } else {
+      setIsEditMode(true); // New notes start in edit mode
     }
   }, [note?.id]);
 
@@ -142,6 +149,12 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
       clearTimeout(autoSaveTimerRef.current);
     }
     performSave(false);
+  };
+
+  // Handle undo
+  const handleUndo = () => {
+    document.execCommand('undo');
+    checkChanges();
   };
 
   // Handle beforeunload for sudden closure
@@ -221,6 +234,8 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
 
   // Format commands with proper toggling
   const execCommand = (command: string, value?: string) => {
+    if (!isEditMode) return;
+    
     const selection = window.getSelection();
     if (!selection || !contentRef.current) return;
 
@@ -284,6 +299,16 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
     triggerAutoSave();
   };
 
+  // Handle double tap to enter edit mode
+  const handleContentDoubleClick = () => {
+    if (!isEditMode) {
+      setIsEditMode(true);
+      setTimeout(() => {
+        contentRef.current?.focus();
+      }, 0);
+    }
+  };
+
   // Track format state for UI
   const [formatState, setFormatState] = useState({
     bold: false,
@@ -312,18 +337,21 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
     tooltipKey, 
     isActive, 
     onClick, 
-    children 
+    children,
+    disabled,
   }: { 
     tooltipKey: string; 
     isActive?: boolean; 
     onClick: () => void; 
     children: React.ReactNode;
+    disabled?: boolean;
   }) => (
     <Button
       variant="ghost"
       size="icon"
       className={cn('h-8 w-8 shrink-0 relative', isActive && 'bg-accent text-accent-foreground')}
       onClick={onClick}
+      disabled={disabled}
       onTouchStart={() => handleToolbarButtonLongPressStart(tooltipKey)}
       onTouchEnd={handleToolbarButtonLongPressEnd}
       onTouchCancel={handleToolbarButtonLongPressEnd}
@@ -351,8 +379,8 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <Select value={workspace} onValueChange={handleWorkspaceChange}>
-            <SelectTrigger className="w-[120px] md:w-[140px] h-8 text-sm">
-              <SelectValue />
+            <SelectTrigger className="w-[80px] h-8 text-xs">
+              <SelectValue placeholder="Subs" />
             </SelectTrigger>
             <SelectContent>
               {workspaces.map((ws) => (
@@ -363,7 +391,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {/* Auto-save status indicator */}
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             {autoSaveStatus === 'saved' && (
@@ -379,48 +407,54 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
               <span className="text-gold">Unsaved</span>
             )}
           </div>
-          <Button onClick={handleSave} disabled={!hasChanges} size="sm" className="gap-2">
+          <Button onClick={handleSave} disabled={!hasChanges} size="sm" className="gap-1 h-8 px-2">
             <Save className="w-4 h-4" />
-            <span className="hidden sm:inline">Save</span>
+            <span className="hidden sm:inline text-xs">Save</span>
           </Button>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          {/* Undo Button */}
+          <ToolbarButton tooltipKey="undo" onClick={handleUndo} disabled={!isEditMode}>
+            <Undo className="w-4 h-4" />
+          </ToolbarButton>
+          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
             <X className="w-5 h-5" />
           </Button>
         </div>
       </header>
 
-      {/* Toolbar */}
-      <div className="flex items-center gap-1 px-4 md:px-6 py-2 border-b border-border bg-muted/30 overflow-x-auto">
-        <ToolbarButton tooltipKey="bold" isActive={formatState.bold} onClick={() => execCommand('bold')}>
-          <Bold className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton tooltipKey="italic" isActive={formatState.italic} onClick={() => execCommand('italic')}>
-          <Italic className="w-4 h-4" />
-        </ToolbarButton>
-        <Separator orientation="vertical" className="h-5 mx-1" />
-        <ToolbarButton tooltipKey="h1" isActive={formatState.h1} onClick={() => execCommand('formatBlock', 'h1')}>
-          <Heading1 className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton tooltipKey="h2" isActive={formatState.h2} onClick={() => execCommand('formatBlock', 'h2')}>
-          <Heading2 className="w-4 h-4" />
-        </ToolbarButton>
-        <Separator orientation="vertical" className="h-5 mx-1" />
-        <ToolbarButton tooltipKey="ul" onClick={() => execCommand('insertUnorderedList')}>
-          <List className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton tooltipKey="ol" onClick={() => execCommand('insertOrderedList')}>
-          <ListOrdered className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton tooltipKey="quote" onClick={() => execCommand('formatBlock', 'blockquote')}>
-          <Quote className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton tooltipKey="code" onClick={() => execCommand('formatBlock', 'pre')}>
-          <Code className="w-4 h-4" />
-        </ToolbarButton>
-      </div>
+      {/* Toolbar - only visible in edit mode */}
+      {isEditMode && (
+        <div className="flex items-center gap-1 px-4 md:px-6 py-2 border-b border-border bg-muted/30 overflow-x-auto">
+          <ToolbarButton tooltipKey="bold" isActive={formatState.bold} onClick={() => execCommand('bold')}>
+            <Bold className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton tooltipKey="italic" isActive={formatState.italic} onClick={() => execCommand('italic')}>
+            <Italic className="w-4 h-4" />
+          </ToolbarButton>
+          <Separator orientation="vertical" className="h-5 mx-1" />
+          <ToolbarButton tooltipKey="h1" isActive={formatState.h1} onClick={() => execCommand('formatBlock', 'h1')}>
+            <Heading1 className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton tooltipKey="h2" isActive={formatState.h2} onClick={() => execCommand('formatBlock', 'h2')}>
+            <Heading2 className="w-4 h-4" />
+          </ToolbarButton>
+          <Separator orientation="vertical" className="h-5 mx-1" />
+          <ToolbarButton tooltipKey="ul" onClick={() => execCommand('insertUnorderedList')}>
+            <List className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton tooltipKey="ol" onClick={() => execCommand('insertOrderedList')}>
+            <ListOrdered className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton tooltipKey="quote" onClick={() => execCommand('formatBlock', 'blockquote')}>
+            <Quote className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton tooltipKey="code" onClick={() => execCommand('formatBlock', 'pre')}>
+            <Code className="w-4 h-4" />
+          </ToolbarButton>
+        </div>
+      )}
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin">
+      <div className="flex-1 overflow-y-auto scrollbar-thin relative">
         <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8">
           {/* Title */}
           <input
@@ -428,43 +462,68 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
             placeholder="Untitled"
             value={title}
             onChange={handleTitleChange}
-            className="w-full text-2xl md:text-4xl font-display font-semibold bg-transparent border-none outline-none placeholder:text-muted-foreground/50 mb-4 md:mb-6"
+            readOnly={!isEditMode}
+            onClick={() => !isEditMode && setIsEditMode(true)}
+            className={cn(
+              "w-full text-2xl md:text-4xl font-display font-semibold bg-transparent border-none outline-none placeholder:text-muted-foreground/50 mb-4 md:mb-6",
+              !isEditMode && "cursor-pointer"
+            )}
           />
 
-          {/* Tags */}
+          {/* Tags - editable only in edit mode */}
           <div className="flex flex-wrap items-center gap-2 mb-4 md:mb-6">
             <Tag className="w-4 h-4 text-muted-foreground shrink-0" />
             {tags.map((tag) => (
               <Badge
                 key={tag}
                 variant="secondary"
-                className="gap-1 cursor-pointer hover:bg-destructive/20"
-                onClick={() => handleRemoveTag(tag)}
+                className={cn("gap-1", isEditMode && "cursor-pointer hover:bg-destructive/20")}
+                onClick={() => isEditMode && handleRemoveTag(tag)}
               >
                 #{tag}
-                <X className="w-3 h-3" />
+                {isEditMode && <X className="w-3 h-3" />}
               </Badge>
             ))}
-            <Input
-              type="text"
-              placeholder="Add tag..."
-              value={newTag}
-              onChange={(e) => setNewTag(e.target.value)}
-              onKeyDown={handleAddTag}
-              className="w-24 h-7 text-sm border-none shadow-none focus-visible:ring-0 px-2"
-            />
+            {isEditMode && (
+              <Input
+                type="text"
+                placeholder="Add tag..."
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                onKeyDown={handleAddTag}
+                className="w-24 h-7 text-sm border-none shadow-none focus-visible:ring-0 px-2"
+              />
+            )}
           </div>
 
           {/* Editor */}
           <div
             ref={contentRef}
-            contentEditable
+            contentEditable={isEditMode}
             onInput={handleContentInput}
-            className="editor-content min-h-[300px] md:min-h-[400px] outline-none focus:outline-none"
+            onDoubleClick={handleContentDoubleClick}
+            className={cn(
+              "editor-content min-h-[300px] md:min-h-[400px] outline-none focus:outline-none",
+              !isEditMode && "cursor-pointer"
+            )}
             data-placeholder="Start writing..."
             suppressContentEditableWarning
           />
         </div>
+
+        {/* Floating Edit Button - only visible in reading mode */}
+        {!isEditMode && (
+          <Button
+            onClick={() => {
+              setIsEditMode(true);
+              setTimeout(() => contentRef.current?.focus(), 0);
+            }}
+            size="icon"
+            className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-elevated bg-gold hover:bg-gold/90 text-background z-40"
+          >
+            <Pencil className="w-6 h-6" />
+          </Button>
+        )}
       </div>
     </div>
   );
