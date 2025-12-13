@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Note, Workspace } from '@/lib/db';
+import { Note, Workspace, Subcategory, saveSubcategory, generateId } from '@/lib/db';
+import { useSubcategories } from '@/hooks/useSubcategories';
 import { cn } from '@/lib/utils';
 import {
   ArrowLeft,
@@ -17,6 +18,8 @@ import {
   Check,
   Undo,
   Pencil,
+  Palette,
+  Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +33,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { ColorPicker } from './ColorPicker';
 
 interface NoteEditorProps {
   note: Note | null;
@@ -49,23 +53,37 @@ const FORMAT_TOOLTIPS: Record<string, string> = {
   quote: 'Quote: Indented block for quotations',
   code: 'Code Block: Monospace text for code',
   undo: 'Undo: Reverse your last action',
+  color: 'Color: Change note background color',
 };
 
 export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProps) {
   const [title, setTitle] = useState(note?.title || '');
-  const [workspace, setWorkspace] = useState(note?.workspace || workspaces[0]?.id || '');
+  const [workspace, setWorkspace] = useState(note?.workspace || '');
+  const [subcategory, setSubcategory] = useState(note?.subcategory || '');
+  const [noteColor, setNoteColor] = useState(note?.color || '');
   const [tags, setTags] = useState<string[]>(note?.tags || []);
   const [newTag, setNewTag] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
-  const [isEditMode, setIsEditMode] = useState(!note); // New notes start in edit mode
+  const [isEditMode, setIsEditMode] = useState(!note);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [newSubcategoryName, setNewSubcategoryName] = useState('');
+  const [showNewSubcategoryInput, setShowNewSubcategoryInput] = useState(false);
+  
+  const { subcategories, createSubcategory, refresh: refreshSubcategories } = useSubcategories(workspace || undefined);
   
   const contentRef = useRef<HTMLDivElement>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const tooltipTimerRef = useRef<NodeJS.Timeout | null>(null);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSavedRef = useRef({ title: note?.title || '', content: note?.content || '', tags: note?.tags || [] });
+  const lastSavedRef = useRef({ 
+    title: note?.title || '', 
+    content: note?.content || '', 
+    tags: note?.tags || [],
+    subcategory: note?.subcategory || '',
+    color: note?.color || '',
+  });
   const { toast } = useToast();
 
   // Initialize content once on mount
@@ -79,19 +97,34 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
   useEffect(() => {
     if (note) {
       setTitle(note.title);
-      setWorkspace(note.workspace);
+      setWorkspace(note.workspace || '');
+      setSubcategory(note.subcategory || '');
+      setNoteColor(note.color || '');
       setTags([...note.tags]);
       if (contentRef.current) {
         contentRef.current.innerHTML = note.content;
       }
-      lastSavedRef.current = { title: note.title, content: note.content, tags: [...note.tags] };
+      lastSavedRef.current = { 
+        title: note.title, 
+        content: note.content, 
+        tags: [...note.tags],
+        subcategory: note.subcategory || '',
+        color: note.color || '',
+      };
       setHasChanges(false);
       setAutoSaveStatus('saved');
-      setIsEditMode(false); // Existing notes open in reading mode
+      setIsEditMode(false);
     } else {
-      setIsEditMode(true); // New notes start in edit mode
+      setIsEditMode(true);
     }
   }, [note?.id]);
+
+  // Refresh subcategories when workspace changes
+  useEffect(() => {
+    if (workspace) {
+      refreshSubcategories();
+    }
+  }, [workspace, refreshSubcategories]);
 
   // Check for changes
   const checkChanges = useCallback(() => {
@@ -99,8 +132,10 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
     const hasContentChanged = currentContent !== lastSavedRef.current.content;
     const hasTitleChanged = title !== lastSavedRef.current.title;
     const hasTagsChanged = JSON.stringify(tags) !== JSON.stringify(lastSavedRef.current.tags);
+    const hasSubcategoryChanged = subcategory !== lastSavedRef.current.subcategory;
+    const hasColorChanged = noteColor !== lastSavedRef.current.color;
     
-    const changed = hasContentChanged || hasTitleChanged || hasTagsChanged;
+    const changed = hasContentChanged || hasTitleChanged || hasTagsChanged || hasSubcategoryChanged || hasColorChanged;
     setHasChanges(changed);
     
     if (changed) {
@@ -108,7 +143,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
     }
     
     return changed;
-  }, [title, tags]);
+  }, [title, tags, subcategory, noteColor]);
 
   // Auto-save with debounce
   const triggerAutoSave = useCallback(() => {
@@ -129,9 +164,9 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
     
     setAutoSaveStatus('saving');
     
-    onSave({ title, content, workspace, tags });
+    onSave({ title, content, workspace, subcategory, color: noteColor, tags });
     
-    lastSavedRef.current = { title, content, tags: [...tags] };
+    lastSavedRef.current = { title, content, tags: [...tags], subcategory, color: noteColor };
     setHasChanges(false);
     
     setTimeout(() => {
@@ -141,7 +176,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
     if (!isAutoSave) {
       toast({ title: 'Note saved', description: 'Your changes have been saved.' });
     }
-  }, [title, workspace, tags, onSave, toast]);
+  }, [title, workspace, subcategory, noteColor, tags, onSave, toast]);
 
   // Handle manual save
   const handleSave = () => {
@@ -157,12 +192,30 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
     checkChanges();
   };
 
+  // Handle color change
+  const handleColorChange = (color: string) => {
+    setNoteColor(color);
+    setShowColorPicker(false);
+    triggerAutoSave();
+  };
+
+  // Handle adding new subcategory
+  const handleAddSubcategory = async () => {
+    if (newSubcategoryName.trim() && workspace) {
+      await createSubcategory(newSubcategoryName.trim(), workspace);
+      setSubcategory(newSubcategoryName.trim());
+      setNewSubcategoryName('');
+      setShowNewSubcategoryInput(false);
+      triggerAutoSave();
+    }
+  };
+
   // Handle beforeunload for sudden closure
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasChanges) {
         const content = contentRef.current?.innerHTML || '';
-        onSave({ title, content, workspace, tags });
+        onSave({ title, content, workspace, subcategory, color: noteColor, tags });
         e.preventDefault();
         e.returnValue = '';
       }
@@ -170,22 +223,22 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasChanges, title, workspace, tags, onSave]);
+  }, [hasChanges, title, workspace, subcategory, noteColor, tags, onSave]);
 
   // Handle visibility change (for phone shutdown/app switch)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && hasChanges) {
         const content = contentRef.current?.innerHTML || '';
-        onSave({ title, content, workspace, tags });
-        lastSavedRef.current = { title, content, tags: [...tags] };
+        onSave({ title, content, workspace, subcategory, color: noteColor, tags });
+        lastSavedRef.current = { title, content, tags: [...tags], subcategory, color: noteColor };
         setHasChanges(false);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [hasChanges, title, workspace, tags, onSave]);
+  }, [hasChanges, title, workspace, subcategory, noteColor, tags, onSave]);
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -218,7 +271,6 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
   const handleToolbarButtonLongPressStart = (tooltipKey: string) => {
     longPressTimerRef.current = setTimeout(() => {
       setActiveTooltip(tooltipKey);
-      // Auto-hide after 3 seconds
       tooltipTimerRef.current = setTimeout(() => {
         setActiveTooltip(null);
       }, 3000);
@@ -268,7 +320,6 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
     checkChanges();
     triggerAutoSave();
     
-    // Auto-scroll to cursor position
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -278,7 +329,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
       if (editorContainer && rect) {
         const containerRect = editorContainer.getBoundingClientRect();
         const cursorBottom = rect.bottom;
-        const containerBottom = containerRect.bottom - 100; // 100px buffer from bottom
+        const containerBottom = containerRect.bottom - 100;
         
         if (cursorBottom > containerBottom) {
           editorContainer.scrollTop += cursorBottom - containerBottom + 20;
@@ -295,8 +346,19 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
 
   // Handle workspace change
   const handleWorkspaceChange = (value: string) => {
-    setWorkspace(value);
+    setWorkspace(value === 'none' ? '' : value);
+    setSubcategory(''); // Reset subcategory when workspace changes
     triggerAutoSave();
+  };
+
+  // Handle subcategory change
+  const handleSubcategoryChange = (value: string) => {
+    if (value === 'new') {
+      setShowNewSubcategoryInput(true);
+    } else {
+      setSubcategory(value === 'none' ? '' : value);
+      triggerAutoSave();
+    }
   };
 
   // Handle double tap to enter edit mode
@@ -363,8 +425,13 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
     </Button>
   );
 
+  const currentWorkspace = workspaces.find(ws => ws.id === workspace);
+
   return (
-    <div className="h-full flex flex-col bg-background animate-fade-in">
+    <div 
+      className="h-full flex flex-col bg-background animate-fade-in"
+      style={noteColor ? { backgroundColor: noteColor } : undefined}
+    >
       {/* Tooltip Display */}
       {activeTooltip && FORMAT_TOOLTIPS[activeTooltip] && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-popover border border-border rounded-lg px-4 py-2 shadow-elevated animate-fade-in">
@@ -372,24 +439,78 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
         </div>
       )}
 
+      {/* Color Picker Popup */}
+      {showColorPicker && (
+        <div className="fixed top-20 right-4 z-50">
+          <ColorPicker
+            selectedColor={noteColor}
+            onSelectColor={handleColorChange}
+            onClose={() => setShowColorPicker(false)}
+          />
+        </div>
+      )}
+
+      {/* New Subcategory Input Popup */}
+      {showNewSubcategoryInput && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+          onClick={() => setShowNewSubcategoryInput(false)}
+        >
+          <div 
+            className="bg-popover border border-border rounded-lg shadow-elevated p-4 w-full max-w-sm animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-display font-semibold text-foreground">New Subcategory</h4>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowNewSubcategoryInput(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Subcategory name..."
+                value={newSubcategoryName}
+                onChange={(e) => setNewSubcategoryName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddSubcategory()}
+                autoFocus
+              />
+              <Button onClick={handleAddSubcategory} size="sm">
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={onClose}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <Select value={workspace} onValueChange={handleWorkspaceChange}>
-            <SelectTrigger className="w-[80px] h-8 text-xs">
-              <SelectValue placeholder="Subs" />
-            </SelectTrigger>
-            <SelectContent>
-              {workspaces.map((ws) => (
-                <SelectItem key={ws.id} value={ws.id}>
-                  <span style={{ color: ws.color }}>{ws.name}</span>
+          {/* Subcategory selector (only if workspace is selected) */}
+          {workspace && (
+            <Select value={subcategory || 'none'} onValueChange={handleSubcategoryChange}>
+              <SelectTrigger className="w-[90px] h-8 text-xs">
+                <SelectValue placeholder="Sub" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">
+                  <span className="text-muted-foreground">No sub</span>
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                {subcategories.map((sub) => (
+                  <SelectItem key={sub.id} value={sub.name}>
+                    {sub.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value="new">
+                  <span className="flex items-center gap-1 text-primary">
+                    <Plus className="w-3 h-3" /> Add new
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <div className="flex items-center gap-1">
           {/* Auto-save status indicator */}
@@ -414,6 +535,10 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
           {/* Undo Button */}
           <ToolbarButton tooltipKey="undo" onClick={handleUndo} disabled={!isEditMode}>
             <Undo className="w-4 h-4" />
+          </ToolbarButton>
+          {/* Color Picker Button */}
+          <ToolbarButton tooltipKey="color" onClick={() => setShowColorPicker(!showColorPicker)}>
+            <Palette className="w-4 h-4" style={noteColor ? { color: noteColor } : undefined} />
           </ToolbarButton>
           <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
             <X className="w-5 h-5" />
@@ -456,6 +581,23 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
       {/* Content */}
       <div className="flex-1 overflow-y-auto scrollbar-thin relative">
         <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8">
+          {/* Category indicator */}
+          {currentWorkspace && (
+            <div className="flex items-center gap-2 mb-4">
+              <span 
+                className="text-xs px-2 py-1 rounded-full"
+                style={{ backgroundColor: `${currentWorkspace.color}20`, color: currentWorkspace.color }}
+              >
+                {currentWorkspace.name}
+              </span>
+              {subcategory && (
+                <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground">
+                  {subcategory}
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Title */}
           <input
             type="text"

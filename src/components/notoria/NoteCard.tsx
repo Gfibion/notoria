@@ -1,9 +1,10 @@
 import { useState, useRef, useCallback } from 'react';
-import { Note, Workspace } from '@/lib/db';
+import { Note, Workspace, NOTE_COLORS } from '@/lib/db';
 import { cn } from '@/lib/utils';
-import { Pin, Trash2, Star, Info, X, Calendar, Clock, FileText, Tag as TagIcon, HardDrive } from 'lucide-react';
+import { Pin, Trash2, Star, Info, X, Calendar, Clock, FileText, Tag as TagIcon, HardDrive, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
+import { ColorPicker } from './ColorPicker';
 
 interface NoteCardProps {
   note: Note;
@@ -12,6 +13,7 @@ interface NoteCardProps {
   onPin: () => void;
   onStar: () => void;
   onDelete: () => void;
+  onColorChange?: (color: string) => void;
 }
 
 // Calculate approximate storage size of a note
@@ -30,9 +32,10 @@ function countWords(content: string): number {
   return text.split(/\s+/).filter(word => word.length > 0).length;
 }
 
-export function NoteCard({ note, workspace, onClick, onPin, onStar, onDelete }: NoteCardProps) {
+export function NoteCard({ note, workspace, onClick, onPin, onStar, onDelete, onColorChange }: NoteCardProps) {
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const cardRef = useRef<HTMLElement>(null);
@@ -77,6 +80,18 @@ export function NoteCard({ note, workspace, onClick, onPin, onStar, onDelete }: 
     setShowInfoPopup(true);
   }, []);
 
+  const handleColorClick = useCallback(() => {
+    setShowColorPicker(true);
+    setShowContextMenu(false);
+  }, []);
+
+  const handleColorSelect = useCallback((color: string) => {
+    if (onColorChange) {
+      onColorChange(color);
+    }
+    setShowColorPicker(false);
+  }, [onColorChange]);
+
   const wordCount = countWords(note.content);
   const noteSize = calculateNoteSize(note);
 
@@ -88,7 +103,8 @@ export function NoteCard({ note, workspace, onClick, onPin, onStar, onDelete }: 
           'note-card group cursor-pointer relative animate-fade-in p-3',
           note.isPinned && 'ring-1 ring-gold/30'
         )}
-        onClick={() => !showContextMenu && !showInfoPopup && onClick()}
+        style={note.color ? { backgroundColor: note.color } : undefined}
+        onClick={() => !showContextMenu && !showInfoPopup && !showColorPicker && onClick()}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchMove={handleTouchEnd}
@@ -111,28 +127,40 @@ export function NoteCard({ note, workspace, onClick, onPin, onStar, onDelete }: 
         </div>
 
         {/* Title or Preview */}
-        <h3 className="font-display text-sm font-semibold text-foreground line-clamp-1 pr-16 mb-1">
+        <h3 className={cn(
+          "font-display text-sm font-semibold line-clamp-1 pr-16 mb-1",
+          note.color ? "text-gray-800" : "text-foreground"
+        )}>
           {note.title || getPreviewText() || 'Untitled'}
         </h3>
 
         {/* Short preview - only if title exists */}
         {note.title && (
-          <p className="text-xs text-muted-foreground line-clamp-1 mb-2">
+          <p className={cn(
+            "text-xs line-clamp-1 mb-2",
+            note.color ? "text-gray-600" : "text-muted-foreground"
+          )}>
             {getPreviewText() || 'No content yet...'}
           </p>
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground mt-auto">
+        <div className={cn(
+          "flex items-center justify-between text-xs mt-auto",
+          note.color ? "text-gray-600" : "text-muted-foreground"
+        )}>
           <div className="flex items-center gap-2">
             {/* Tags preview */}
             {note.tags.length > 0 && (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
+              <span className={cn(
+                "text-xs px-1.5 py-0.5 rounded",
+                note.color ? "bg-white/50 text-gray-700" : "bg-secondary text-secondary-foreground"
+              )}>
                 #{note.tags[0]}
               </span>
             )}
             {note.tags.length > 1 && (
-              <span className="text-xs text-muted-foreground">+{note.tags.length - 1}</span>
+              <span className="text-xs">+{note.tags.length - 1}</span>
             )}
           </div>
           <span className="text-xs">
@@ -140,6 +168,22 @@ export function NoteCard({ note, workspace, onClick, onPin, onStar, onDelete }: 
           </span>
         </div>
       </article>
+
+      {/* Color Picker Popup */}
+      {showColorPicker && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+          onClick={() => setShowColorPicker(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <ColorPicker
+              selectedColor={note.color || ''}
+              onSelectColor={handleColorSelect}
+              onClose={() => setShowColorPicker(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Info Popup */}
       {showInfoPopup && (
@@ -203,6 +247,16 @@ export function NoteCard({ note, workspace, onClick, onPin, onStar, onDelete }: 
                 </div>
               )}
 
+              {note.subcategory && (
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 rounded shrink-0 bg-secondary" />
+                  <div>
+                    <p className="text-muted-foreground text-xs">Subcategory</p>
+                    <p className="text-foreground">{note.subcategory}</p>
+                  </div>
+                </div>
+              )}
+
               {note.tags.length > 0 && (
                 <div className="flex items-start gap-3">
                   <TagIcon className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
@@ -245,7 +299,7 @@ export function NoteCard({ note, workspace, onClick, onPin, onStar, onDelete }: 
             className="absolute bg-popover border border-border rounded-lg shadow-elevated p-2 min-w-[160px] animate-fade-in"
             style={{
               left: Math.min(menuPosition.x, window.innerWidth - 180),
-              top: Math.min(menuPosition.y, window.innerHeight - 200),
+              top: Math.min(menuPosition.y, window.innerHeight - 240),
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -274,6 +328,15 @@ export function NoteCard({ note, workspace, onClick, onPin, onStar, onDelete }: 
                 <Star className={cn('w-4 h-4', note.isStarred && 'fill-gold text-gold')} />
                 {note.isStarred ? 'Unstar' : 'Star'}
               </button>
+              {onColorChange && (
+                <button
+                  className="flex items-center gap-3 w-full px-3 py-2 text-sm rounded-md hover:bg-accent text-foreground transition-colors"
+                  onClick={handleColorClick}
+                >
+                  <Palette className="w-4 h-4" style={note.color ? { color: note.color } : undefined} />
+                  Change color
+                </button>
+              )}
               <div className="h-px bg-border my-1" />
               <button
                 className="flex items-center gap-3 w-full px-3 py-2 text-sm rounded-md hover:bg-destructive/10 text-destructive transition-colors"

@@ -4,7 +4,9 @@ export interface Note {
   id: string;
   title: string;
   content: string;
-  workspace: string;
+  workspace: string; // Can be empty for uncategorized notes
+  subcategory: string; // Subcategory within the workspace
+  color: string; // Note card background color
   isPinned: boolean;
   isStarred: boolean;
   createdAt: Date;
@@ -17,6 +19,13 @@ export interface Workspace {
   name: string;
   color: string;
   icon: string;
+  createdAt: Date;
+}
+
+export interface Subcategory {
+  id: string;
+  name: string;
+  workspaceId: string;
   createdAt: Date;
 }
 
@@ -34,10 +43,17 @@ interface NotoriaDB extends DBSchema {
     key: string;
     value: Workspace;
   };
+  subcategories: {
+    key: string;
+    value: Subcategory;
+    indexes: {
+      'by-workspace': string;
+    };
+  };
 }
 
 const DB_NAME = 'notoria-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbInstance: IDBPDatabase<NotoriaDB> | null = null;
 
@@ -45,15 +61,25 @@ export async function getDB(): Promise<IDBPDatabase<NotoriaDB>> {
   if (dbInstance) return dbInstance;
 
   dbInstance = await openDB<NotoriaDB>(DB_NAME, DB_VERSION, {
-    upgrade(db) {
+    upgrade(db, oldVersion) {
       // Notes store
-      const notesStore = db.createObjectStore('notes', { keyPath: 'id' });
-      notesStore.createIndex('by-workspace', 'workspace');
-      notesStore.createIndex('by-updated', 'updatedAt');
-      notesStore.createIndex('by-pinned', 'isPinned');
+      if (!db.objectStoreNames.contains('notes')) {
+        const notesStore = db.createObjectStore('notes', { keyPath: 'id' });
+        notesStore.createIndex('by-workspace', 'workspace');
+        notesStore.createIndex('by-updated', 'updatedAt');
+        notesStore.createIndex('by-pinned', 'isPinned');
+      }
 
       // Workspaces store
-      db.createObjectStore('workspaces', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('workspaces')) {
+        db.createObjectStore('workspaces', { keyPath: 'id' });
+      }
+
+      // Subcategories store (new in version 2)
+      if (!db.objectStoreNames.contains('subcategories')) {
+        const subcatStore = db.createObjectStore('subcategories', { keyPath: 'id' });
+        subcatStore.createIndex('by-workspace', 'workspaceId');
+      }
     },
   });
 
@@ -86,7 +112,13 @@ export async function getNote(id: string): Promise<Note | undefined> {
 
 export async function saveNote(note: Note): Promise<void> {
   const db = await getDB();
-  await db.put('notes', note);
+  // Ensure new fields have defaults for backwards compatibility
+  const noteWithDefaults: Note = {
+    ...note,
+    subcategory: note.subcategory || '',
+    color: note.color || '',
+  };
+  await db.put('notes', noteWithDefaults);
 }
 
 export async function deleteNote(id: string): Promise<void> {
@@ -126,6 +158,27 @@ export async function deleteWorkspace(id: string): Promise<void> {
   await db.delete('workspaces', id);
 }
 
+// Subcategories operations
+export async function getAllSubcategories(): Promise<Subcategory[]> {
+  const db = await getDB();
+  return db.getAll('subcategories');
+}
+
+export async function getSubcategoriesByWorkspace(workspaceId: string): Promise<Subcategory[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('subcategories', 'by-workspace', workspaceId);
+}
+
+export async function saveSubcategory(subcategory: Subcategory): Promise<void> {
+  const db = await getDB();
+  await db.put('subcategories', subcategory);
+}
+
+export async function deleteSubcategory(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('subcategories', id);
+}
+
 // Initialize default workspaces
 export async function initializeDefaultWorkspaces(): Promise<void> {
   const workspaces = await getAllWorkspaces();
@@ -146,3 +199,15 @@ export async function initializeDefaultWorkspaces(): Promise<void> {
 export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
+
+// Note color presets
+export const NOTE_COLORS = [
+  { name: 'None', value: '' },
+  { name: 'Rose', value: '#fecdd3' },
+  { name: 'Amber', value: '#fde68a' },
+  { name: 'Lime', value: '#bef264' },
+  { name: 'Cyan', value: '#a5f3fc' },
+  { name: 'Violet', value: '#c4b5fd' },
+  { name: 'Pink', value: '#f9a8d4' },
+  { name: 'Slate', value: '#cbd5e1' },
+];
