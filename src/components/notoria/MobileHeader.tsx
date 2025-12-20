@@ -1,4 +1,4 @@
-import { Menu, Search, Plus, BookOpen } from 'lucide-react';
+import { Menu, Search, Plus, BookOpen, Trash2, Settings, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Workspace } from '@/lib/db';
@@ -20,6 +20,9 @@ interface MobileHeaderProps {
   onSelectWorkspace: (id: string | null) => void;
   onNewNote: () => void;
   onOpenSearch: () => void;
+  onOpenTrash: () => void;
+  onOpenSettings: () => void;
+  showStarred?: boolean;
 }
 
 export function MobileHeader({
@@ -28,6 +31,9 @@ export function MobileHeader({
   onSelectWorkspace,
   onNewNote,
   onOpenSearch,
+  onOpenTrash,
+  onOpenSettings,
+  showStarred = false,
 }: MobileHeaderProps) {
   const currentWorkspace = workspaces.find((ws) => ws.id === selectedWorkspace);
 
@@ -60,7 +66,7 @@ export function MobileHeader({
                 onClick={() => onSelectWorkspace(null)}
                 className={cn(
                   'w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors',
-                  selectedWorkspace === null
+                  selectedWorkspace === null && !showStarred
                     ? 'bg-secondary text-foreground'
                     : 'text-muted-foreground hover:bg-secondary/50'
                 )}
@@ -76,7 +82,7 @@ export function MobileHeader({
                     onClick={() => onSelectWorkspace(workspace.id)}
                     className={cn(
                       'w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors',
-                      selectedWorkspace === workspace.id
+                      selectedWorkspace === workspace.id && !showStarred
                         ? 'bg-secondary text-foreground'
                         : 'text-muted-foreground hover:bg-secondary/50'
                     )}
@@ -86,6 +92,23 @@ export function MobileHeader({
                   </button>
                 );
               })}
+              
+              <div className="mt-4 pt-4 border-t border-border space-y-1">
+                <button
+                  onClick={onOpenTrash}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-secondary/50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Trash</span>
+                </button>
+                <button
+                  onClick={onOpenSettings}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-secondary/50"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Settings</span>
+                </button>
+              </div>
             </nav>
 
             {/* Footer */}
@@ -97,9 +120,9 @@ export function MobileHeader({
       </Sheet>
 
       <div className="flex items-center gap-2">
-        <BookOpen className="w-5 h-5 text-gold" />
+        {showStarred ? <Star className="w-5 h-5 text-gold" /> : <BookOpen className="w-5 h-5 text-gold" />}
         <span className="font-display font-semibold">
-          {currentWorkspace ? currentWorkspace.name : 'All Notes'}
+          {showStarred ? 'Starred' : (currentWorkspace ? currentWorkspace.name : 'All Notes')}
         </span>
       </div>
 

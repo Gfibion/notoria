@@ -3,14 +3,15 @@ import {
   Note,
   getAllNotes,
   getNotesByWorkspace,
+  getStarredNotes,
   getNote,
   saveNote,
-  deleteNote,
+  softDeleteNote,
   searchNotes,
   generateId,
 } from '@/lib/db';
 
-export function useNotes(workspaceId?: string) {
+export function useNotes(workspaceId?: string, starredOnly?: boolean) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,9 +19,14 @@ export function useNotes(workspaceId?: string) {
   const loadNotes = useCallback(async () => {
     try {
       setLoading(true);
-      const data = workspaceId
-        ? await getNotesByWorkspace(workspaceId)
-        : await getAllNotes();
+      let data: Note[];
+      if (starredOnly) {
+        data = await getStarredNotes();
+      } else if (workspaceId) {
+        data = await getNotesByWorkspace(workspaceId);
+      } else {
+        data = await getAllNotes();
+      }
       setNotes(data);
       setError(null);
     } catch (err) {
@@ -29,7 +35,7 @@ export function useNotes(workspaceId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [workspaceId]);
+  }, [workspaceId, starredOnly]);
 
   useEffect(() => {
     loadNotes();
@@ -46,6 +52,7 @@ export function useNotes(workspaceId?: string) {
         color: '',
         isPinned: false,
         isStarred: false,
+        isDeleted: false,
         createdAt: new Date(),
         updatedAt: new Date(),
         tags,
@@ -77,7 +84,7 @@ export function useNotes(workspaceId?: string) {
 
   const removeNote = useCallback(
     async (id: string) => {
-      await deleteNote(id);
+      await softDeleteNote(id);
       await loadNotes();
     },
     [loadNotes]

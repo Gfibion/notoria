@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Note, Workspace } from '@/lib/db';
+import { Note, Workspace, getSettings, cleanupOldDeletedNotes } from '@/lib/db';
 import { useNotes } from '@/hooks/useNotes';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
 import { Sidebar } from '@/components/notoria/Sidebar';
 import { MobileHeader } from '@/components/notoria/MobileHeader';
 import { NoteEditor } from '@/components/notoria/NoteEditor';
-import { SearchDialog } from '@/components/notoria/SearchDialog';
+import { InlineSearch } from '@/components/notoria/InlineSearch';
 import { EmptyState } from '@/components/notoria/EmptyState';
 import { NotesGrid } from '@/components/notoria/NotesGrid';
 import { InstallBanner } from '@/components/notoria/InstallBanner';
-import { Plus, BookOpen } from 'lucide-react';
+import { TrashView } from '@/components/notoria/TrashView';
+import { SettingsDialog } from '@/components/notoria/SettingsDialog';
+import { Plus, BookOpen, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -18,8 +20,12 @@ const Index = () => {
   const [selectedWorkspace, setSelectedWorkspace] = useState<string | null>(null);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showStarred, setShowStarred] = useState(false);
+  const [showTrash, setShowTrash] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -34,63 +40,114 @@ const Index = () => {
     toggleStar,
     updateNoteColor,
     refresh,
-  } = useNotes(selectedWorkspace || undefined);
+  } = useNotes(showStarred ? undefined : (selectedWorkspace || undefined), showStarred);
+
+  // Initialize settings and cleanup on load
+  useEffect(() => {
+    const initApp = async () => {
+      await cleanupOldDeletedNotes();
+      const settings = await getSettings();
+      
+      // Apply font
+      const fonts: Record<string, string> = {
+        inter: 'Inter, system-ui, sans-serif',
+        times: '"Times New Roman", Times, serif',
+        calibri: 'Calibri, "Gill Sans", sans-serif',
+        georgia: 'Georgia, "Times New Roman", serif',
+      };
+      document.documentElement.style.setProperty('--app-font-family', fonts[settings.fontFamily] || fonts.inter);
+      
+      // Apply theme
+      if (settings.theme === 'purple-gradient') {
+        document.documentElement.setAttribute('data-theme', 'purple-gradient');
+      }
+    };
+    initApp();
+  }, []);
+
+  // Back button navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      if (isEditorOpen) {
+        setIsEditorOpen(false);
+        setSelectedNote(null);
+      } else if (isSearchActive) {
+        setIsSearchActive(false);
+      } else if (showTrash) {
+        setShowTrash(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isEditorOpen, isSearchActive, showTrash]);
+
+  // Push state when opening views
+  useEffect(() => {
+    if (isEditorOpen || isSearchActive || showTrash) {
+      window.history.pushState({ view: 'sub' }, '');
+    }
+  }, [isEditorOpen, isSearchActive, showTrash]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setIsSearchOpen(true);
+        setIsSearchActive(true);
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
         e.preventDefault();
         handleNewNote();
       }
-      if (e.key === 'Escape' && isEditorOpen) {
-        setIsEditorOpen(false);
-        setSelectedNote(null);
+      if (e.key === 'Escape') {
+        if (isSearchActive) setIsSearchActive(false);
+        else if (isEditorOpen) {
+          setIsEditorOpen(false);
+          setSelectedNote(null);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isEditorOpen]);
+  }, [isEditorOpen, isSearchActive]);
 
   const handleNewNote = useCallback(() => {
     setSelectedNote(null);
     setIsEditorOpen(true);
-  }, []);
+    if (isMobile) setSidebarCollapsed(true);
+  }, [isMobile]);
 
-  const handleNoteClick = useCallback((note: Note) => {
+  const handleNoteClick = useCallback((note: Note, query?: string) => {
     setSelectedNote(note);
+    setSearchQuery(query || '');
     setIsEditorOpen(true);
-  }, []);
+    if (isMobile) setSidebarCollapsed(true);
+  }, [isMobile]);
 
   const handleSaveNote = useCallback(
     async (noteData: Partial<Note>) => {
       try {
         if (selectedNote) {
           await updateNote(selectedNote.id, noteData);
-          toast({ title: 'Note updated', description: 'Your changes have been saved.' });
         } else {
           const newNote = await createNote(
-            noteData.title || 'Untitled',
+            noteData.title || '',
             noteData.content || '',
-            noteData.workspace || workspaces[0]?.id || 'personal',
+            noteData.workspace || '',
             noteData.tags || []
           );
           setSelectedNote(newNote);
-          toast({ title: 'Note created', description: 'Your new note is ready.' });
         }
       } catch (err) {
         toast({
           title: 'Error',
-          description: 'Failed to save note. Please try again.',
+          description: 'Failed to save note.',
           variant: 'destructive',
         });
       }
     },
-    [selectedNote, updateNote, createNote, workspaces, toast]
+    [selectedNote, updateNote, createNote, toast]
   );
 
   const handleDeleteNote = useCallback(
@@ -101,25 +158,26 @@ const Index = () => {
           setSelectedNote(null);
           setIsEditorOpen(false);
         }
-        toast({ title: 'Note deleted', description: 'The note has been removed.' });
+        toast({ title: 'Note moved to trash' });
       } catch (err) {
-        toast({
-          title: 'Error',
-          description: 'Failed to delete note.',
-          variant: 'destructive',
-        });
+        toast({ title: 'Error', description: 'Failed to delete note.', variant: 'destructive' });
       }
     },
     [selectedNote, removeNote, toast]
   );
 
-  const handleSearchSelect = useCallback((note: Note) => {
-    setSelectedNote(note);
-    setIsEditorOpen(true);
-  }, []);
-
   const currentWorkspace = workspaces.find((ws) => ws.id === selectedWorkspace);
   const loading = workspacesLoading || notesLoading;
+
+  if (showTrash) {
+    return (
+      <TrashView
+        workspaces={workspaces}
+        onClose={() => setShowTrash(false)}
+        onRestore={refresh}
+      />
+    );
+  }
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -128,9 +186,19 @@ const Index = () => {
         <Sidebar
           workspaces={workspaces}
           selectedWorkspace={selectedWorkspace}
-          onSelectWorkspace={setSelectedWorkspace}
+          onSelectWorkspace={(id) => {
+            setSelectedWorkspace(id);
+            setShowStarred(false);
+          }}
           onNewNote={handleNewNote}
-          onOpenSearch={() => setIsSearchOpen(true)}
+          onOpenSearch={() => setIsSearchActive(true)}
+          onOpenTrash={() => setShowTrash(true)}
+          onOpenSettings={() => setShowSettings(true)}
+          onShowStarred={() => {
+            setShowStarred(true);
+            setSelectedWorkspace(null);
+          }}
+          showStarred={showStarred}
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
@@ -139,17 +207,33 @@ const Index = () => {
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden relative">
         {/* Mobile Header */}
-        {!isEditorOpen && (
+        {!isEditorOpen && !isSearchActive && (
           <MobileHeader
             workspaces={workspaces}
             selectedWorkspace={selectedWorkspace}
-            onSelectWorkspace={setSelectedWorkspace}
+            onSelectWorkspace={(id) => {
+              setSelectedWorkspace(id);
+              setShowStarred(false);
+            }}
             onNewNote={handleNewNote}
-            onOpenSearch={() => setIsSearchOpen(true)}
+            onOpenSearch={() => setIsSearchActive(true)}
+            onOpenTrash={() => setShowTrash(true)}
+            onOpenSettings={() => setShowSettings(true)}
+            showStarred={showStarred}
           />
         )}
 
-        {isEditorOpen ? (
+        {/* Inline Search */}
+        {isSearchActive && (
+          <InlineSearch
+            isActive={isSearchActive}
+            onClose={() => setIsSearchActive(false)}
+            workspaces={workspaces}
+            onSelectNote={handleNoteClick}
+          />
+        )}
+
+        {isEditorOpen && !isSearchActive ? (
           <NoteEditor
             note={selectedNote}
             workspaces={workspaces}
@@ -157,25 +241,33 @@ const Index = () => {
             onClose={() => {
               setIsEditorOpen(false);
               setSelectedNote(null);
+              setSearchQuery('');
               refresh();
             }}
+            searchQuery={searchQuery}
           />
-        ) : (
+        ) : !isSearchActive && (
           <>
             {/* Desktop Header */}
             <header className="hidden md:flex items-center justify-between px-8 py-6 border-b border-border">
               <div>
                 <h1 className="font-display text-3xl font-semibold text-foreground">
-                  {currentWorkspace ? currentWorkspace.name : 'All Notes'}
+                  {showStarred ? 'Starred Notes' : (currentWorkspace ? currentWorkspace.name : 'All Notes')}
                 </h1>
                 <p className="text-muted-foreground mt-1">
                   {notes.length} {notes.length === 1 ? 'note' : 'notes'}
                 </p>
               </div>
-              <Button onClick={handleNewNote} className="gap-2">
-                <Plus className="w-4 h-4" />
-                New Note
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setIsSearchActive(true)} className="gap-2">
+                  <Search className="w-4 h-4" />
+                  Search
+                </Button>
+                <Button onClick={handleNewNote} className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  New Note
+                </Button>
+              </div>
             </header>
 
             {/* Content */}
@@ -202,7 +294,7 @@ const Index = () => {
               )}
             </div>
 
-            {/* Floating Action Button - only visible when not in editor */}
+            {/* Floating Action Button */}
             <Button
               onClick={handleNewNote}
               size="icon"
@@ -214,13 +306,8 @@ const Index = () => {
         )}
       </main>
 
-      {/* Search Dialog */}
-      <SearchDialog
-        open={isSearchOpen}
-        onOpenChange={setIsSearchOpen}
-        workspaces={workspaces}
-        onSelectNote={handleSearchSelect}
-      />
+      {/* Settings Dialog */}
+      <SettingsDialog open={showSettings} onClose={() => setShowSettings(false)} />
 
       {/* Install Banner */}
       <InstallBanner />

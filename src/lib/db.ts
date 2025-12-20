@@ -9,6 +9,8 @@ export interface Note {
   color: string; // Note card background color
   isPinned: boolean;
   isStarred: boolean;
+  isDeleted: boolean; // Soft delete flag
+  deletedAt?: Date; // When the note was deleted
   createdAt: Date;
   updatedAt: Date;
   tags: string[];
@@ -29,6 +31,12 @@ export interface Subcategory {
   createdAt: Date;
 }
 
+export interface AppSettings {
+  id: string;
+  theme: 'default' | 'dark' | 'purple-gradient';
+  fontFamily: 'inter' | 'times' | 'calibri' | 'georgia';
+}
+
 interface NotoriaDB extends DBSchema {
   notes: {
     key: string;
@@ -37,6 +45,7 @@ interface NotoriaDB extends DBSchema {
       'by-workspace': string;
       'by-updated': Date;
       'by-pinned': number;
+      'by-deleted': number;
     };
   };
   workspaces: {
@@ -50,10 +59,14 @@ interface NotoriaDB extends DBSchema {
       'by-workspace': string;
     };
   };
+  settings: {
+    key: string;
+    value: AppSettings;
+  };
 }
 
 const DB_NAME = 'notoria-db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let dbInstance: IDBPDatabase<NotoriaDB> | null = null;
 
@@ -68,6 +81,7 @@ export async function getDB(): Promise<IDBPDatabase<NotoriaDB>> {
         notesStore.createIndex('by-workspace', 'workspace');
         notesStore.createIndex('by-updated', 'updatedAt');
         notesStore.createIndex('by-pinned', 'isPinned');
+        notesStore.createIndex('by-deleted', 'isDeleted');
       }
 
       // Workspaces store
@@ -75,10 +89,15 @@ export async function getDB(): Promise<IDBPDatabase<NotoriaDB>> {
         db.createObjectStore('workspaces', { keyPath: 'id' });
       }
 
-      // Subcategories store (new in version 2)
+      // Subcategories store
       if (!db.objectStoreNames.contains('subcategories')) {
         const subcatStore = db.createObjectStore('subcategories', { keyPath: 'id' });
         subcatStore.createIndex('by-workspace', 'workspaceId');
+      }
+
+      // Settings store (new in version 3)
+      if (!db.objectStoreNames.contains('settings')) {
+        db.createObjectStore('settings', { keyPath: 'id' });
       }
     },
   });
@@ -90,19 +109,46 @@ export async function getDB(): Promise<IDBPDatabase<NotoriaDB>> {
 export async function getAllNotes(): Promise<Note[]> {
   const db = await getDB();
   const notes = await db.getAll('notes');
-  return notes.sort((a, b) => {
-    if (a.isPinned !== b.isPinned) return b.isPinned ? 1 : -1;
-    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-  });
+  return notes
+    .filter(note => !note.isDeleted)
+    .sort((a, b) => {
+      if (a.isPinned !== b.isPinned) return b.isPinned ? 1 : -1;
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
 }
 
 export async function getNotesByWorkspace(workspaceId: string): Promise<Note[]> {
   const db = await getDB();
   const notes = await db.getAllFromIndex('notes', 'by-workspace', workspaceId);
-  return notes.sort((a, b) => {
-    if (a.isPinned !== b.isPinned) return b.isPinned ? 1 : -1;
-    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-  });
+  return notes
+    .filter(note => !note.isDeleted)
+    .sort((a, b) => {
+      if (a.isPinned !== b.isPinned) return b.isPinned ? 1 : -1;
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+}
+
+export async function getStarredNotes(): Promise<Note[]> {
+  const db = await getDB();
+  const notes = await db.getAll('notes');
+  return notes
+    .filter(note => note.isStarred && !note.isDeleted)
+    .sort((a, b) => {
+      if (a.isPinned !== b.isPinned) return b.isPinned ? 1 : -1;
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+}
+
+export async function getDeletedNotes(): Promise<Note[]> {
+  const db = await getDB();
+  const notes = await db.getAll('notes');
+  return notes
+    .filter(note => note.isDeleted)
+    .sort((a, b) => {
+      const aDeletedAt = a.deletedAt ? new Date(a.deletedAt).getTime() : 0;
+      const bDeletedAt = b.deletedAt ? new Date(b.deletedAt).getTime() : 0;
+      return bDeletedAt - aDeletedAt;
+    });
 }
 
 export async function getNote(id: string): Promise<Note | undefined> {
@@ -117,13 +163,52 @@ export async function saveNote(note: Note): Promise<void> {
     ...note,
     subcategory: note.subcategory || '',
     color: note.color || '',
+    isDeleted: note.isDeleted ?? false,
+    isStarred: note.isStarred ?? false,
   };
   await db.put('notes', noteWithDefaults);
 }
 
+// Soft delete - move to trash
+export async function softDeleteNote(id: string): Promise<void> {
+  const db = await getDB();
+  const note = await db.get('notes', id);
+  if (note) {
+    note.isDeleted = true;
+    note.deletedAt = new Date();
+    await db.put('notes', note);
+  }
+}
+
+// Restore from trash
+export async function restoreNote(id: string): Promise<void> {
+  const db = await getDB();
+  const note = await db.get('notes', id);
+  if (note) {
+    note.isDeleted = false;
+    note.deletedAt = undefined;
+    await db.put('notes', note);
+  }
+}
+
+// Permanent delete
 export async function deleteNote(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('notes', id);
+}
+
+// Auto-delete notes older than 30 days
+export async function cleanupOldDeletedNotes(): Promise<void> {
+  const db = await getDB();
+  const notes = await db.getAll('notes');
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  for (const note of notes) {
+    if (note.isDeleted && note.deletedAt && new Date(note.deletedAt) < thirtyDaysAgo) {
+      await db.delete('notes', note.id);
+    }
+  }
 }
 
 export async function searchNotes(query: string): Promise<Note[]> {
@@ -179,6 +264,22 @@ export async function deleteSubcategory(id: string): Promise<void> {
   await db.delete('subcategories', id);
 }
 
+// Settings operations
+export async function getSettings(): Promise<AppSettings> {
+  const db = await getDB();
+  const settings = await db.get('settings', 'app-settings');
+  return settings || {
+    id: 'app-settings',
+    theme: 'default',
+    fontFamily: 'inter',
+  };
+}
+
+export async function saveSettings(settings: AppSettings): Promise<void> {
+  const db = await getDB();
+  await db.put('settings', { ...settings, id: 'app-settings' });
+}
+
 // Initialize default workspaces
 export async function initializeDefaultWorkspaces(): Promise<void> {
   const workspaces = await getAllWorkspaces();
@@ -211,3 +312,32 @@ export const NOTE_COLORS = [
   { name: 'Pink', value: '#f9a8d4' },
   { name: 'Slate', value: '#cbd5e1' },
 ];
+
+// Export note as TXT
+export function exportNoteAsTxt(note: Note): void {
+  const content = note.content.replace(/<[^>]*>/g, '\n').replace(/\n+/g, '\n').trim();
+  const text = `${note.title || 'Untitled'}\n\n${content}`;
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${note.title || 'note'}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Import from TXT
+export async function importFromTxt(file: File): Promise<{ title: string; content: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const lines = text.split('\n');
+      const title = lines[0]?.trim() || 'Imported Note';
+      const content = lines.slice(1).join('<br>').trim();
+      resolve({ title, content });
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsText(file);
+  });
+}
