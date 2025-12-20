@@ -11,6 +11,9 @@ import {
   Lightbulb,
   Folder,
   Hash,
+  Star,
+  Trash2,
+  Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
@@ -29,6 +32,10 @@ interface SidebarProps {
   onSelectWorkspace: (id: string | null) => void;
   onNewNote: () => void;
   onOpenSearch: () => void;
+  onOpenTrash: () => void;
+  onOpenSettings: () => void;
+  onShowStarred: () => void;
+  showStarred: boolean;
   collapsed: boolean;
   onToggleCollapse: () => void;
 }
@@ -39,6 +46,10 @@ export function Sidebar({
   onSelectWorkspace,
   onNewNote,
   onOpenSearch,
+  onOpenTrash,
+  onOpenSettings,
+  onShowStarred,
+  showStarred,
   collapsed,
   onToggleCollapse,
 }: SidebarProps) {
@@ -114,7 +125,7 @@ export function Sidebar({
             onClick={() => onSelectWorkspace(null)}
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-              selectedWorkspace === null
+              selectedWorkspace === null && !showStarred
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                 : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
             )}
@@ -122,6 +133,21 @@ export function Sidebar({
             <BookOpen className="w-4 h-4 flex-shrink-0" />
             {!collapsed && <span>All Notes</span>}
           </button>
+          
+          {/* Starred Notes */}
+          <button
+            onClick={onShowStarred}
+            className={cn(
+              'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+              showStarred
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+            )}
+          >
+            <Star className="w-4 h-4 flex-shrink-0 text-gold" />
+            {!collapsed && <span>Starred</span>}
+          </button>
+
           {workspaces.map((workspace) => {
             const Icon = iconMap[workspace.icon] || iconMap.default;
             return (
@@ -130,7 +156,7 @@ export function Sidebar({
                 onClick={() => onSelectWorkspace(workspace.id)}
                 className={cn(
                   'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                  selectedWorkspace === workspace.id
+                  selectedWorkspace === workspace.id && !showStarred
                     ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                     : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
                 )}
@@ -144,10 +170,33 @@ export function Sidebar({
             );
           })}
         </nav>
+
+        {/* Trash */}
+        <div className="px-2 mt-4">
+          <button
+            onClick={onOpenTrash}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50"
+          >
+            <Trash2 className="w-4 h-4 flex-shrink-0" />
+            {!collapsed && <span>Trash</span>}
+          </button>
+        </div>
       </div>
 
       {/* Footer */}
       <div className={cn('p-3 border-t border-sidebar-border', collapsed && 'flex flex-col items-center gap-2')}>
+        <Button
+          variant="ghost"
+          size={collapsed ? 'icon' : 'sm'}
+          onClick={onOpenSettings}
+          className={cn(
+            'text-muted-foreground hover:text-foreground transition-colors',
+            !collapsed && 'w-full justify-start mb-2'
+          )}
+        >
+          <Settings className="w-4 h-4" />
+          {!collapsed && <span className="ml-2">Settings</span>}
+        </Button>
         <ThemeToggle collapsed={collapsed} />
       </div>
     </aside>
