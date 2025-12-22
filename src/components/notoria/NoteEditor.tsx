@@ -40,6 +40,7 @@ interface NoteEditorProps {
   workspaces: Workspace[];
   onSave: (note: Partial<Note>) => void;
   onClose: () => void;
+  searchQuery?: string;
 }
 
 // Formatting button tooltips
