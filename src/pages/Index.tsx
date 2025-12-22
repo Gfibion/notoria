@@ -115,15 +115,15 @@ const Index = () => {
   const handleNewNote = useCallback(() => {
     setSelectedNote(null);
     setIsEditorOpen(true);
-    if (isMobile) setSidebarCollapsed(true);
-  }, [isMobile]);
+    setSidebarCollapsed(true); // Auto-collapse sidebar when creating a note
+  }, []);
 
   const handleNoteClick = useCallback((note: Note, query?: string) => {
     setSelectedNote(note);
     setSearchQuery(query || '');
     setIsEditorOpen(true);
-    if (isMobile) setSidebarCollapsed(true);
-  }, [isMobile]);
+    setSidebarCollapsed(true); // Auto-collapse sidebar when opening a note
+  }, []);
 
   const handleSaveNote = useCallback(
     async (noteData: Partial<Note>) => {
