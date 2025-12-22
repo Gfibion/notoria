@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { Workspace } from '@/lib/db';
+import { Workspace, Subcategory, getSubcategoriesByWorkspace } from '@/lib/db';
 import {
   PanelLeftClose,
   PanelLeft,
@@ -14,6 +15,8 @@ import {
   Star,
   Trash2,
   Settings,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
@@ -29,7 +32,9 @@ const iconMap: Record<string, React.ElementType> = {
 interface SidebarProps {
   workspaces: Workspace[];
   selectedWorkspace: string | null;
+  selectedSubcategory: string | null;
   onSelectWorkspace: (id: string | null) => void;
+  onSelectSubcategory: (subcategory: string | null) => void;
   onNewNote: () => void;
   onOpenSearch: () => void;
   onOpenTrash: () => void;
@@ -43,7 +48,9 @@ interface SidebarProps {
 export function Sidebar({
   workspaces,
   selectedWorkspace,
+  selectedSubcategory,
   onSelectWorkspace,
+  onSelectSubcategory,
   onNewNote,
   onOpenSearch,
   onOpenTrash,
@@ -53,6 +60,54 @@ export function Sidebar({
   collapsed,
   onToggleCollapse,
 }: SidebarProps) {
+  const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(new Set());
+  const [workspaceSubcategories, setWorkspaceSubcategories] = useState<Record<string, Subcategory[]>>({});
+
+  // Load subcategories for all workspaces
+  useEffect(() => {
+    const loadAllSubcategories = async () => {
+      const subcatMap: Record<string, Subcategory[]> = {};
+      for (const ws of workspaces) {
+        const subcats = await getSubcategoriesByWorkspace(ws.id);
+        if (subcats.length > 0) {
+          subcatMap[ws.id] = subcats;
+        }
+      }
+      setWorkspaceSubcategories(subcatMap);
+    };
+    loadAllSubcategories();
+  }, [workspaces]);
+
+  // Auto-expand workspace if a subcategory is selected
+  useEffect(() => {
+    if (selectedWorkspace && selectedSubcategory) {
+      setExpandedWorkspaces(prev => new Set([...prev, selectedWorkspace]));
+    }
+  }, [selectedWorkspace, selectedSubcategory]);
+
+  const toggleWorkspaceExpand = (workspaceId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedWorkspaces(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(workspaceId)) {
+        newSet.delete(workspaceId);
+      } else {
+        newSet.add(workspaceId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleWorkspaceClick = (workspaceId: string) => {
+    onSelectSubcategory(null); // Reset subcategory when selecting workspace
+    onSelectWorkspace(workspaceId);
+  };
+
+  const handleSubcategoryClick = (workspaceId: string, subcategoryName: string) => {
+    onSelectWorkspace(workspaceId);
+    onSelectSubcategory(subcategoryName);
+  };
+
   return (
     <aside
       className={cn(
@@ -122,10 +177,13 @@ export function Sidebar({
         )}
         <nav className="px-2 space-y-1">
           <button
-            onClick={() => onSelectWorkspace(null)}
+            onClick={() => {
+              onSelectSubcategory(null);
+              onSelectWorkspace(null);
+            }}
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-              selectedWorkspace === null && !showStarred
+              selectedWorkspace === null && !showStarred && !selectedSubcategory
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                 : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
             )}
@@ -150,23 +208,65 @@ export function Sidebar({
 
           {workspaces.map((workspace) => {
             const Icon = iconMap[workspace.icon] || iconMap.default;
+            const subcats = workspaceSubcategories[workspace.id] || [];
+            const hasSubcats = subcats.length > 0;
+            const isExpanded = expandedWorkspaces.has(workspace.id);
+            const isWorkspaceSelected = selectedWorkspace === workspace.id && !showStarred && !selectedSubcategory;
+            
             return (
-              <button
-                key={workspace.id}
-                onClick={() => onSelectWorkspace(workspace.id)}
-                className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                  selectedWorkspace === workspace.id && !showStarred
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+              <div key={workspace.id}>
+                <button
+                  onClick={() => handleWorkspaceClick(workspace.id)}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                    isWorkspaceSelected
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                  )}
+                >
+                  {/* Expand/Collapse toggle for workspaces with subcategories */}
+                  {!collapsed && hasSubcats && (
+                    <button
+                      onClick={(e) => toggleWorkspaceExpand(workspace.id, e)}
+                      className="p-0.5 -ml-1 hover:bg-sidebar-accent rounded"
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="w-3 h-3" />
+                      ) : (
+                        <ChevronRight className="w-3 h-3" />
+                      )}
+                    </button>
+                  )}
+                  {!collapsed && !hasSubcats && <div className="w-4" />}
+                  
+                  <Icon
+                    className="w-4 h-4 flex-shrink-0"
+                    style={{ color: workspace.color }}
+                  />
+                  {!collapsed && <span>{workspace.name}</span>}
+                </button>
+                
+                {/* Subcategories */}
+                {!collapsed && hasSubcats && isExpanded && (
+                  <div className="ml-8 mt-1 space-y-1">
+                    {subcats.map((subcat) => (
+                      <button
+                        key={subcat.id}
+                        onClick={() => handleSubcategoryClick(workspace.id, subcat.name)}
+                        className={cn(
+                          'w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors',
+                          selectedWorkspace === workspace.id && selectedSubcategory === subcat.name
+                            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                            : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                        )}
+                      >
+                        <Hash className="w-3 h-3 flex-shrink-0" />
+                        <span>{subcat.name}</span>
+                      </button>
+                    ))}
+                  </div>
                 )}
-              >
-                <Icon
-                  className="w-4 h-4 flex-shrink-0"
-                  style={{ color: workspace.color }}
-                />
-                {!collapsed && <span>{workspace.name}</span>}
-              </button>
+              </div>
             );
           })}
         </nav>

@@ -18,6 +18,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 const Index = () => {
   const [selectedWorkspace, setSelectedWorkspace] = useState<string | null>(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -31,7 +32,7 @@ const Index = () => {
 
   const { workspaces, loading: workspacesLoading } = useWorkspaces();
   const {
-    notes,
+    notes: allNotes,
     loading: notesLoading,
     createNote,
     updateNote,
@@ -41,6 +42,11 @@ const Index = () => {
     updateNoteColor,
     refresh,
   } = useNotes(showStarred ? undefined : (selectedWorkspace || undefined), showStarred);
+
+  // Filter notes by subcategory if selected
+  const notes = selectedSubcategory
+    ? allNotes.filter(note => note.subcategory === selectedSubcategory)
+    : allNotes;
 
   // Initialize settings and cleanup on load
   useEffect(() => {
@@ -186,8 +192,13 @@ const Index = () => {
         <Sidebar
           workspaces={workspaces}
           selectedWorkspace={selectedWorkspace}
+          selectedSubcategory={selectedSubcategory}
           onSelectWorkspace={(id) => {
             setSelectedWorkspace(id);
+            setShowStarred(false);
+          }}
+          onSelectSubcategory={(subcat) => {
+            setSelectedSubcategory(subcat);
             setShowStarred(false);
           }}
           onNewNote={handleNewNote}
@@ -197,6 +208,7 @@ const Index = () => {
           onShowStarred={() => {
             setShowStarred(true);
             setSelectedWorkspace(null);
+            setSelectedSubcategory(null);
           }}
           showStarred={showStarred}
           collapsed={sidebarCollapsed}
@@ -251,8 +263,13 @@ const Index = () => {
             {/* Desktop Header */}
             <header className="hidden md:flex items-center justify-between px-8 py-6 border-b border-border">
               <div>
-                <h1 className="font-display text-3xl font-semibold text-foreground">
-                  {showStarred ? 'Starred Notes' : (currentWorkspace ? currentWorkspace.name : 'All Notes')}
+              <h1 className="font-display text-3xl font-semibold text-foreground">
+                  {showStarred 
+                    ? 'Starred Notes' 
+                    : selectedSubcategory 
+                      ? `${currentWorkspace?.name || ''} / ${selectedSubcategory}`
+                      : (currentWorkspace ? currentWorkspace.name : 'All Notes')
+                  }
                 </h1>
                 <p className="text-muted-foreground mt-1">
                   {notes.length} {notes.length === 1 ? 'note' : 'notes'}
