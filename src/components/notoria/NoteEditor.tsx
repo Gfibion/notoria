@@ -40,6 +40,7 @@ interface NoteEditorProps {
   workspaces: Workspace[];
   onSave: (note: Partial<Note>) => void;
   onClose: () => void;
+  searchQuery?: string;
 }
 
 // Formatting button tooltips
@@ -56,7 +57,7 @@ const FORMAT_TOOLTIPS: Record<string, string> = {
   color: 'Color: Change note background color',
 };
 
-export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProps) {
+export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery }: NoteEditorProps) {
   const [title, setTitle] = useState(note?.title || '');
   const [workspace, setWorkspace] = useState(note?.workspace || '');
   const [subcategory, setSubcategory] = useState(note?.subcategory || '');
