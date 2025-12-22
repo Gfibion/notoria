@@ -74,13 +74,13 @@
   .dark {
     /* Deep Charcoal Evening Theme */
     --background: 220 15% 6%;
-    --foreground: 40 10% 88%;
+    --foreground: 0 0% 90%;
 
     --card: 220 12% 9%;
-    --card-foreground: 40 10% 88%;
+    --card-foreground: 0 0% 90%;
 
     --popover: 220 14% 8%;
-    --popover-foreground: 40 10% 88%;
+    --popover-foreground: 0 0% 90%;
 
     --primary: 40 10% 88%;
     --primary-foreground: 220 15% 6%;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Note, Workspace, Subcategory, saveSubcategory, generateId } from '@/lib/db';
+import { Note, Workspace, saveSubcategory, generateId, exportNoteAsTxt } from '@/lib/db';
 import { useSubcategories } from '@/hooks/useSubcategories';
 import { cn } from '@/lib/utils';
 import {
@@ -7,6 +7,7 @@ import {
   Tag,
   Bold,
   Italic,
+  Underline,
   List,
   ListOrdered,
   Quote,
@@ -14,12 +15,15 @@ import {
   Heading2,
   Code,
   Save,
-  X,
-  Check,
   Undo,
   Pencil,
   Palette,
   Plus,
+  ChevronRight,
+  Type,
+  Highlighter,
+  FileDown,
+  FileUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,7 +37,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ColorPicker } from './ColorPicker';
+import { RainbowColorPicker } from './RainbowColorPicker';
 
 interface NoteEditorProps {
   note: Note | null;
@@ -47,6 +51,7 @@ interface NoteEditorProps {
 const FORMAT_TOOLTIPS: Record<string, string> = {
   bold: 'Bold: Makes text thicker and more prominent',
   italic: 'Italic: Slants text for emphasis',
+  underline: 'Underline: Draws a line under text',
   h1: 'Heading 1: Largest heading for main titles',
   h2: 'Heading 2: Subheading for sections',
   ul: 'Bullet List: Unordered list with bullet points',
@@ -55,9 +60,22 @@ const FORMAT_TOOLTIPS: Record<string, string> = {
   code: 'Code Block: Monospace text for code',
   undo: 'Undo: Reverse your last action',
   color: 'Color: Change note background color',
+  fontColor: 'Font Color: Change text color',
+  highlight: 'Highlight: Highlight text with color',
 };
 
-export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProps) {
+const FONT_COLORS = [
+  '#000000', '#333333', '#666666', '#999999',
+  '#ef4444', '#f97316', '#eab308', '#22c55e',
+  '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6',
+];
+
+const HIGHLIGHT_COLORS = [
+  '#fef08a', '#bbf7d0', '#bfdbfe', '#ddd6fe',
+  '#fbcfe8', '#fed7aa', '#ccfbf1', '#fecaca',
+];
+
+export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery }: NoteEditorProps) {
   const [title, setTitle] = useState(note?.title || '');
   const [workspace, setWorkspace] = useState(note?.workspace || '');
   const [subcategory, setSubcategory] = useState(note?.subcategory || '');
@@ -65,10 +83,12 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
   const [tags, setTags] = useState<string[]>(note?.tags || []);
   const [newTag, setNewTag] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
-  const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(!note);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showFontColorPicker, setShowFontColorPicker] = useState(false);
+  const [showHighlightPicker, setShowHighlightPicker] = useState(false);
+  const [showExtraTools, setShowExtraTools] = useState(false);
   const [newSubcategoryName, setNewSubcategoryName] = useState('');
   const [showNewSubcategoryInput, setShowNewSubcategoryInput] = useState(false);
   
@@ -78,12 +98,14 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const tooltipTimerRef = useRef<NodeJS.Timeout | null>(null);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const lastSavedRef = useRef({ 
     title: note?.title || '', 
     content: note?.content || '', 
     tags: note?.tags || [],
     subcategory: note?.subcategory || '',
     color: note?.color || '',
+    workspace: note?.workspace || '',
   });
   const { toast } = useToast();
 
@@ -93,6 +115,30 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
       contentRef.current.innerHTML = note.content;
     }
   }, []);
+
+  // Highlight search query when opening a note from search
+  useEffect(() => {
+    if (searchQuery && contentRef.current) {
+      const content = contentRef.current;
+      const text = content.innerHTML;
+      const regex = new RegExp(`(${searchQuery})`, 'gi');
+      
+      // First, remove any existing highlights
+      const cleanHtml = text.replace(/<mark class="search-highlight"[^>]*>([^<]+)<\/mark>/gi, '$1');
+      
+      // Then add new highlights
+      const highlightedHtml = cleanHtml.replace(regex, '<mark class="search-highlight" style="background-color: #86efac; padding: 0 2px; border-radius: 2px;">$1</mark>');
+      content.innerHTML = highlightedHtml;
+      
+      // Scroll to the first match
+      setTimeout(() => {
+        const firstMatch = content.querySelector('.search-highlight');
+        if (firstMatch) {
+          firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }, [searchQuery]);
 
   // Update when note changes (switching between notes)
   useEffect(() => {
@@ -111,9 +157,9 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
         tags: [...note.tags],
         subcategory: note.subcategory || '',
         color: note.color || '',
+        workspace: note.workspace || '',
       };
       setHasChanges(false);
-      setAutoSaveStatus('saved');
       setIsEditMode(false);
     } else {
       setIsEditMode(true);
@@ -135,16 +181,27 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
     const hasTagsChanged = JSON.stringify(tags) !== JSON.stringify(lastSavedRef.current.tags);
     const hasSubcategoryChanged = subcategory !== lastSavedRef.current.subcategory;
     const hasColorChanged = noteColor !== lastSavedRef.current.color;
+    const hasWorkspaceChanged = workspace !== lastSavedRef.current.workspace;
     
-    const changed = hasContentChanged || hasTitleChanged || hasTagsChanged || hasSubcategoryChanged || hasColorChanged;
+    const changed = hasContentChanged || hasTitleChanged || hasTagsChanged || hasSubcategoryChanged || hasColorChanged || hasWorkspaceChanged;
     setHasChanges(changed);
     
-    if (changed) {
-      setAutoSaveStatus('unsaved');
-    }
-    
     return changed;
-  }, [title, tags, subcategory, noteColor]);
+  }, [title, tags, subcategory, noteColor, workspace]);
+
+  // Perform save (silent autosave)
+  const performSave = useCallback((showToast = false) => {
+    const content = contentRef.current?.innerHTML || '';
+    
+    onSave({ title, content, workspace, subcategory, color: noteColor, tags });
+    
+    lastSavedRef.current = { title, content, tags: [...tags], subcategory, color: noteColor, workspace };
+    setHasChanges(false);
+    
+    if (showToast) {
+      toast({ title: 'Note saved' });
+    }
+  }, [title, workspace, subcategory, noteColor, tags, onSave, toast]);
 
   // Auto-save with debounce
   const triggerAutoSave = useCallback(() => {
@@ -154,37 +211,17 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
     
     autoSaveTimerRef.current = setTimeout(() => {
       if (checkChanges()) {
-        performSave(true);
+        performSave(false); // Silent autosave
       }
     }, 2000);
-  }, [checkChanges]);
-
-  // Perform save
-  const performSave = useCallback((isAutoSave = false) => {
-    const content = contentRef.current?.innerHTML || '';
-    
-    setAutoSaveStatus('saving');
-    
-    onSave({ title, content, workspace, subcategory, color: noteColor, tags });
-    
-    lastSavedRef.current = { title, content, tags: [...tags], subcategory, color: noteColor };
-    setHasChanges(false);
-    
-    setTimeout(() => {
-      setAutoSaveStatus('saved');
-    }, 500);
-    
-    if (!isAutoSave) {
-      toast({ title: 'Note saved', description: 'Your changes have been saved.' });
-    }
-  }, [title, workspace, subcategory, noteColor, tags, onSave, toast]);
+  }, [checkChanges, performSave]);
 
   // Handle manual save
   const handleSave = () => {
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
-    performSave(false);
+    performSave(true); // Show toast for manual save
   };
 
   // Handle undo
@@ -211,14 +248,20 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
     }
   };
 
+  // Save on close (autosave when closing)
+  const handleClose = () => {
+    if (hasChanges || checkChanges()) {
+      performSave(false);
+    }
+    onClose();
+  };
+
   // Handle beforeunload for sudden closure
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    const handleBeforeUnload = () => {
       if (hasChanges) {
         const content = contentRef.current?.innerHTML || '';
         onSave({ title, content, workspace, subcategory, color: noteColor, tags });
-        e.preventDefault();
-        e.returnValue = '';
       }
     };
 
@@ -229,19 +272,19 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
   // Handle visibility change (for phone shutdown/app switch)
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && hasChanges) {
+      if (document.visibilityState === 'hidden' && (hasChanges || checkChanges())) {
         const content = contentRef.current?.innerHTML || '';
         onSave({ title, content, workspace, subcategory, color: noteColor, tags });
-        lastSavedRef.current = { title, content, tags: [...tags], subcategory, color: noteColor };
+        lastSavedRef.current = { title, content, tags: [...tags], subcategory, color: noteColor, workspace };
         setHasChanges(false);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [hasChanges, title, workspace, subcategory, noteColor, tags, onSave]);
+  }, [hasChanges, title, workspace, subcategory, noteColor, tags, onSave, checkChanges]);
 
-  // Cleanup timers on unmount
+  // Cleanup timers on unmount and save
   useEffect(() => {
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
@@ -294,6 +337,9 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
 
     const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
 
+    // Focus the content area first
+    contentRef.current.focus();
+
     if (command === 'formatBlock') {
       const currentBlock = document.queryCommandValue('formatBlock');
       if (currentBlock.toLowerCase() === value?.toLowerCase()) {
@@ -301,12 +347,12 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
       } else {
         document.execCommand('formatBlock', false, value);
       }
+    } else if (command === 'foreColor' || command === 'hiliteColor') {
+      document.execCommand(command, false, value);
     } else {
       document.execCommand(command, false, value);
     }
 
-    contentRef.current.focus();
-    
     if (range) {
       selection.removeAllRanges();
       selection.addRange(range);
@@ -316,7 +362,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
     triggerAutoSave();
   };
 
-  // Handle content input without losing cursor position
+  // Handle content input
   const handleContentInput = () => {
     checkChanges();
     triggerAutoSave();
@@ -372,10 +418,89 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
     }
   };
 
+  // Export note
+  const handleExport = (format: 'txt' | 'pdf') => {
+    if (!note && !title) {
+      toast({ title: 'Nothing to export', variant: 'destructive' });
+      return;
+    }
+    
+    const content = contentRef.current?.innerHTML || '';
+    const noteToExport: Note = {
+      id: note?.id || generateId(),
+      title: title || 'Untitled',
+      content,
+      workspace,
+      subcategory,
+      color: noteColor,
+      isPinned: note?.isPinned || false,
+      isStarred: note?.isStarred || false,
+      isDeleted: false,
+      createdAt: note?.createdAt || new Date(),
+      updatedAt: new Date(),
+      tags,
+    };
+    
+    if (format === 'txt') {
+      exportNoteAsTxt(noteToExport);
+      toast({ title: 'Exported as TXT' });
+    } else {
+      // PDF export - create a printable version
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>${title || 'Note'}</title>
+              <style>
+                body { font-family: Georgia, serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+                h1 { font-size: 28px; margin-bottom: 20px; }
+                .content { line-height: 1.6; }
+              </style>
+            </head>
+            <body>
+              <h1>${title || 'Untitled'}</h1>
+              <div class="content">${content}</div>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+      }
+      toast({ title: 'Printing as PDF...' });
+    }
+  };
+
+  // Import from TXT
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const text = await file.text();
+      const lines = text.split('\n');
+      const importedTitle = lines[0]?.trim() || '';
+      const importedContent = lines.slice(1).join('<br>').trim();
+      
+      if (importedTitle) setTitle(importedTitle);
+      if (contentRef.current && importedContent) {
+        contentRef.current.innerHTML = importedContent;
+      }
+      triggerAutoSave();
+      toast({ title: 'File imported' });
+    } catch (err) {
+      toast({ title: 'Import failed', variant: 'destructive' });
+    }
+    
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   // Track format state for UI
   const [formatState, setFormatState] = useState({
     bold: false,
     italic: false,
+    underline: false,
     h1: false,
     h2: false,
   });
@@ -386,6 +511,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
       setFormatState({
         bold: document.queryCommandState('bold'),
         italic: document.queryCommandState('italic'),
+        underline: document.queryCommandState('underline'),
         h1: document.queryCommandValue('formatBlock').toLowerCase() === 'h1',
         h2: document.queryCommandValue('formatBlock').toLowerCase() === 'h2',
       });
@@ -433,6 +559,15 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
       className="h-full flex flex-col bg-background animate-fade-in"
       style={noteColor ? { backgroundColor: noteColor } : undefined}
     >
+      {/* Hidden file input for import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".txt"
+        onChange={handleImport}
+        className="hidden"
+      />
+
       {/* Tooltip Display */}
       {activeTooltip && FORMAT_TOOLTIPS[activeTooltip] && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-popover border border-border rounded-lg px-4 py-2 shadow-elevated animate-fade-in">
@@ -443,11 +578,67 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
       {/* Color Picker Popup */}
       {showColorPicker && (
         <div className="fixed top-20 right-4 z-50">
-          <ColorPicker
+          <RainbowColorPicker
             selectedColor={noteColor}
             onSelectColor={handleColorChange}
             onClose={() => setShowColorPicker(false)}
           />
+        </div>
+      )}
+
+      {/* Font Color Picker */}
+      {showFontColorPicker && (
+        <div 
+          className="fixed inset-0 z-50"
+          onClick={() => setShowFontColorPicker(false)}
+        >
+          <div 
+            className="absolute top-32 left-4 bg-popover border border-border rounded-lg p-3 shadow-elevated animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-xs text-muted-foreground mb-2">Font Color</p>
+            <div className="grid grid-cols-4 gap-1">
+              {FONT_COLORS.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => {
+                    execCommand('foreColor', color);
+                    setShowFontColorPicker(false);
+                  }}
+                  className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform"
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Highlight Color Picker */}
+      {showHighlightPicker && (
+        <div 
+          className="fixed inset-0 z-50"
+          onClick={() => setShowHighlightPicker(false)}
+        >
+          <div 
+            className="absolute top-32 left-20 bg-popover border border-border rounded-lg p-3 shadow-elevated animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-xs text-muted-foreground mb-2">Highlight</p>
+            <div className="grid grid-cols-4 gap-1">
+              {HIGHLIGHT_COLORS.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => {
+                    execCommand('hiliteColor', color);
+                    setShowHighlightPicker(false);
+                  }}
+                  className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform"
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -461,12 +652,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
             className="bg-popover border border-border rounded-lg shadow-elevated p-4 w-full max-w-sm animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="font-display font-semibold text-foreground">New Subcategory</h4>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowNewSubcategoryInput(false)}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
+            <h4 className="font-display font-semibold text-foreground mb-4">New Subcategory</h4>
             <div className="flex gap-2">
               <Input
                 placeholder="Subcategory name..."
@@ -486,13 +672,13 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
       {/* Header */}
       <header className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button variant="ghost" size="icon" onClick={handleClose}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           {/* Subcategory selector (only if workspace is selected) */}
           {workspace && (
             <Select value={subcategory || 'none'} onValueChange={handleSubcategoryChange}>
-              <SelectTrigger className="w-[90px] h-8 text-xs">
+              <SelectTrigger className="w-[80px] h-8 text-xs">
                 <SelectValue placeholder="Sub" />
               </SelectTrigger>
               <SelectContent>
@@ -506,7 +692,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
                 ))}
                 <SelectItem value="new">
                   <span className="flex items-center gap-1 text-primary">
-                    <Plus className="w-3 h-3" /> Add new
+                    <Plus className="w-3 h-3" /> Add
                   </span>
                 </SelectItem>
               </SelectContent>
@@ -514,36 +700,18 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
           )}
         </div>
         <div className="flex items-center gap-1">
-          {/* Auto-save status indicator */}
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            {autoSaveStatus === 'saved' && (
-              <>
-                <Check className="w-3 h-3 text-green-500" />
-                <span className="hidden sm:inline">Saved</span>
-              </>
-            )}
-            {autoSaveStatus === 'saving' && (
-              <span className="animate-pulse">Saving...</span>
-            )}
-            {autoSaveStatus === 'unsaved' && (
-              <span className="text-gold">Unsaved</span>
-            )}
-          </div>
-          <Button onClick={handleSave} disabled={!hasChanges} size="sm" className="gap-1 h-8 px-2">
-            <Save className="w-4 h-4" />
-            <span className="hidden sm:inline text-xs">Save</span>
-          </Button>
           {/* Undo Button */}
           <ToolbarButton tooltipKey="undo" onClick={handleUndo} disabled={!isEditMode}>
             <Undo className="w-4 h-4" />
           </ToolbarButton>
+          <Button onClick={handleSave} disabled={!hasChanges} size="sm" className="gap-1 h-8 px-2">
+            <Save className="w-4 h-4" />
+            <span className="hidden sm:inline text-xs">Save</span>
+          </Button>
           {/* Color Picker Button */}
           <ToolbarButton tooltipKey="color" onClick={() => setShowColorPicker(!showColorPicker)}>
             <Palette className="w-4 h-4" style={noteColor ? { color: noteColor } : undefined} />
           </ToolbarButton>
-          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
-            <X className="w-5 h-5" />
-          </Button>
         </div>
       </header>
 
@@ -555,6 +723,9 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
           </ToolbarButton>
           <ToolbarButton tooltipKey="italic" isActive={formatState.italic} onClick={() => execCommand('italic')}>
             <Italic className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton tooltipKey="underline" isActive={formatState.underline} onClick={() => execCommand('underline')}>
+            <Underline className="w-4 h-4" />
           </ToolbarButton>
           <Separator orientation="vertical" className="h-5 mx-1" />
           <ToolbarButton tooltipKey="h1" isActive={formatState.h1} onClick={() => execCommand('formatBlock', 'h1')}>
@@ -570,12 +741,42 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
           <ToolbarButton tooltipKey="ol" onClick={() => execCommand('insertOrderedList')}>
             <ListOrdered className="w-4 h-4" />
           </ToolbarButton>
-          <ToolbarButton tooltipKey="quote" onClick={() => execCommand('formatBlock', 'blockquote')}>
-            <Quote className="w-4 h-4" />
-          </ToolbarButton>
-          <ToolbarButton tooltipKey="code" onClick={() => execCommand('formatBlock', 'pre')}>
-            <Code className="w-4 h-4" />
-          </ToolbarButton>
+          
+          {/* Collapsible extra tools toggle */}
+          <Separator orientation="vertical" className="h-5 mx-1" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn('h-8 w-8 shrink-0 transition-transform', showExtraTools && 'rotate-90')}
+            onClick={() => setShowExtraTools(!showExtraTools)}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+          
+          {/* Extra tools (collapsible) */}
+          {showExtraTools && (
+            <>
+              <ToolbarButton tooltipKey="fontColor" onClick={() => setShowFontColorPicker(true)}>
+                <Type className="w-4 h-4" />
+              </ToolbarButton>
+              <ToolbarButton tooltipKey="highlight" onClick={() => setShowHighlightPicker(true)}>
+                <Highlighter className="w-4 h-4" />
+              </ToolbarButton>
+              <ToolbarButton tooltipKey="quote" onClick={() => execCommand('formatBlock', 'blockquote')}>
+                <Quote className="w-4 h-4" />
+              </ToolbarButton>
+              <ToolbarButton tooltipKey="code" onClick={() => execCommand('formatBlock', 'pre')}>
+                <Code className="w-4 h-4" />
+              </ToolbarButton>
+              <Separator orientation="vertical" className="h-5 mx-1" />
+              <ToolbarButton tooltipKey="export" onClick={() => handleExport('txt')}>
+                <FileDown className="w-4 h-4" />
+              </ToolbarButton>
+              <ToolbarButton tooltipKey="import" onClick={() => fileInputRef.current?.click()}>
+                <FileUp className="w-4 h-4" />
+              </ToolbarButton>
+            </>
+          )}
         </div>
       )}
 
@@ -624,7 +825,6 @@ export function NoteEditor({ note, workspaces, onSave, onClose }: NoteEditorProp
                 onClick={() => isEditMode && handleRemoveTag(tag)}
               >
                 #{tag}
-                {isEditMode && <X className="w-3 h-3" />}
               </Badge>
             ))}
             {isEditMode && (
