@@ -30,7 +30,7 @@ const Index = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
-  const { workspaces, loading: workspacesLoading } = useWorkspaces();
+  const { workspaces, loading: workspacesLoading, createWorkspace, updateWorkspace, removeWorkspace } = useWorkspaces();
   const {
     notes: allNotes,
     loading: notesLoading,
@@ -213,6 +213,11 @@ const Index = () => {
           showStarred={showStarred}
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          onCreateWorkspace={async (name, color, icon) => { await createWorkspace(name, color, icon); }}
+          onUpdateWorkspace={async (id, name, color, icon) => {
+            await updateWorkspace(id, { name, color, icon });
+          }}
+          onDeleteWorkspace={removeWorkspace}
         />
       </div>
 
