@@ -121,7 +121,19 @@ const Index = () => {
   const handleNewNote = useCallback(() => {
     setSelectedNote(null);
     setIsEditorOpen(true);
-    setSidebarCollapsed(true); // Auto-collapse sidebar when creating a note
+    setSidebarCollapsed(true);
+  }, []);
+
+  const handleNewNoteFromSidebar = useCallback((presetWorkspace?: string, presetSubcategory?: string) => {
+    if (presetWorkspace !== undefined) {
+      setSelectedWorkspace(presetWorkspace);
+    }
+    if (presetSubcategory !== undefined) {
+      setSelectedSubcategory(presetSubcategory);
+    }
+    setSelectedNote(null);
+    setIsEditorOpen(true);
+    setSidebarCollapsed(true);
   }, []);
 
   const handleNoteClick = useCallback((note: Note, query?: string) => {
@@ -137,12 +149,19 @@ const Index = () => {
         if (selectedNote) {
           await updateNote(selectedNote.id, noteData);
         } else {
+          // For new notes, use passed workspace or fall back to selected workspace
+          const workspaceToUse = noteData.workspace || selectedWorkspace || '';
+          const subcategoryToUse = noteData.subcategory || selectedSubcategory || '';
           const newNote = await createNote(
             noteData.title || '',
             noteData.content || '',
-            noteData.workspace || '',
+            workspaceToUse,
             noteData.tags || []
           );
+          // Update with subcategory and color
+          if (subcategoryToUse || noteData.color) {
+            await updateNote(newNote.id, { subcategory: subcategoryToUse, color: noteData.color });
+          }
           setSelectedNote(newNote);
         }
       } catch (err) {
@@ -153,7 +172,7 @@ const Index = () => {
         });
       }
     },
-    [selectedNote, updateNote, createNote, toast]
+    [selectedNote, selectedWorkspace, selectedSubcategory, updateNote, createNote, toast]
   );
 
   const handleDeleteNote = useCallback(
@@ -202,6 +221,7 @@ const Index = () => {
             setShowStarred(false);
           }}
           onNewNote={handleNewNote}
+          onNewNoteInWorkspace={handleNewNoteFromSidebar}
           onOpenSearch={() => setIsSearchActive(true)}
           onOpenTrash={() => setShowTrash(true)}
           onOpenSettings={() => setShowSettings(true)}
@@ -262,6 +282,8 @@ const Index = () => {
               refresh();
             }}
             searchQuery={searchQuery}
+            defaultWorkspace={selectedWorkspace || undefined}
+            defaultSubcategory={selectedSubcategory || undefined}
           />
         ) : !isSearchActive && (
           <>

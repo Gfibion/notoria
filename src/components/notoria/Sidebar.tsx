@@ -67,6 +67,7 @@ interface SidebarProps {
   onSelectWorkspace: (id: string | null) => void;
   onSelectSubcategory: (subcategory: string | null) => void;
   onNewNote: () => void;
+  onNewNoteInWorkspace?: (workspaceId: string, subcategory?: string) => void;
   onOpenSearch: () => void;
   onOpenTrash: () => void;
   onOpenSettings: () => void;
@@ -86,6 +87,7 @@ export function Sidebar({
   onSelectWorkspace,
   onSelectSubcategory,
   onNewNote,
+  onNewNoteInWorkspace,
   onOpenSearch,
   onOpenTrash,
   onOpenSettings,
@@ -142,9 +144,21 @@ export function Sidebar({
     onSelectWorkspace(workspaceId);
   };
 
+  const handleWorkspaceDoubleClick = (workspaceId: string) => {
+    if (onNewNoteInWorkspace) {
+      onNewNoteInWorkspace(workspaceId);
+    }
+  };
+
   const handleSubcategoryClick = (workspaceId: string, subcategoryName: string) => {
     onSelectWorkspace(workspaceId);
     onSelectSubcategory(subcategoryName);
+  };
+
+  const handleSubcategoryDoubleClick = (workspaceId: string, subcategoryName: string) => {
+    if (onNewNoteInWorkspace) {
+      onNewNoteInWorkspace(workspaceId, subcategoryName);
+    }
   };
 
   const handleNewWorkspace = () => {
@@ -315,7 +329,9 @@ export function Sidebar({
                     
                     <button
                       onClick={() => handleWorkspaceClick(workspace.id)}
+                      onDoubleClick={() => handleWorkspaceDoubleClick(workspace.id)}
                       className="flex items-center gap-3 flex-1 text-left"
+                      title="Double-click to create note"
                     >
                       <Icon
                         className="w-4 h-4 flex-shrink-0"
@@ -364,6 +380,8 @@ export function Sidebar({
                         <button
                           key={subcat.id}
                           onClick={() => handleSubcategoryClick(workspace.id, subcat.name)}
+                          onDoubleClick={() => handleSubcategoryDoubleClick(workspace.id, subcat.name)}
+                          title="Double-click to create note"
                           className={cn(
                             'w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors',
                             selectedWorkspace === workspace.id && selectedSubcategory === subcat.name

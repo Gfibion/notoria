@@ -45,6 +45,8 @@ interface NoteEditorProps {
   onSave: (note: Partial<Note>) => void;
   onClose: () => void;
   searchQuery?: string;
+  defaultWorkspace?: string;
+  defaultSubcategory?: string;
 }
 
 // Formatting button tooltips
@@ -75,10 +77,10 @@ const HIGHLIGHT_COLORS = [
   '#fbcfe8', '#fed7aa', '#ccfbf1', '#fecaca',
 ];
 
-export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery }: NoteEditorProps) {
+export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, defaultWorkspace, defaultSubcategory }: NoteEditorProps) {
   const [title, setTitle] = useState(note?.title || '');
-  const [workspace, setWorkspace] = useState(note?.workspace || '');
-  const [subcategory, setSubcategory] = useState(note?.subcategory || '');
+  const [workspace, setWorkspace] = useState(note?.workspace || defaultWorkspace || '');
+  const [subcategory, setSubcategory] = useState(note?.subcategory || defaultSubcategory || '');
   const [noteColor, setNoteColor] = useState(note?.color || '');
   const [tags, setTags] = useState<string[]>(note?.tags || []);
   const [newTag, setNewTag] = useState('');
@@ -675,6 +677,28 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery }: N
           <Button variant="ghost" size="icon" onClick={handleClose}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
+          {/* Workspace (Category) selector */}
+          <Select value={workspace || 'none'} onValueChange={handleWorkspaceChange}>
+            <SelectTrigger className="w-[100px] h-8 text-xs">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">
+                <span className="text-muted-foreground">No category</span>
+              </SelectItem>
+              {workspaces.map((ws) => (
+                <SelectItem key={ws.id} value={ws.id}>
+                  <span className="flex items-center gap-2">
+                    <span 
+                      className="w-2 h-2 rounded-full" 
+                      style={{ backgroundColor: ws.color }}
+                    />
+                    {ws.name}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {/* Subcategory selector (only if workspace is selected) */}
           {workspace && (
             <Select value={subcategory || 'none'} onValueChange={handleSubcategoryChange}>
