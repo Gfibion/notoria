@@ -21,6 +21,7 @@ export interface Workspace {
   name: string;
   color: string;
   icon: string;
+  order: number;
   createdAt: Date;
 }
 
@@ -225,7 +226,8 @@ export async function searchNotes(query: string): Promise<Note[]> {
 // Workspaces operations
 export async function getAllWorkspaces(): Promise<Workspace[]> {
   const db = await getDB();
-  return db.getAll('workspaces');
+  const workspaces = await db.getAll('workspaces');
+  return workspaces.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
 export async function getWorkspace(id: string): Promise<Workspace | undefined> {
@@ -285,13 +287,26 @@ export async function initializeDefaultWorkspaces(): Promise<void> {
   const workspaces = await getAllWorkspaces();
   if (workspaces.length === 0) {
     const defaults: Workspace[] = [
-      { id: 'personal', name: 'Personal', color: '#C4A052', icon: 'user', createdAt: new Date() },
-      { id: 'work', name: 'Work', color: '#64748B', icon: 'briefcase', createdAt: new Date() },
-      { id: 'ideas', name: 'Ideas', color: '#8B5CF6', icon: 'lightbulb', createdAt: new Date() },
-      { id: 'projects', name: 'Projects', color: '#059669', icon: 'folder', createdAt: new Date() },
+      { id: 'personal', name: 'Personal', color: '#C4A052', icon: 'user', order: 0, createdAt: new Date() },
+      { id: 'work', name: 'Work', color: '#64748B', icon: 'briefcase', order: 1, createdAt: new Date() },
+      { id: 'ideas', name: 'Ideas', color: '#8B5CF6', icon: 'lightbulb', order: 2, createdAt: new Date() },
+      { id: 'projects', name: 'Projects', color: '#059669', icon: 'folder', order: 3, createdAt: new Date() },
     ];
     for (const ws of defaults) {
       await saveWorkspace(ws);
+    }
+  }
+}
+
+// Reorder workspaces
+export async function reorderWorkspaces(orderedIds: string[]): Promise<void> {
+  const db = await getDB();
+  const workspaces = await db.getAll('workspaces');
+  for (const ws of workspaces) {
+    const newOrder = orderedIds.indexOf(ws.id);
+    if (newOrder !== -1 && ws.order !== newOrder) {
+      ws.order = newOrder;
+      await db.put('workspaces', ws);
     }
   }
 }
