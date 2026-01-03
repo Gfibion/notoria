@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Check, Sun, Moon, Palette } from 'lucide-react';
+import { X, Check, Sun, Moon, Palette, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getSettings, saveSettings, AppSettings } from '@/lib/db';
 import { useTheme } from 'next-themes';
@@ -23,11 +23,19 @@ const fonts = [
   { id: 'georgia', name: 'Georgia', family: 'Georgia, "Times New Roman", serif', description: 'Elegant serif' },
 ] as const;
 
+const fontSizes = [
+  { id: 'small', name: 'Small', size: '14px', description: 'Compact text' },
+  { id: 'medium', name: 'Medium', size: '16px', description: 'Default size' },
+  { id: 'large', name: 'Large', size: '18px', description: 'Easier to read' },
+  { id: 'xlarge', name: 'Extra Large', size: '20px', description: 'Maximum readability' },
+] as const;
+
 export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [settings, setSettings] = useState<AppSettings>({
     id: 'app-settings',
     theme: 'default',
     fontFamily: 'inter',
+    fontSize: 'medium',
   });
   const { setTheme } = useTheme();
 
@@ -61,6 +69,18 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     const font = fonts.find(f => f.id === fontFamily);
     if (font) {
       document.documentElement.style.setProperty('--app-font-family', font.family);
+    }
+  };
+
+  const handleFontSizeChange = async (fontSize: AppSettings['fontSize']) => {
+    const newSettings = { ...settings, fontSize };
+    setSettings(newSettings);
+    await saveSettings(newSettings);
+    
+    // Apply font size
+    const size = fontSizes.find(f => f.id === fontSize);
+    if (size) {
+      document.documentElement.style.setProperty('--app-font-size', size.size);
     }
   };
 
@@ -135,6 +155,34 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   </div>
                   {settings.fontFamily === font.id && (
                     <Check className="w-5 h-5 text-primary" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Font Size Section */}
+          <div>
+            <h3 className="text-sm font-medium text-foreground mb-3">Font Size</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {fontSizes.map((size) => (
+                <button
+                  key={size.id}
+                  onClick={() => handleFontSizeChange(size.id)}
+                  className={cn(
+                    'flex items-center gap-2 p-3 rounded-lg border transition-colors text-left',
+                    settings.fontSize === size.id
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:bg-muted/50'
+                  )}
+                >
+                  <Type className="w-4 h-4 text-muted-foreground" style={{ fontSize: size.size }} />
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground text-sm">{size.name}</p>
+                    <p className="text-xs text-muted-foreground">{size.description}</p>
+                  </div>
+                  {settings.fontSize === size.id && (
+                    <Check className="w-4 h-4 text-primary" />
                   )}
                 </button>
               ))}

@@ -63,6 +63,15 @@ const Index = () => {
       };
       document.documentElement.style.setProperty('--app-font-family', fonts[settings.fontFamily] || fonts.inter);
       
+      // Apply font size
+      const fontSizes: Record<string, string> = {
+        small: '14px',
+        medium: '16px',
+        large: '18px',
+        xlarge: '20px',
+      };
+      document.documentElement.style.setProperty('--app-font-size', fontSizes[settings.fontSize || 'medium'] || fontSizes.medium);
+      
       // Apply theme
       if (settings.theme === 'purple-gradient') {
         document.documentElement.setAttribute('data-theme', 'purple-gradient');
