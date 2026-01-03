@@ -22,8 +22,9 @@ import {
   ChevronRight,
   Type,
   Highlighter,
-  FileDown,
-  FileUp,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { RainbowColorPicker } from './RainbowColorPicker';
+import jsPDF from 'jspdf';
 
 interface NoteEditorProps {
   note: Note | null;
@@ -64,6 +66,9 @@ const FORMAT_TOOLTIPS: Record<string, string> = {
   color: 'Color: Change note background color',
   fontColor: 'Font Color: Change text color',
   highlight: 'Highlight: Highlight text with color',
+  export: 'Export TXT: Download note as text file',
+  exportPdf: 'Export PDF: Download note as PDF document',
+  import: 'Import: Upload a text file',
 };
 
 const FONT_COLORS = [
@@ -447,29 +452,175 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
       exportNoteAsTxt(noteToExport);
       toast({ title: 'Exported as TXT' });
     } else {
-      // PDF export - create a printable version
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>${title || 'Note'}</title>
-              <style>
-                body { font-family: Georgia, serif; padding: 40px; max-width: 800px; margin: 0 auto; }
-                h1 { font-size: 28px; margin-bottom: 20px; }
-                .content { line-height: 1.6; }
-              </style>
-            </head>
-            <body>
-              <h1>${title || 'Untitled'}</h1>
-              <div class="content">${content}</div>
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
-        printWindow.print();
+      // Professional PDF export using jsPDF
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 20;
+      const contentWidth = pageWidth - (margin * 2);
+      let yPosition = margin;
+
+      // Header with date
+      doc.setFontSize(10);
+      doc.setTextColor(128, 128, 128);
+      const dateStr = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      doc.text(dateStr, pageWidth - margin, yPosition, { align: 'right' });
+      yPosition += 10;
+
+      // Title
+      doc.setFontSize(24);
+      doc.setTextColor(30, 30, 30);
+      doc.setFont('helvetica', 'bold');
+      const titleLines = doc.splitTextToSize(title || 'Untitled', contentWidth);
+      doc.text(titleLines, margin, yPosition);
+      yPosition += titleLines.length * 10 + 5;
+
+      // Category and subcategory
+      if (workspace || subcategory) {
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.setFont('helvetica', 'normal');
+        const currentWs = workspaces.find(ws => ws.id === workspace);
+        const categoryText = [currentWs?.name, subcategory].filter(Boolean).join(' / ');
+        doc.text(categoryText, margin, yPosition);
+        yPosition += 8;
       }
-      toast({ title: 'Printing as PDF...' });
+
+      // Tags
+      if (tags.length > 0) {
+        doc.setFontSize(9);
+        doc.setTextColor(80, 80, 80);
+        doc.text(`Tags: ${tags.map(t => `#${t}`).join(', ')}`, margin, yPosition);
+        yPosition += 8;
+      }
+
+      // Divider line
+      yPosition += 5;
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.5);
+      doc.line(margin, yPosition, pageWidth - margin, yPosition);
+      yPosition += 10;
+
+      // Content - strip HTML and format
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = content;
+      
+      // Process content with proper formatting
+      const processNode = (node: Node): string => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          return node.textContent || '';
+        }
+        
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const element = node as HTMLElement;
+          const tagName = element.tagName.toLowerCase();
+          const childText = Array.from(node.childNodes).map(processNode).join('');
+          
+          switch (tagName) {
+            case 'h1':
+              return `\n\n## ${childText}\n`;
+            case 'h2':
+              return `\n\n### ${childText}\n`;
+            case 'h3':
+              return `\n\n#### ${childText}\n`;
+            case 'p':
+              return `\n${childText}\n`;
+            case 'br':
+              return '\n';
+            case 'li':
+              return `  • ${childText}\n`;
+            case 'ul':
+            case 'ol':
+              return `\n${childText}`;
+            case 'blockquote':
+              return `\n"${childText}"\n`;
+            case 'pre':
+            case 'code':
+              return `\n[Code: ${childText}]\n`;
+            default:
+              return childText;
+          }
+        }
+        
+        return '';
+      };
+
+      let plainText = processNode(tempDiv);
+      plainText = plainText.replace(/\n{3,}/g, '\n\n').trim();
+
+      // Split text into lines that fit the page width
+      doc.setFontSize(11);
+      doc.setTextColor(40, 40, 40);
+      doc.setFont('helvetica', 'normal');
+      
+      const lines = plainText.split('\n');
+      
+      for (const line of lines) {
+        // Check if we need a new page
+        if (yPosition > pageHeight - margin - 10) {
+          doc.addPage();
+          yPosition = margin;
+        }
+
+        // Handle headers
+        if (line.startsWith('## ')) {
+          doc.setFontSize(16);
+          doc.setFont('helvetica', 'bold');
+          const headerText = line.replace('## ', '');
+          const headerLines = doc.splitTextToSize(headerText, contentWidth);
+          doc.text(headerLines, margin, yPosition);
+          yPosition += headerLines.length * 7 + 3;
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'normal');
+        } else if (line.startsWith('### ')) {
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          const headerText = line.replace('### ', '');
+          const headerLines = doc.splitTextToSize(headerText, contentWidth);
+          doc.text(headerLines, margin, yPosition);
+          yPosition += headerLines.length * 6 + 2;
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'normal');
+        } else if (line.startsWith('#### ')) {
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          const headerText = line.replace('#### ', '');
+          const headerLines = doc.splitTextToSize(headerText, contentWidth);
+          doc.text(headerLines, margin, yPosition);
+          yPosition += headerLines.length * 5 + 2;
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'normal');
+        } else if (line.trim()) {
+          const textLines = doc.splitTextToSize(line, contentWidth);
+          doc.text(textLines, margin, yPosition);
+          yPosition += textLines.length * 5;
+        } else {
+          yPosition += 3; // Empty line spacing
+        }
+      }
+
+      // Footer
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(9);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+        doc.text('Notoria Notes', margin, pageHeight - 10);
+      }
+
+      // Save the PDF
+      doc.save(`${title || 'note'}.pdf`);
+      toast({ title: 'Exported as PDF' });
     }
   };
 
@@ -794,10 +945,13 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
               </ToolbarButton>
               <Separator orientation="vertical" className="h-5 mx-1" />
               <ToolbarButton tooltipKey="export" onClick={() => handleExport('txt')}>
-                <FileDown className="w-4 h-4" />
+                <ArrowUpFromLine className="w-4 h-4" />
+              </ToolbarButton>
+              <ToolbarButton tooltipKey="exportPdf" onClick={() => handleExport('pdf')}>
+                <FileText className="w-4 h-4" />
               </ToolbarButton>
               <ToolbarButton tooltipKey="import" onClick={() => fileInputRef.current?.click()}>
-                <FileUp className="w-4 h-4" />
+                <ArrowDownToLine className="w-4 h-4" />
               </ToolbarButton>
             </>
           )}
