@@ -30,7 +30,7 @@ const Index = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
-  const { workspaces, loading: workspacesLoading, createWorkspace, updateWorkspace, removeWorkspace } = useWorkspaces();
+  const { workspaces, loading: workspacesLoading, createWorkspace, updateWorkspace, removeWorkspace, reorder } = useWorkspaces();
   const {
     notes: allNotes,
     loading: notesLoading,
@@ -238,6 +238,7 @@ const Index = () => {
             await updateWorkspace(id, { name, color, icon });
           }}
           onDeleteWorkspace={removeWorkspace}
+          onReorderWorkspaces={reorder}
         />
       </div>
 

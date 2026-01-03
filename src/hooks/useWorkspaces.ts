@@ -6,6 +6,7 @@ import {
   deleteWorkspace,
   initializeDefaultWorkspaces,
   generateId,
+  reorderWorkspaces,
 } from '@/lib/db';
 
 export function useWorkspaces() {
@@ -34,18 +35,23 @@ export function useWorkspaces() {
 
   const createWorkspace = useCallback(
     async (name: string, color: string, icon: string) => {
+      const existingWorkspaces = workspaces;
+      const maxOrder = existingWorkspaces.length > 0 
+        ? Math.max(...existingWorkspaces.map(w => w.order ?? 0)) 
+        : -1;
       const workspace: Workspace = {
         id: generateId(),
         name,
         color,
         icon,
+        order: maxOrder + 1,
         createdAt: new Date(),
       };
       await saveWorkspace(workspace);
       await loadWorkspaces();
       return workspace;
     },
-    [loadWorkspaces]
+    [workspaces, loadWorkspaces]
   );
 
   const updateWorkspace = useCallback(
@@ -73,6 +79,14 @@ export function useWorkspaces() {
     [loadWorkspaces]
   );
 
+  const reorder = useCallback(
+    async (orderedIds: string[]) => {
+      await reorderWorkspaces(orderedIds);
+      await loadWorkspaces();
+    },
+    [loadWorkspaces]
+  );
+
   return {
     workspaces,
     loading,
@@ -80,6 +94,7 @@ export function useWorkspaces() {
     createWorkspace,
     updateWorkspace,
     removeWorkspace,
+    reorder,
     refresh: loadWorkspaces,
   };
 }

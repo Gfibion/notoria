@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Workspace, Subcategory, getSubcategoriesByWorkspace } from '@/lib/db';
 import {
@@ -29,6 +29,7 @@ import {
   Zap,
   Target,
   Trophy,
+  GripVertical,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
@@ -78,6 +79,7 @@ interface SidebarProps {
   onCreateWorkspace: (name: string, color: string, icon: string) => Promise<void>;
   onUpdateWorkspace: (id: string, name: string, color: string, icon: string) => Promise<void>;
   onDeleteWorkspace: (id: string) => Promise<void>;
+  onReorderWorkspaces: (orderedIds: string[]) => Promise<void>;
 }
 
 export function Sidebar({
@@ -98,11 +100,17 @@ export function Sidebar({
   onCreateWorkspace,
   onUpdateWorkspace,
   onDeleteWorkspace,
+  onReorderWorkspaces,
 }: SidebarProps) {
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(new Set());
   const [workspaceSubcategories, setWorkspaceSubcategories] = useState<Record<string, Subcategory[]>>({});
   const [workspaceDialogOpen, setWorkspaceDialogOpen] = useState(false);
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
+  
+  // Drag and drop state
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const dragNodeRef = useRef<HTMLDivElement | null>(null);
 
   // Load subcategories for all workspaces
   useEffect(() => {
@@ -185,6 +193,64 @@ export function Sidebar({
     if (selectedWorkspace === id) {
       onSelectWorkspace(null);
     }
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, workspaceId: string) => {
+    setDraggedId(workspaceId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', workspaceId);
+    // Add a slight delay to allow the drag image to be captured
+    setTimeout(() => {
+      if (dragNodeRef.current) {
+        dragNodeRef.current.style.opacity = '0.5';
+      }
+    }, 0);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedId(null);
+    setDragOverId(null);
+    if (dragNodeRef.current) {
+      dragNodeRef.current.style.opacity = '1';
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent, workspaceId: string) => {
+    e.preventDefault();
+    if (draggedId && draggedId !== workspaceId) {
+      setDragOverId(workspaceId);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverId(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetWorkspaceId: string) => {
+    e.preventDefault();
+    if (!draggedId || draggedId === targetWorkspaceId) {
+      setDragOverId(null);
+      return;
+    }
+
+    const currentOrder = workspaces.map(ws => ws.id);
+    const draggedIndex = currentOrder.indexOf(draggedId);
+    const targetIndex = currentOrder.indexOf(targetWorkspaceId);
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDragOverId(null);
+      return;
+    }
+
+    // Remove dragged item and insert at new position
+    const newOrder = [...currentOrder];
+    newOrder.splice(draggedIndex, 1);
+    newOrder.splice(targetIndex, 0, draggedId);
+
+    await onReorderWorkspaces(newOrder);
+    setDraggedId(null);
+    setDragOverId(null);
   };
 
   return (
@@ -301,22 +367,45 @@ export function Sidebar({
               const hasSubcats = subcats.length > 0;
               const isExpanded = expandedWorkspaces.has(workspace.id);
               const isWorkspaceSelected = selectedWorkspace === workspace.id && !showStarred && !selectedSubcategory;
+              const isDragging = draggedId === workspace.id;
+              const isDragOver = dragOverId === workspace.id;
               
               return (
-                <div key={workspace.id}>
+                <div 
+                  key={workspace.id}
+                  ref={isDragging ? dragNodeRef : null}
+                  draggable={!collapsed}
+                  onDragStart={(e) => handleDragStart(e, workspace.id)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => handleDragOver(e, workspace.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, workspace.id)}
+                  className={cn(
+                    'transition-all duration-150',
+                    isDragging && 'opacity-50',
+                    isDragOver && 'border-t-2 border-primary'
+                  )}
+                >
                   <div
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors group',
+                      'w-full flex items-center gap-1 px-2 py-2 rounded-md text-sm transition-colors group',
                       isWorkspaceSelected
                         ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                         : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
                     )}
                   >
+                    {/* Drag handle */}
+                    {!collapsed && (
+                      <div className="cursor-grab opacity-0 group-hover:opacity-50 hover:opacity-100 transition-opacity">
+                        <GripVertical className="w-3 h-3" />
+                      </div>
+                    )}
+                    
                     {/* Expand/Collapse toggle for workspaces with subcategories */}
                     {!collapsed && hasSubcats && (
                       <button
                         onClick={(e) => toggleWorkspaceExpand(workspace.id, e)}
-                        className="p-0.5 -ml-1 hover:bg-sidebar-accent rounded"
+                        className="p-0.5 hover:bg-sidebar-accent rounded"
                       >
                         {isExpanded ? (
                           <ChevronDown className="w-3 h-3" />
