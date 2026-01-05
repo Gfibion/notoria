@@ -75,13 +75,13 @@
   .dark {
     /* Deep Charcoal Evening Theme */
     --background: 220 15% 6%;
-    --foreground: 0 0% 90%;
+    --foreground: 0 0% 100%;
 
     --card: 220 12% 9%;
-    --card-foreground: 0 0% 90%;
+    --card-foreground: 0 0% 100%;
 
     --popover: 220 14% 8%;
-    --popover-foreground: 0 0% 90%;
+    --popover-foreground: 0 0% 100%;
 
     --primary: 40 10% 88%;
     --primary-foreground: 220 15% 6%;
@@ -128,13 +128,13 @@
   /* Purple Gradient Theme */
   [data-theme="purple-gradient"] {
     --background: 260 30% 8%;
-    --foreground: 260 10% 92%;
+    --foreground: 0 0% 100%;
 
     --card: 260 25% 12%;
-    --card-foreground: 260 10% 92%;
+    --card-foreground: 0 0% 100%;
 
     --popover: 260 28% 10%;
-    --popover-foreground: 260 10% 92%;
+    --popover-foreground: 0 0% 100%;
 
     --primary: 280 60% 65%;
     --primary-foreground: 260 30% 8%;
