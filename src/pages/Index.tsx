@@ -258,15 +258,31 @@ const Index = () => {
           <MobileHeader
             workspaces={workspaces}
             selectedWorkspace={selectedWorkspace}
+            selectedSubcategory={selectedSubcategory}
             onSelectWorkspace={(id) => {
               setSelectedWorkspace(id);
               setShowStarred(false);
             }}
+            onSelectSubcategory={(subcat) => {
+              setSelectedSubcategory(subcat);
+              setShowStarred(false);
+            }}
             onNewNote={handleNewNote}
+            onNewNoteInWorkspace={handleNewNoteFromSidebar}
             onOpenSearch={() => setIsSearchActive(true)}
             onOpenTrash={() => setShowTrash(true)}
             onOpenSettings={() => setShowSettings(true)}
+            onShowStarred={() => {
+              setShowStarred(true);
+              setSelectedWorkspace(null);
+              setSelectedSubcategory(null);
+            }}
             showStarred={showStarred}
+            onCreateWorkspace={async (name, color, icon) => { await createWorkspace(name, color, icon); }}
+            onUpdateWorkspace={async (id, name, color, icon) => {
+              await updateWorkspace(id, { name, color, icon });
+            }}
+            onDeleteWorkspace={removeWorkspace}
           />
         )}
 
