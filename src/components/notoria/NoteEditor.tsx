@@ -894,21 +894,25 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
     const dataUrl = (window as any).__pendingImage;
     if (!dataUrl || !contentRef.current) return;
     
+    const uniqueId = `img-${Date.now()}`;
     let imgHtml = '';
-    const imgStyle = `max-width: ${width}%; height: auto;`;
+    const imgStyle = `width: 100%; height: auto;`;
+    const wrapperStyle = `width: ${width}%; position: relative; display: inline-block;`;
+    
+    const resizableImg = `<div class="resizable-image-wrapper" data-image-id="${uniqueId}" style="${wrapperStyle}" contenteditable="false"><img src="${dataUrl}" style="${imgStyle}" draggable="false" /><div class="resize-handle resize-handle-se"></div><div class="resize-handle resize-handle-sw"></div><div class="resize-handle resize-handle-ne"></div><div class="resize-handle resize-handle-nw"></div></div>`;
     
     switch (alignment) {
       case 'left':
-        imgHtml = `<figure style="float: left; margin: 0 16px 16px 0; max-width: ${width}%;"><img src="${dataUrl}" style="${imgStyle}" />${caption ? `<figcaption style="font-size: 12px; color: #666; text-align: center; margin-top: 4px;">${caption}</figcaption>` : ''}</figure>`;
+        imgHtml = `<figure style="float: left; margin: 0 16px 16px 0; max-width: ${width}%;" contenteditable="false">${resizableImg}${caption ? `<figcaption style="font-size: 12px; color: #666; text-align: center; margin-top: 4px;">${caption}</figcaption>` : ''}</figure>`;
         break;
       case 'right':
-        imgHtml = `<figure style="float: right; margin: 0 0 16px 16px; max-width: ${width}%;"><img src="${dataUrl}" style="${imgStyle}" />${caption ? `<figcaption style="font-size: 12px; color: #666; text-align: center; margin-top: 4px;">${caption}</figcaption>` : ''}</figure>`;
+        imgHtml = `<figure style="float: right; margin: 0 0 16px 16px; max-width: ${width}%;" contenteditable="false">${resizableImg}${caption ? `<figcaption style="font-size: 12px; color: #666; text-align: center; margin-top: 4px;">${caption}</figcaption>` : ''}</figure>`;
         break;
       case 'center':
-        imgHtml = `<figure style="text-align: center; margin: 16px 0;"><img src="${dataUrl}" style="${imgStyle}; margin: 0 auto;" />${caption ? `<figcaption style="font-size: 12px; color: #666; margin-top: 4px;">${caption}</figcaption>` : ''}</figure>`;
+        imgHtml = `<figure style="text-align: center; margin: 16px 0;" contenteditable="false"><div style="display: inline-block;">${resizableImg}</div>${caption ? `<figcaption style="font-size: 12px; color: #666; margin-top: 4px;">${caption}</figcaption>` : ''}</figure>`;
         break;
       default:
-        imgHtml = `<img src="${dataUrl}" style="${imgStyle}; display: inline-block; vertical-align: middle;" />${caption ? `<span style="font-size: 12px; color: #666; margin-left: 8px;">${caption}</span>` : ''}`;
+        imgHtml = `${resizableImg}${caption ? `<span style="font-size: 12px; color: #666; margin-left: 8px;">${caption}</span>` : ''}`;
     }
     
     // Insert at cursor or append
@@ -927,6 +931,137 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
     triggerAutoSave();
     toast({ title: 'Image inserted' });
   };
+
+  // Handle image resize
+  useEffect(() => {
+    if (!contentRef.current || !isEditMode) return;
+
+    let isResizing = false;
+    let currentWrapper: HTMLElement | null = null;
+    let startX = 0;
+    let startY = 0;
+    let startWidth = 0;
+    let handle = '';
+
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains('resize-handle')) {
+        e.preventDefault();
+        e.stopPropagation();
+        isResizing = true;
+        currentWrapper = target.parentElement as HTMLElement;
+        startX = e.clientX;
+        startY = e.clientY;
+        startWidth = currentWrapper.offsetWidth;
+        
+        if (target.classList.contains('resize-handle-se')) handle = 'se';
+        else if (target.classList.contains('resize-handle-sw')) handle = 'sw';
+        else if (target.classList.contains('resize-handle-ne')) handle = 'ne';
+        else if (target.classList.contains('resize-handle-nw')) handle = 'nw';
+        
+        currentWrapper.classList.add('resizing');
+        document.body.style.cursor = handle.includes('e') ? 'nwse-resize' : 'nesw-resize';
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing || !currentWrapper) return;
+      e.preventDefault();
+      
+      const deltaX = e.clientX - startX;
+      let newWidth: number;
+      
+      if (handle === 'se' || handle === 'ne') {
+        newWidth = startWidth + deltaX;
+      } else {
+        newWidth = startWidth - deltaX;
+      }
+      
+      // Clamp between 50px and container width
+      const containerWidth = contentRef.current?.offsetWidth || 800;
+      newWidth = Math.max(50, Math.min(newWidth, containerWidth));
+      
+      currentWrapper.style.width = `${newWidth}px`;
+    };
+
+    const handleMouseUp = () => {
+      if (isResizing && currentWrapper) {
+        currentWrapper.classList.remove('resizing');
+        isResizing = false;
+        currentWrapper = null;
+        document.body.style.cursor = '';
+        checkChanges();
+        triggerAutoSave();
+      }
+    };
+
+    // Touch events for mobile
+    const handleTouchStart = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains('resize-handle')) {
+        e.preventDefault();
+        e.stopPropagation();
+        isResizing = true;
+        currentWrapper = target.parentElement as HTMLElement;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        startWidth = currentWrapper.offsetWidth;
+        
+        if (target.classList.contains('resize-handle-se')) handle = 'se';
+        else if (target.classList.contains('resize-handle-sw')) handle = 'sw';
+        else if (target.classList.contains('resize-handle-ne')) handle = 'ne';
+        else if (target.classList.contains('resize-handle-nw')) handle = 'nw';
+        
+        currentWrapper.classList.add('resizing');
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isResizing || !currentWrapper) return;
+      e.preventDefault();
+      
+      const deltaX = e.touches[0].clientX - startX;
+      let newWidth: number;
+      
+      if (handle === 'se' || handle === 'ne') {
+        newWidth = startWidth + deltaX;
+      } else {
+        newWidth = startWidth - deltaX;
+      }
+      
+      const containerWidth = contentRef.current?.offsetWidth || 800;
+      newWidth = Math.max(50, Math.min(newWidth, containerWidth));
+      
+      currentWrapper.style.width = `${newWidth}px`;
+    };
+
+    const handleTouchEnd = () => {
+      if (isResizing && currentWrapper) {
+        currentWrapper.classList.remove('resizing');
+        isResizing = false;
+        currentWrapper = null;
+        checkChanges();
+        triggerAutoSave();
+      }
+    };
+
+    const container = contentRef.current;
+    container.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      container.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      container.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isEditMode, checkChanges, triggerAutoSave]);
 
   // Insert link
   const insertLink = () => {
