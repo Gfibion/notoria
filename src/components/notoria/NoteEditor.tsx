@@ -25,6 +25,9 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   FileText,
+  Image,
+  Link,
+  Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -69,7 +72,115 @@ const FORMAT_TOOLTIPS: Record<string, string> = {
   export: 'Export TXT: Download note as text file',
   exportPdf: 'Export PDF: Download note as PDF document',
   import: 'Import: Upload a text file',
+  image: 'Image: Insert an image into the note',
+  link: 'Link: Insert a clickable link',
 };
+
+// Image alignment options
+const IMAGE_ALIGNMENTS = [
+  { value: 'inline', label: 'Inline' },
+  { value: 'left', label: 'Float Left' },
+  { value: 'right', label: 'Float Right' },
+  { value: 'center', label: 'Center' },
+];
+
+// Image Insert Dialog Component
+function ImageInsertDialog({ 
+  onInsert, 
+  onClose 
+}: { 
+  onInsert: (alignment: string, width: number, caption: string) => void;
+  onClose: () => void;
+}) {
+  const [alignment, setAlignment] = useState('inline');
+  const [width, setWidth] = useState(50);
+  const [caption, setCaption] = useState('');
+  const imageUrl = (window as any).__pendingImage;
+
+  return (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-popover border border-border rounded-lg shadow-elevated p-4 w-full max-w-md animate-fade-in"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h4 className="font-display font-semibold text-foreground mb-4">Insert Image</h4>
+        
+        {/* Preview */}
+        {imageUrl && (
+          <div className="mb-4 p-2 bg-muted rounded-lg overflow-hidden">
+            <img 
+              src={imageUrl} 
+              alt="Preview" 
+              className="max-h-32 mx-auto object-contain"
+              style={{ maxWidth: `${width}%` }}
+            />
+          </div>
+        )}
+        
+        <div className="space-y-4">
+          {/* Alignment */}
+          <div>
+            <label className="text-sm text-muted-foreground mb-2 block">Alignment</label>
+            <div className="flex gap-2 flex-wrap">
+              {IMAGE_ALIGNMENTS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setAlignment(opt.value)}
+                  className={cn(
+                    "px-3 py-1.5 text-sm rounded-md border transition-colors",
+                    alignment === opt.value
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-muted border-border hover:bg-accent"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Width */}
+          <div>
+            <label className="text-sm text-muted-foreground mb-2 block">
+              Size: {width}%
+            </label>
+            <input
+              type="range"
+              min="10"
+              max="100"
+              value={width}
+              onChange={(e) => setWidth(Number(e.target.value))}
+              className="w-full accent-primary"
+            />
+          </div>
+
+          {/* Caption */}
+          <div>
+            <label className="text-sm text-muted-foreground mb-2 block">Caption (optional)</label>
+            <Input
+              placeholder="Image description..."
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={() => onInsert(alignment, width, caption)}>
+              Insert
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const FONT_COLORS = [
   '#000000', '#333333', '#666666', '#999999',
@@ -98,6 +209,12 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
   const [showExtraTools, setShowExtraTools] = useState(false);
   const [newSubcategoryName, setNewSubcategoryName] = useState('');
   const [showNewSubcategoryInput, setShowNewSubcategoryInput] = useState(false);
+  const [showImageDialog, setShowImageDialog] = useState(false);
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkText, setLinkText] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
   
   const { subcategories, createSubcategory, refresh: refreshSubcategories } = useSubcategories(workspace || undefined);
   
@@ -106,6 +223,8 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
   const tooltipTimerRef = useRef<NodeJS.Timeout | null>(null);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const savedIndicatorTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedRef = useRef({ 
     title: note?.title || '', 
     content: note?.content || '', 
@@ -200,10 +319,21 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
   const performSave = useCallback((showToast = false) => {
     const content = contentRef.current?.innerHTML || '';
     
+    setIsSaving(true);
     onSave({ title, content, workspace, subcategory, color: noteColor, tags });
     
     lastSavedRef.current = { title, content, tags: [...tags], subcategory, color: noteColor, workspace };
     setHasChanges(false);
+    setIsSaving(false);
+    setJustSaved(true);
+    
+    // Clear saved indicator after 2 seconds
+    if (savedIndicatorTimerRef.current) {
+      clearTimeout(savedIndicatorTimerRef.current);
+    }
+    savedIndicatorTimerRef.current = setTimeout(() => {
+      setJustSaved(false);
+    }, 2000);
     
     if (showToast) {
       toast({ title: 'Note saved' });
@@ -297,6 +427,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
       if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
       if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      if (savedIndicatorTimerRef.current) clearTimeout(savedIndicatorTimerRef.current);
     };
   }, []);
 
@@ -309,6 +440,15 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
         setTags(newTags);
         triggerAutoSave();
       }
+      setNewTag('');
+    }
+  };
+
+  const handleAddTagClick = () => {
+    if (newTag.trim() && !tags.includes(newTag.trim())) {
+      const newTags = [...tags, newTag.trim()];
+      setTags(newTags);
+      triggerAutoSave();
       setNewTag('');
     }
   };
@@ -369,10 +509,46 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
     triggerAutoSave();
   };
 
+  // Auto-detect and convert links in content
+  const convertLinksInContent = useCallback(() => {
+    if (!contentRef.current) return;
+    
+    const urlRegex = /(https?:\/\/[^\s<]+)/g;
+    const walker = document.createTreeWalker(
+      contentRef.current,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
+    
+    const nodesToReplace: { node: Text; matches: RegExpMatchArray[] }[] = [];
+    let node: Text | null;
+    
+    while ((node = walker.nextNode() as Text)) {
+      const matches = [...node.textContent!.matchAll(urlRegex)];
+      if (matches.length > 0 && !node.parentElement?.closest('a')) {
+        nodesToReplace.push({ node, matches });
+      }
+    }
+    
+    nodesToReplace.forEach(({ node, matches }) => {
+      let html = node.textContent || '';
+      matches.forEach((match) => {
+        const url = match[0];
+        html = html.replace(url, `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-primary underline hover:text-primary/80">${url}</a>`);
+      });
+      const span = document.createElement('span');
+      span.innerHTML = html;
+      node.parentNode?.replaceChild(span, node);
+    });
+  }, []);
+
   // Handle content input
   const handleContentInput = () => {
     checkChanges();
     triggerAutoSave();
+    
+    // Auto-detect links after a short delay
+    setTimeout(convertLinksInContent, 500);
     
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
@@ -624,7 +800,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
     }
   };
 
-  // Import from TXT
+  // Import from TXT - retain formatting
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -633,7 +809,10 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
       const text = await file.text();
       const lines = text.split('\n');
       const importedTitle = lines[0]?.trim() || '';
-      const importedContent = lines.slice(1).join('<br>').trim();
+      // Preserve paragraph structure and convert line breaks properly
+      const importedContent = lines.slice(1)
+        .map(line => line.trim() ? `<p>${line}</p>` : '<br>')
+        .join('');
       
       if (importedTitle) setTitle(importedTitle);
       if (contentRef.current && importedContent) {
@@ -647,6 +826,89 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
     
     // Reset input
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Handle image insertion
+  const handleImageInsert = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        setShowImageDialog(true);
+        // Store temporarily for the dialog
+        (window as any).__pendingImage = dataUrl;
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      toast({ title: 'Failed to load image', variant: 'destructive' });
+    }
+    
+    if (imageInputRef.current) imageInputRef.current.value = '';
+  };
+
+  // Insert image with settings
+  const insertImage = (alignment: string, width: number, caption: string) => {
+    const dataUrl = (window as any).__pendingImage;
+    if (!dataUrl || !contentRef.current) return;
+    
+    let imgHtml = '';
+    const imgStyle = `max-width: ${width}%; height: auto;`;
+    
+    switch (alignment) {
+      case 'left':
+        imgHtml = `<figure style="float: left; margin: 0 16px 16px 0; max-width: ${width}%;"><img src="${dataUrl}" style="${imgStyle}" />${caption ? `<figcaption style="font-size: 12px; color: #666; text-align: center; margin-top: 4px;">${caption}</figcaption>` : ''}</figure>`;
+        break;
+      case 'right':
+        imgHtml = `<figure style="float: right; margin: 0 0 16px 16px; max-width: ${width}%;"><img src="${dataUrl}" style="${imgStyle}" />${caption ? `<figcaption style="font-size: 12px; color: #666; text-align: center; margin-top: 4px;">${caption}</figcaption>` : ''}</figure>`;
+        break;
+      case 'center':
+        imgHtml = `<figure style="text-align: center; margin: 16px 0;"><img src="${dataUrl}" style="${imgStyle}; margin: 0 auto;" />${caption ? `<figcaption style="font-size: 12px; color: #666; margin-top: 4px;">${caption}</figcaption>` : ''}</figure>`;
+        break;
+      default:
+        imgHtml = `<img src="${dataUrl}" style="${imgStyle}; display: inline-block; vertical-align: middle;" />${caption ? `<span style="font-size: 12px; color: #666; margin-left: 8px;">${caption}</span>` : ''}`;
+    }
+    
+    // Insert at cursor or append
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const fragment = range.createContextualFragment(imgHtml);
+      range.insertNode(fragment);
+    } else {
+      contentRef.current.innerHTML += imgHtml;
+    }
+    
+    delete (window as any).__pendingImage;
+    setShowImageDialog(false);
+    checkChanges();
+    triggerAutoSave();
+    toast({ title: 'Image inserted' });
+  };
+
+  // Insert link
+  const insertLink = () => {
+    if (!linkUrl.trim() || !contentRef.current) return;
+    
+    const displayText = linkText.trim() || linkUrl;
+    const linkHtml = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer" class="text-primary underline hover:text-primary/80">${displayText}</a>`;
+    
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const fragment = range.createContextualFragment(linkHtml);
+      range.insertNode(fragment);
+    } else {
+      contentRef.current.innerHTML += linkHtml;
+    }
+    
+    setLinkUrl('');
+    setLinkText('');
+    setShowLinkDialog(false);
+    checkChanges();
+    triggerAutoSave();
   };
 
   // Track format state for UI
@@ -720,11 +982,68 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
         onChange={handleImport}
         className="hidden"
       />
+      
+      {/* Hidden file input for image */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageInsert}
+        className="hidden"
+      />
 
       {/* Tooltip Display */}
       {activeTooltip && FORMAT_TOOLTIPS[activeTooltip] && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-popover border border-border rounded-lg px-4 py-2 shadow-elevated animate-fade-in">
           <p className="text-sm text-foreground">{FORMAT_TOOLTIPS[activeTooltip]}</p>
+        </div>
+      )}
+
+      {/* Image Dialog */}
+      {showImageDialog && (
+        <ImageInsertDialog
+          onInsert={insertImage}
+          onClose={() => {
+            setShowImageDialog(false);
+            delete (window as any).__pendingImage;
+          }}
+        />
+      )}
+
+      {/* Link Dialog */}
+      {showLinkDialog && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+          onClick={() => setShowLinkDialog(false)}
+        >
+          <div 
+            className="bg-popover border border-border rounded-lg shadow-elevated p-4 w-full max-w-sm animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 className="font-display font-semibold text-foreground mb-4">Insert Link</h4>
+            <div className="space-y-3">
+              <Input
+                placeholder="URL (https://...)"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                autoFocus
+              />
+              <Input
+                placeholder="Display text (optional)"
+                value={linkText}
+                onChange={(e) => setLinkText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && insertLink()}
+              />
+              <div className="flex gap-2 justify-end">
+                <Button variant="ghost" size="sm" onClick={() => setShowLinkDialog(false)}>
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={insertLink} disabled={!linkUrl.trim()}>
+                  Insert
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -879,9 +1198,23 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
           <ToolbarButton tooltipKey="undo" onClick={handleUndo} disabled={!isEditMode}>
             <Undo className="w-4 h-4" />
           </ToolbarButton>
-          <Button onClick={handleSave} disabled={!hasChanges} size="sm" className="gap-1 h-8 px-2">
-            <Save className="w-4 h-4" />
-            <span className="hidden sm:inline text-xs">Save</span>
+          <Button 
+            onClick={handleSave} 
+            disabled={!hasChanges && !isSaving} 
+            size="sm" 
+            className={cn(
+              "gap-1 h-8 px-2 transition-colors",
+              hasChanges && "bg-destructive hover:bg-destructive/90 text-destructive-foreground",
+              justSaved && !hasChanges && "bg-green-600 hover:bg-green-600/90 text-white",
+              !hasChanges && !justSaved && "bg-muted text-muted-foreground"
+            )}
+          >
+            {justSaved && !hasChanges ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            <span className="hidden sm:inline text-xs">{justSaved && !hasChanges ? 'Saved' : 'Save'}</span>
           </Button>
           {/* Color Picker Button */}
           <ToolbarButton tooltipKey="color" onClick={() => setShowColorPicker(!showColorPicker)}>
@@ -953,6 +1286,13 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
               <ToolbarButton tooltipKey="import" onClick={() => fileInputRef.current?.click()}>
                 <ArrowDownToLine className="w-4 h-4" />
               </ToolbarButton>
+              <Separator orientation="vertical" className="h-5 mx-1" />
+              <ToolbarButton tooltipKey="image" onClick={() => imageInputRef.current?.click()}>
+                <Image className="w-4 h-4" />
+              </ToolbarButton>
+              <ToolbarButton tooltipKey="link" onClick={() => setShowLinkDialog(true)}>
+                <Link className="w-4 h-4" />
+              </ToolbarButton>
             </>
           )}
         </div>
@@ -1006,14 +1346,27 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
               </Badge>
             ))}
             {isEditMode && (
-              <Input
-                type="text"
-                placeholder="Add tag..."
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                onKeyDown={handleAddTag}
-                className="w-24 h-7 text-sm border-none shadow-none focus-visible:ring-0 px-2"
-              />
+              <div className="flex items-center gap-1">
+                <Input
+                  type="text"
+                  placeholder="Add tag..."
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyDown={handleAddTag}
+                  enterKeyHint="done"
+                  className="w-24 h-7 text-sm border-none shadow-none focus-visible:ring-0 px-2"
+                />
+                {newTag.trim() && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    onClick={handleAddTagClick}
+                  >
+                    <Check className="w-4 h-4 text-green-600" />
+                  </Button>
+                )}
+              </div>
             )}
           </div>
 
