@@ -289,6 +289,50 @@
   .search-highlight {
     @apply bg-green-400/50 rounded px-0.5;
   }
+  
+  /* Resizable Image Wrapper */
+  .resizable-image-wrapper {
+    @apply relative inline-block;
+    min-width: 50px;
+    max-width: 100%;
+  }
+  
+  .resizable-image-wrapper img {
+    @apply block w-full h-auto pointer-events-none select-none;
+  }
+  
+  .resizable-image-wrapper:hover .resize-handle,
+  .resizable-image-wrapper.resizing .resize-handle {
+    @apply opacity-100;
+  }
+  
+  .resize-handle {
+    @apply absolute w-3 h-3 bg-primary border-2 border-background rounded-sm opacity-0 transition-opacity z-10;
+  }
+  
+  .resize-handle-se {
+    @apply bottom-0 right-0 cursor-nwse-resize;
+    transform: translate(50%, 50%);
+  }
+  
+  .resize-handle-sw {
+    @apply bottom-0 left-0 cursor-nesw-resize;
+    transform: translate(-50%, 50%);
+  }
+  
+  .resize-handle-ne {
+    @apply top-0 right-0 cursor-nesw-resize;
+    transform: translate(50%, -50%);
+  }
+  
+  .resize-handle-nw {
+    @apply top-0 left-0 cursor-nwse-resize;
+    transform: translate(-50%, -50%);
+  }
+  
+  .resizable-image-wrapper.resizing {
+    @apply ring-2 ring-primary ring-offset-2;
+  }
 }
 
 @layer utilities {
