@@ -215,6 +215,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
   const [linkText, setLinkText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   
   const { subcategories, createSubcategory, refresh: refreshSubcategories } = useSubcategories(workspace || undefined);
   
@@ -849,6 +850,45 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
     if (imageInputRef.current) imageInputRef.current.value = '';
   };
 
+  // Handle drag and drop for images
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isEditMode) return;
+    
+    const hasImages = e.dataTransfer.types.includes('Files');
+    if (hasImages) {
+      setIsDragOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    
+    if (!isEditMode) return;
+    
+    const files = Array.from(e.dataTransfer.files);
+    const imageFile = files.find(file => file.type.startsWith('image/'));
+    
+    if (imageFile) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        (window as any).__pendingImage = dataUrl;
+        setShowImageDialog(true);
+      };
+      reader.readAsDataURL(imageFile);
+    }
+  };
+
   // Insert image with settings
   const insertImage = (alignment: string, width: number, caption: string) => {
     const dataUrl = (window as any).__pendingImage;
@@ -1376,13 +1416,27 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
             contentEditable={isEditMode}
             onInput={handleContentInput}
             onDoubleClick={handleContentDoubleClick}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
             className={cn(
-              "editor-content min-h-[300px] md:min-h-[400px] outline-none focus:outline-none",
-              !isEditMode && "cursor-pointer"
+              "editor-content min-h-[300px] md:min-h-[400px] outline-none focus:outline-none relative transition-colors",
+              !isEditMode && "cursor-pointer",
+              isDragOver && "bg-primary/10 ring-2 ring-primary ring-dashed rounded-lg"
             )}
             data-placeholder="Start writing..."
             suppressContentEditableWarning
           />
+          
+          {/* Drag overlay indicator */}
+          {isDragOver && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in">
+                <Image className="w-5 h-5" />
+                <span className="font-medium">Drop image here</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Floating Edit Button - only visible in reading mode */}
