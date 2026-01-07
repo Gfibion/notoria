@@ -26,8 +26,10 @@ import {
   ArrowUpFromLine,
   FileText,
   Image,
-  Link,
   Check,
+  Crop,
+  Trash2,
+  Move,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,7 +75,6 @@ const FORMAT_TOOLTIPS: Record<string, string> = {
   exportPdf: 'Export PDF: Download note as PDF document',
   import: 'Import: Upload a text file',
   image: 'Image: Insert an image into the note',
-  link: 'Link: Insert a clickable link',
 };
 
 // Image alignment options
@@ -210,10 +211,10 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
   const [newSubcategoryName, setNewSubcategoryName] = useState('');
   const [showNewSubcategoryInput, setShowNewSubcategoryInput] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
-  const [showLinkDialog, setShowLinkDialog] = useState(false);
-  const [linkUrl, setLinkUrl] = useState('');
-  const [linkText, setLinkText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const [showImageMenu, setShowImageMenu] = useState(false);
+  const [imageMenuPosition, setImageMenuPosition] = useState({ x: 0, y: 0 });
   const [justSaved, setJustSaved] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   
@@ -535,7 +536,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
       let html = node.textContent || '';
       matches.forEach((match) => {
         const url = match[0];
-        html = html.replace(url, `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-primary underline hover:text-primary/80">${url}</a>`);
+        html = html.replace(url, `<a href="${url}" target="_blank" rel="noopener noreferrer" class="note-link">${url}</a>`);
       });
       const span = document.createElement('span');
       span.innerHTML = html;
@@ -899,7 +900,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
     const imgStyle = `width: 100%; height: auto;`;
     const wrapperStyle = `width: ${width}%; position: relative; display: inline-block;`;
     
-    const resizableImg = `<div class="resizable-image-wrapper" data-image-id="${uniqueId}" style="${wrapperStyle}" contenteditable="false"><img src="${dataUrl}" style="${imgStyle}" draggable="false" /><div class="resize-handle resize-handle-se"></div><div class="resize-handle resize-handle-sw"></div><div class="resize-handle resize-handle-ne"></div><div class="resize-handle resize-handle-nw"></div></div>`;
+    const resizableImg = `<div class="resizable-image-wrapper" data-image-id="${uniqueId}" style="${wrapperStyle}" contenteditable="false" draggable="true"><img src="${dataUrl}" style="${imgStyle}" draggable="false" /><div class="resize-handle resize-handle-se"></div><div class="resize-handle resize-handle-sw"></div><div class="resize-handle resize-handle-ne"></div><div class="resize-handle resize-handle-nw"></div><div class="image-actions"><button class="image-action-btn image-delete-btn" data-action="delete" title="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button><button class="image-action-btn image-move-btn" data-action="move" title="Drag to move"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg></button></div></div>`;
     
     switch (alignment) {
       case 'left':
@@ -1063,28 +1064,71 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
     };
   }, [isEditMode, checkChanges, triggerAutoSave]);
 
-  // Insert link
-  const insertLink = () => {
-    if (!linkUrl.trim() || !contentRef.current) return;
+  // Handle image deletion from content
+  const handleImageAction = useCallback((e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const actionBtn = target.closest('.image-action-btn') as HTMLElement;
+    if (!actionBtn) return;
     
-    const displayText = linkText.trim() || linkUrl;
-    const linkHtml = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer" class="text-primary underline hover:text-primary/80">${displayText}</a>`;
+    const action = actionBtn.getAttribute('data-action');
+    const wrapper = actionBtn.closest('.resizable-image-wrapper') as HTMLElement;
     
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      const fragment = range.createContextualFragment(linkHtml);
-      range.insertNode(fragment);
-    } else {
-      contentRef.current.innerHTML += linkHtml;
+    if (action === 'delete' && wrapper) {
+      e.preventDefault();
+      e.stopPropagation();
+      const figure = wrapper.closest('figure');
+      if (figure) {
+        figure.remove();
+      } else {
+        wrapper.remove();
+      }
+      checkChanges();
+      triggerAutoSave();
     }
+  }, [checkChanges, triggerAutoSave]);
+
+  // Handle image drag to reposition
+  useEffect(() => {
+    if (!contentRef.current || !isEditMode) return;
     
-    setLinkUrl('');
-    setLinkText('');
-    setShowLinkDialog(false);
-    checkChanges();
-    triggerAutoSave();
-  };
+    const container = contentRef.current;
+    
+    // Click handler for image actions
+    container.addEventListener('click', handleImageAction);
+    
+    let draggedElement: HTMLElement | null = null;
+    let dropIndicator: HTMLElement | null = null;
+    
+    const handleDragStart = (e: DragEvent) => {
+      const target = e.target as HTMLElement;
+      const wrapper = target.closest('.resizable-image-wrapper') as HTMLElement;
+      if (wrapper && wrapper.getAttribute('draggable') === 'true') {
+        draggedElement = wrapper.closest('figure') || wrapper;
+        draggedElement.classList.add('dragging');
+        e.dataTransfer?.setData('text/plain', 'image');
+      }
+    };
+    
+    const handleDragEnd = () => {
+      if (draggedElement) {
+        draggedElement.classList.remove('dragging');
+        draggedElement = null;
+      }
+      if (dropIndicator) {
+        dropIndicator.remove();
+        dropIndicator = null;
+      }
+    };
+    
+    container.addEventListener('dragstart', handleDragStart);
+    container.addEventListener('dragend', handleDragEnd);
+    
+    return () => {
+      container.removeEventListener('click', handleImageAction);
+      container.removeEventListener('dragstart', handleDragStart);
+      container.removeEventListener('dragend', handleDragEnd);
+    };
+  }, [isEditMode, handleImageAction]);
 
   // Track format state for UI
   const [formatState, setFormatState] = useState({
@@ -1184,44 +1228,6 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
           }}
         />
       )}
-
-      {/* Link Dialog */}
-      {showLinkDialog && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
-          onClick={() => setShowLinkDialog(false)}
-        >
-          <div 
-            className="bg-popover border border-border rounded-lg shadow-elevated p-4 w-full max-w-sm animate-fade-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h4 className="font-display font-semibold text-foreground mb-4">Insert Link</h4>
-            <div className="space-y-3">
-              <Input
-                placeholder="URL (https://...)"
-                value={linkUrl}
-                onChange={(e) => setLinkUrl(e.target.value)}
-                autoFocus
-              />
-              <Input
-                placeholder="Display text (optional)"
-                value={linkText}
-                onChange={(e) => setLinkText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && insertLink()}
-              />
-              <div className="flex gap-2 justify-end">
-                <Button variant="ghost" size="sm" onClick={() => setShowLinkDialog(false)}>
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={insertLink} disabled={!linkUrl.trim()}>
-                  Insert
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Color Picker Popup */}
       {showColorPicker && (
         <div className="fixed top-20 right-4 z-50">
@@ -1427,49 +1433,78 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
           
           {/* Collapsible extra tools toggle */}
           <Separator orientation="vertical" className="h-5 mx-1" />
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn('h-8 w-8 shrink-0 transition-transform', showExtraTools && 'rotate-90')}
-            onClick={() => setShowExtraTools(!showExtraTools)}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-          
-          {/* Extra tools (collapsible) */}
-          {showExtraTools && (
-            <>
-              <ToolbarButton tooltipKey="fontColor" onClick={() => setShowFontColorPicker(true)}>
-                <Type className="w-4 h-4" />
-              </ToolbarButton>
-              <ToolbarButton tooltipKey="highlight" onClick={() => setShowHighlightPicker(true)}>
-                <Highlighter className="w-4 h-4" />
-              </ToolbarButton>
-              <ToolbarButton tooltipKey="quote" onClick={() => execCommand('formatBlock', 'blockquote')}>
-                <Quote className="w-4 h-4" />
-              </ToolbarButton>
-              <ToolbarButton tooltipKey="code" onClick={() => execCommand('formatBlock', 'pre')}>
-                <Code className="w-4 h-4" />
-              </ToolbarButton>
-              <Separator orientation="vertical" className="h-5 mx-1" />
-              <ToolbarButton tooltipKey="export" onClick={() => handleExport('txt')}>
-                <ArrowUpFromLine className="w-4 h-4" />
-              </ToolbarButton>
-              <ToolbarButton tooltipKey="exportPdf" onClick={() => handleExport('pdf')}>
-                <FileText className="w-4 h-4" />
-              </ToolbarButton>
-              <ToolbarButton tooltipKey="import" onClick={() => fileInputRef.current?.click()}>
-                <ArrowDownToLine className="w-4 h-4" />
-              </ToolbarButton>
-              <Separator orientation="vertical" className="h-5 mx-1" />
-              <ToolbarButton tooltipKey="image" onClick={() => imageInputRef.current?.click()}>
-                <Image className="w-4 h-4" />
-              </ToolbarButton>
-              <ToolbarButton tooltipKey="link" onClick={() => setShowLinkDialog(true)}>
-                <Link className="w-4 h-4" />
-              </ToolbarButton>
-            </>
-          )}
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn('h-8 w-8 shrink-0 transition-transform', showExtraTools && 'rotate-90 md:rotate-90')}
+              onClick={() => setShowExtraTools(!showExtraTools)}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            
+            {/* Extra tools - vertical dropdown on mobile, horizontal on desktop */}
+            {showExtraTools && (
+              <div className="absolute left-0 top-full mt-1 md:static md:mt-0 md:ml-1 flex flex-col md:flex-row gap-1 bg-popover md:bg-transparent border md:border-0 border-border rounded-lg p-2 md:p-0 shadow-elevated md:shadow-none z-50 min-w-[160px] md:min-w-0">
+                <div className="flex flex-col md:flex-row gap-1">
+                  <div className="flex items-center gap-1">
+                    <ToolbarButton tooltipKey="fontColor" onClick={() => setShowFontColorPicker(true)}>
+                      <Type className="w-4 h-4" />
+                    </ToolbarButton>
+                    <span className="text-xs text-muted-foreground md:hidden ml-2">Font Color</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <ToolbarButton tooltipKey="highlight" onClick={() => setShowHighlightPicker(true)}>
+                      <Highlighter className="w-4 h-4" />
+                    </ToolbarButton>
+                    <span className="text-xs text-muted-foreground md:hidden ml-2">Highlight</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <ToolbarButton tooltipKey="quote" onClick={() => execCommand('formatBlock', 'blockquote')}>
+                      <Quote className="w-4 h-4" />
+                    </ToolbarButton>
+                    <span className="text-xs text-muted-foreground md:hidden ml-2">Quote</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <ToolbarButton tooltipKey="code" onClick={() => execCommand('formatBlock', 'pre')}>
+                      <Code className="w-4 h-4" />
+                    </ToolbarButton>
+                    <span className="text-xs text-muted-foreground md:hidden ml-2">Code</span>
+                  </div>
+                </div>
+                <Separator orientation="vertical" className="h-5 mx-1 hidden md:block" />
+                <Separator className="my-1 md:hidden" />
+                <div className="flex flex-col md:flex-row gap-1">
+                  <div className="flex items-center gap-1">
+                    <ToolbarButton tooltipKey="export" onClick={() => handleExport('txt')}>
+                      <ArrowUpFromLine className="w-4 h-4" />
+                    </ToolbarButton>
+                    <span className="text-xs text-muted-foreground md:hidden ml-2">Export TXT</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <ToolbarButton tooltipKey="exportPdf" onClick={() => handleExport('pdf')}>
+                      <FileText className="w-4 h-4" />
+                    </ToolbarButton>
+                    <span className="text-xs text-muted-foreground md:hidden ml-2">Export PDF</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <ToolbarButton tooltipKey="import" onClick={() => fileInputRef.current?.click()}>
+                      <ArrowDownToLine className="w-4 h-4" />
+                    </ToolbarButton>
+                    <span className="text-xs text-muted-foreground md:hidden ml-2">Import</span>
+                  </div>
+                </div>
+                <Separator orientation="vertical" className="h-5 mx-1 hidden md:block" />
+                <Separator className="my-1 md:hidden" />
+                <div className="flex items-center gap-1">
+                  <ToolbarButton tooltipKey="image" onClick={() => imageInputRef.current?.click()}>
+                    <Image className="w-4 h-4" />
+                  </ToolbarButton>
+                  <span className="text-xs text-muted-foreground md:hidden ml-2">Image</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

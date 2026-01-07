@@ -333,6 +333,58 @@
   .resizable-image-wrapper.resizing {
     @apply ring-2 ring-primary ring-offset-2;
   }
+  
+  /* Image action buttons */
+  .image-actions {
+    @apply absolute top-2 right-2 flex gap-1 opacity-0 transition-opacity z-20;
+  }
+  
+  .resizable-image-wrapper:hover .image-actions,
+  .resizable-image-wrapper.selected .image-actions {
+    @apply opacity-100;
+  }
+  
+  .image-action-btn {
+    @apply w-7 h-7 flex items-center justify-center rounded bg-background/90 border border-border shadow-sm hover:bg-accent transition-colors cursor-pointer;
+  }
+  
+  .image-delete-btn {
+    @apply hover:bg-destructive hover:text-destructive-foreground hover:border-destructive;
+  }
+  
+  .image-move-btn {
+    @apply cursor-grab active:cursor-grabbing;
+  }
+  
+  .resizable-image-wrapper.dragging {
+    @apply opacity-50;
+  }
+  
+  .image-drop-indicator {
+    @apply w-1 h-16 bg-primary rounded-full mx-1 inline-block animate-pulse;
+  }
+  
+  /* Note link styling - adapts to background */
+  .note-link {
+    @apply underline transition-colors;
+    color: hsl(var(--link-color, 210 100% 45%));
+  }
+  
+  .note-link:hover {
+    color: hsl(var(--link-color-hover, 210 100% 35%));
+  }
+  
+  /* Light backgrounds get blue links */
+  :root {
+    --link-color: 210 100% 45%;
+    --link-color-hover: 210 100% 35%;
+  }
+  
+  /* Dark theme gets teal/green links */
+  .dark {
+    --link-color: 160 70% 45%;
+    --link-color-hover: 160 70% 55%;
+  }
 }
 
 @layer utilities {
