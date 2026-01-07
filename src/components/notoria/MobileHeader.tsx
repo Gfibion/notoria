@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Menu, Search, Plus, BookOpen, Trash2, Settings, Star, ChevronDown, ChevronRight, Hash, MoreHorizontal, Pencil, GripVertical } from 'lucide-react';
+import { Menu, Search, Plus, BookOpen, Trash2, Settings, Star, ChevronDown, ChevronRight, Hash, MoreHorizontal, Pencil, GripVertical, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Workspace, Subcategory, getSubcategoriesByWorkspace } from '@/lib/db';
@@ -50,6 +50,7 @@ interface MobileHeaderProps {
   onCreateWorkspace?: (name: string, color: string, icon: string) => Promise<void>;
   onUpdateWorkspace?: (id: string, name: string, color: string, icon: string) => Promise<void>;
   onDeleteWorkspace?: (id: string) => Promise<void>;
+  onOpenPdf?: () => void;
 }
 
 export function MobileHeader({
@@ -68,6 +69,7 @@ export function MobileHeader({
   onCreateWorkspace,
   onUpdateWorkspace,
   onDeleteWorkspace,
+  onOpenPdf,
 }: MobileHeaderProps) {
   const currentWorkspace = workspaces.find((ws) => ws.id === selectedWorkspace);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -347,6 +349,18 @@ export function MobileHeader({
                 })}
 
                 <div className="mt-4 pt-4 border-t border-border space-y-1">
+                  {onOpenPdf && (
+                    <button
+                      onClick={() => {
+                        onOpenPdf();
+                        setIsSheetOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-secondary/50"
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span>Open PDF</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       onOpenTrash();

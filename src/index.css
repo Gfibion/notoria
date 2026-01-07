@@ -385,6 +385,24 @@
     --link-color: 160 70% 45%;
     --link-color-hover: 160 70% 55%;
   }
+
+  /* PDF Extracted Text Styles */
+  .pdf-extracted-text {
+    @apply bg-accent/30 rounded px-0.5 relative;
+  }
+  
+  .pdf-extracted-text .extracted-content {
+    @apply text-foreground;
+  }
+  
+  .pdf-source-marker {
+    @apply text-[10px] font-bold cursor-pointer transition-colors ml-0.5;
+    color: hsl(var(--primary));
+  }
+  
+  .pdf-source-marker:hover {
+    color: hsl(var(--accent));
+  }
 }
 
 @layer utilities {
