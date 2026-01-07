@@ -30,6 +30,7 @@ import {
   Target,
   Trophy,
   GripVertical,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
@@ -80,6 +81,7 @@ interface SidebarProps {
   onUpdateWorkspace: (id: string, name: string, color: string, icon: string) => Promise<void>;
   onDeleteWorkspace: (id: string) => Promise<void>;
   onReorderWorkspaces: (orderedIds: string[]) => Promise<void>;
+  onOpenPdf?: () => void;
 }
 
 export function Sidebar({
@@ -101,6 +103,7 @@ export function Sidebar({
   onUpdateWorkspace,
   onDeleteWorkspace,
   onReorderWorkspaces,
+  onOpenPdf,
 }: SidebarProps) {
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(new Set());
   const [workspaceSubcategories, setWorkspaceSubcategories] = useState<Record<string, Subcategory[]>>({});
@@ -500,8 +503,21 @@ export function Sidebar({
             )}
           </nav>
 
+          {/* PDF Reader */}
+          {onOpenPdf && (
+            <div className="px-2 mt-4">
+              <button
+                onClick={onOpenPdf}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50"
+              >
+                <FileText className="w-4 h-4 flex-shrink-0" />
+                {!collapsed && <span>Open PDF</span>}
+              </button>
+            </div>
+          )}
+
           {/* Trash */}
-          <div className="px-2 mt-4">
+          <div className="px-2 mt-2">
             <button
               onClick={onOpenTrash}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50"

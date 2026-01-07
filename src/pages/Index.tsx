@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Note, Workspace, getSettings, cleanupOldDeletedNotes } from '@/lib/db';
 import { useNotes } from '@/hooks/useNotes';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
@@ -11,7 +11,9 @@ import { NotesGrid } from '@/components/notoria/NotesGrid';
 import { InstallBanner } from '@/components/notoria/InstallBanner';
 import { TrashView } from '@/components/notoria/TrashView';
 import { SettingsDialog } from '@/components/notoria/SettingsDialog';
-import { Plus, BookOpen, Search } from 'lucide-react';
+import { PDFViewer, ExtractedTextMetadata } from '@/components/notoria/PDFViewer';
+import { generateExtractedTextHtml } from '@/components/notoria/ExtractedTextDisplay';
+import { Plus, BookOpen, Search, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -27,6 +29,9 @@ const Index = () => {
   const [showStarred, setShowStarred] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [isPdfViewerOpen, setIsPdfViewerOpen] = useState(false);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -200,8 +205,52 @@ const Index = () => {
     [selectedNote, removeNote, toast]
   );
 
+  // Handle PDF file selection
+  const handlePdfSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      setPdfFile(file);
+      setIsPdfViewerOpen(true);
+    } else if (file) {
+      toast({ title: 'Please select a PDF file', variant: 'destructive' });
+    }
+    if (pdfInputRef.current) pdfInputRef.current.value = '';
+  }, [toast]);
+
+  // Handle adding extracted text to note
+  const handleAddExtractedTextToNote = useCallback(async (noteId: string, text: string, metadata: ExtractedTextMetadata) => {
+    try {
+      const note = allNotes.find(n => n.id === noteId);
+      if (!note) return;
+
+      const extractedHtml = generateExtractedTextHtml(text, metadata);
+      const newContent = note.content + `<p>${extractedHtml}</p>`;
+      
+      await updateNote(noteId, { content: newContent });
+      refresh();
+    } catch (err) {
+      toast({ title: 'Failed to add text to note', variant: 'destructive' });
+    }
+  }, [allNotes, updateNote, refresh, toast]);
+
   const currentWorkspace = workspaces.find((ws) => ws.id === selectedWorkspace);
   const loading = workspacesLoading || notesLoading;
+
+  // PDF Viewer
+  if (isPdfViewerOpen && pdfFile) {
+    return (
+      <PDFViewer
+        file={pdfFile}
+        fileName={pdfFile.name}
+        notes={allNotes.filter(n => !n.isDeleted)}
+        onClose={() => {
+          setIsPdfViewerOpen(false);
+          setPdfFile(null);
+        }}
+        onAddToNote={handleAddExtractedTextToNote}
+      />
+    );
+  }
 
   if (showTrash) {
     return (
@@ -215,6 +264,14 @@ const Index = () => {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
+      {/* Hidden PDF input */}
+      <input
+        ref={pdfInputRef}
+        type="file"
+        accept="application/pdf"
+        onChange={handlePdfSelect}
+        className="hidden"
+      />
       {/* Desktop Sidebar */}
       <div className="hidden md:block">
         <Sidebar
@@ -283,6 +340,7 @@ const Index = () => {
               await updateWorkspace(id, { name, color, icon });
             }}
             onDeleteWorkspace={removeWorkspace}
+            onOpenPdf={() => pdfInputRef.current?.click()}
           />
         )}
 
@@ -329,6 +387,10 @@ const Index = () => {
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => pdfInputRef.current?.click()} className="gap-2">
+                  <FileText className="w-4 h-4" />
+                  Open PDF
+                </Button>
                 <Button variant="outline" onClick={() => setIsSearchActive(true)} className="gap-2">
                   <Search className="w-4 h-4" />
                   Search
