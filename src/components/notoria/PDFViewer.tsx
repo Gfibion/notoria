@@ -19,8 +19,11 @@ import { useToast } from '@/hooks/use-toast';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-// Set up PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// Set up PDF.js worker - use local worker for offline support
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString();
 
 interface PDFViewerProps {
   file: File | string;
@@ -44,36 +47,48 @@ export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFVi
   const [showNoteSelector, setShowNoteSelector] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [pdfTitle, setPdfTitle] = useState(fileName);
+  const [pdfData, setPdfData] = useState<ArrayBuffer | string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Load PDF file into memory for offline support
+  useEffect(() => {
+    const loadPdf = async () => {
+      setIsLoading(true);
+      try {
+        if (file instanceof File) {
+          const arrayBuffer = await file.arrayBuffer();
+          setPdfData(arrayBuffer);
+        } else {
+          setPdfData(file);
+        }
+      } catch (err) {
+        console.error('Failed to load PDF:', err);
+        toast({ title: 'Failed to load PDF', variant: 'destructive' });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadPdf();
+  }, [file, toast]);
 
   // Handle document load
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
   };
 
-  // Handle text selection
+  // Handle text selection with debounce
   const handleTextSelection = useCallback(() => {
-    const selection = window.getSelection();
-    const text = selection?.toString().trim();
-    if (text && text.length > 0) {
-      setSelectedText(text);
-    }
+    // Use setTimeout to allow the selection to complete
+    setTimeout(() => {
+      const selection = window.getSelection();
+      const text = selection?.toString().trim();
+      if (text && text.length > 0) {
+        setSelectedText(text);
+      }
+    }, 10);
   }, []);
-
-  // Listen for text selection
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    container.addEventListener('mouseup', handleTextSelection);
-    container.addEventListener('touchend', handleTextSelection);
-
-    return () => {
-      container.removeEventListener('mouseup', handleTextSelection);
-      container.removeEventListener('touchend', handleTextSelection);
-    };
-  }, [handleTextSelection]);
 
   // Navigation
   const goToPrevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
@@ -151,31 +166,44 @@ export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFVi
       <div 
         ref={containerRef}
         className="flex-1 overflow-auto bg-muted/30"
+        onMouseUp={handleTextSelection}
+        onTouchEnd={handleTextSelection}
       >
         <div className="flex justify-center p-4 min-h-full">
-          <Document
-            file={file}
-            onLoadSuccess={onDocumentLoadSuccess}
-            loading={
-              <div className="flex items-center justify-center h-96">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
-              </div>
-            }
-            error={
-              <div className="flex flex-col items-center justify-center h-96 text-muted-foreground">
-                <FileText className="w-12 h-12 mb-4" />
-                <p>Failed to load PDF</p>
-              </div>
-            }
-          >
-            <Page
-              pageNumber={currentPage}
-              scale={scale}
-              className="shadow-lg"
-              renderTextLayer={true}
-              renderAnnotationLayer={true}
-            />
-          </Document>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-96">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+            </div>
+          ) : pdfData ? (
+            <Document
+              file={{ data: pdfData }}
+              onLoadSuccess={onDocumentLoadSuccess}
+              loading={
+                <div className="flex items-center justify-center h-96">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+                </div>
+              }
+              error={
+                <div className="flex flex-col items-center justify-center h-96 text-muted-foreground">
+                  <FileText className="w-12 h-12 mb-4" />
+                  <p>Failed to load PDF</p>
+                </div>
+              }
+            >
+              <Page
+                pageNumber={currentPage}
+                scale={scale}
+                className="shadow-lg pdf-page"
+                renderTextLayer={true}
+                renderAnnotationLayer={true}
+              />
+            </Document>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-96 text-muted-foreground">
+              <FileText className="w-12 h-12 mb-4" />
+              <p>No PDF loaded</p>
+            </div>
+          )}
         </div>
       </div>
 

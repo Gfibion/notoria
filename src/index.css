@@ -403,6 +403,34 @@
   .pdf-source-marker:hover {
     color: hsl(var(--accent));
   }
+  
+  /* Code Block Styles */
+  .code-block-wrapper {
+    @apply relative my-4 rounded-lg overflow-hidden;
+    background-color: hsl(var(--muted));
+  }
+  
+  .code-block {
+    @apply block w-full p-4 text-sm font-mono outline-none;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    min-height: 60px;
+    background-color: transparent;
+    color: hsl(var(--foreground));
+  }
+  
+  .code-block:focus {
+    @apply ring-2 ring-primary ring-inset;
+  }
+  
+  .code-exit-btn {
+    @apply absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded bg-primary text-primary-foreground text-xs font-bold cursor-pointer transition-colors z-10;
+  }
+  
+  .code-exit-btn:hover {
+    @apply bg-primary/80;
+  }
 }
 
 @layer utilities {
@@ -441,5 +469,21 @@
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     @apply bg-stone/50;
+  }
+  
+  /* PDF Text Layer - Enable text selection */
+  .pdf-page .react-pdf__Page__textContent {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    cursor: text;
+  }
+  
+  .pdf-page .react-pdf__Page__textContent span {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+  }
+  
+  .pdf-page .react-pdf__Page__textContent ::selection {
+    background: hsl(var(--primary) / 0.3);
   }
 }

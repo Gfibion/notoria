@@ -25,7 +25,7 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   FileText,
-  Image,
+  Image as ImageIcon,
   Check,
   Crop,
   Trash2,
@@ -183,6 +183,200 @@ function ImageInsertDialog({
   );
 }
 
+// Image Crop Dialog Component
+function ImageCropDialog({
+  imageUrl,
+  onCrop,
+  onClose
+}: {
+  imageUrl: string;
+  onCrop: (croppedDataUrl: string) => void;
+  onClose: () => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const [cropRect, setCropRect] = useState({ x: 0, y: 0, width: 100, height: 100 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragType, setDragType] = useState<'move' | 'resize' | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const maxWidth = Math.min(400, window.innerWidth - 64);
+      const maxHeight = 300;
+      const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+      const displayWidth = img.width * scale;
+      const displayHeight = img.height * scale;
+      
+      setImageDimensions({ width: displayWidth, height: displayHeight });
+      setCropRect({
+        x: displayWidth * 0.1,
+        y: displayHeight * 0.1,
+        width: displayWidth * 0.8,
+        height: displayHeight * 0.8
+      });
+      setImageLoaded(true);
+    };
+    img.src = imageUrl;
+  }, [imageUrl]);
+
+  const handleMouseDown = (e: React.MouseEvent, type: 'move' | 'resize') => {
+    e.preventDefault();
+    setIsDragging(true);
+    setDragType(type);
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging || !dragType) return;
+    
+    const deltaX = e.clientX - dragStart.x;
+    const deltaY = e.clientY - dragStart.y;
+    
+    setCropRect(prev => {
+      if (dragType === 'move') {
+        const newX = Math.max(0, Math.min(imageDimensions.width - prev.width, prev.x + deltaX));
+        const newY = Math.max(0, Math.min(imageDimensions.height - prev.height, prev.y + deltaY));
+        return { ...prev, x: newX, y: newY };
+      } else {
+        const newWidth = Math.max(50, Math.min(imageDimensions.width - prev.x, prev.width + deltaX));
+        const newHeight = Math.max(50, Math.min(imageDimensions.height - prev.y, prev.height + deltaY));
+        return { ...prev, width: newWidth, height: newHeight };
+      }
+    });
+    
+    setDragStart({ x: e.clientX, y: e.clientY });
+  }, [isDragging, dragType, dragStart, imageDimensions]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    setDragType(null);
+  }, []);
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  const handleApplyCrop = () => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // Calculate the actual crop coordinates based on original image dimensions
+      const scaleX = img.width / imageDimensions.width;
+      const scaleY = img.height / imageDimensions.height;
+      
+      const actualCrop = {
+        x: cropRect.x * scaleX,
+        y: cropRect.y * scaleY,
+        width: cropRect.width * scaleX,
+        height: cropRect.height * scaleY
+      };
+
+      canvas.width = actualCrop.width;
+      canvas.height = actualCrop.height;
+      
+      ctx.drawImage(
+        img,
+        actualCrop.x, actualCrop.y, actualCrop.width, actualCrop.height,
+        0, 0, actualCrop.width, actualCrop.height
+      );
+      
+      const croppedDataUrl = canvas.toDataURL('image/png');
+      onCrop(croppedDataUrl);
+    };
+    img.src = imageUrl;
+  };
+
+  return (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-popover border border-border rounded-lg shadow-elevated p-4 w-full max-w-lg animate-fade-in"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h4 className="font-display font-semibold text-foreground mb-4">Crop Image</h4>
+        
+        {imageLoaded ? (
+          <div 
+            className="relative mb-4 mx-auto bg-muted rounded-lg overflow-hidden"
+            style={{ width: imageDimensions.width, height: imageDimensions.height }}
+          >
+            <img 
+              ref={imageRef}
+              src={imageUrl} 
+              alt="Crop preview" 
+              className="absolute inset-0 w-full h-full object-contain opacity-50"
+              draggable={false}
+            />
+            
+            {/* Crop overlay */}
+            <div 
+              className="absolute border-2 border-primary bg-transparent cursor-move"
+              style={{
+                left: cropRect.x,
+                top: cropRect.y,
+                width: cropRect.width,
+                height: cropRect.height,
+              }}
+              onMouseDown={(e) => handleMouseDown(e, 'move')}
+            >
+              {/* Clear area showing the cropped portion */}
+              <img 
+                src={imageUrl} 
+                alt="Crop area" 
+                className="absolute object-contain"
+                style={{
+                  width: imageDimensions.width,
+                  height: imageDimensions.height,
+                  left: -cropRect.x,
+                  top: -cropRect.y,
+                }}
+                draggable={false}
+              />
+              
+              {/* Resize handle */}
+              <div 
+                className="absolute bottom-0 right-0 w-4 h-4 bg-primary cursor-se-resize transform translate-x-1/2 translate-y-1/2 rounded-sm"
+                onMouseDown={(e) => { e.stopPropagation(); handleMouseDown(e, 'resize'); }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-48">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+          </div>
+        )}
+        
+        <div className="flex gap-2 justify-end">
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button size="sm" onClick={handleApplyCrop} disabled={!imageLoaded}>
+            Apply Crop
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const FONT_COLORS = [
   '#000000', '#333333', '#666666', '#999999',
   '#ef4444', '#f97316', '#eab308', '#22c55e',
@@ -217,6 +411,8 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
   const [imageMenuPosition, setImageMenuPosition] = useState({ x: 0, y: 0 });
   const [justSaved, setJustSaved] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [showCropDialog, setShowCropDialog] = useState(false);
+  const [cropImageData, setCropImageData] = useState<{ url: string; imageId: string } | null>(null);
   
   const { subcategories, createSubcategory, refresh: refreshSubcategories } = useSubcategories(workspace || undefined);
   
@@ -900,7 +1096,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
     const imgStyle = `width: 100%; height: auto;`;
     const wrapperStyle = `width: ${width}%; position: relative; display: inline-block;`;
     
-    const resizableImg = `<div class="resizable-image-wrapper" data-image-id="${uniqueId}" style="${wrapperStyle}" contenteditable="false" draggable="true"><img src="${dataUrl}" style="${imgStyle}" draggable="false" /><div class="resize-handle resize-handle-se"></div><div class="resize-handle resize-handle-sw"></div><div class="resize-handle resize-handle-ne"></div><div class="resize-handle resize-handle-nw"></div><div class="image-actions"><button class="image-action-btn image-delete-btn" data-action="delete" title="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button><button class="image-action-btn image-move-btn" data-action="move" title="Drag to move"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg></button></div></div>`;
+    const resizableImg = `<div class="resizable-image-wrapper" data-image-id="${uniqueId}" style="${wrapperStyle}" contenteditable="false" draggable="true"><img src="${dataUrl}" style="${imgStyle}" draggable="false" /><div class="resize-handle resize-handle-se"></div><div class="resize-handle resize-handle-sw"></div><div class="resize-handle resize-handle-ne"></div><div class="resize-handle resize-handle-nw"></div><div class="image-actions"><button class="image-action-btn image-crop-btn" data-action="crop" title="Crop"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2v14a2 2 0 002 2h14M6 6H2m16 10v6"/></svg></button><button class="image-action-btn image-delete-btn" data-action="delete" title="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button><button class="image-action-btn image-move-btn" data-action="move" title="Drag to move"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg></button></div></div>`;
     
     switch (alignment) {
       case 'left':
@@ -932,6 +1128,87 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
     triggerAutoSave();
     toast({ title: 'Image inserted' });
   };
+
+  // Insert code block with exit button
+  const insertCodeBlock = useCallback(() => {
+    if (!contentRef.current || !isEditMode) return;
+    
+    const selection = window.getSelection();
+    const selectedText = selection?.toString() || '';
+    
+    const codeBlockId = `code-${Date.now()}`;
+    const codeBlockHtml = `<div class="code-block-wrapper" data-code-id="${codeBlockId}" contenteditable="false"><button class="code-exit-btn" data-action="exit-code" title="Exit code block">✓</button><pre class="code-block" contenteditable="true">${selectedText || 'Enter code here...'}</pre></div><p><br></p>`;
+    
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      const fragment = range.createContextualFragment(codeBlockHtml);
+      range.insertNode(fragment);
+    } else {
+      contentRef.current.innerHTML += codeBlockHtml;
+    }
+    
+    // Focus the code block
+    setTimeout(() => {
+      const codeBlock = contentRef.current?.querySelector(`[data-code-id="${codeBlockId}"] .code-block`) as HTMLElement;
+      if (codeBlock) {
+        codeBlock.focus();
+        // Select all if default text
+        if (codeBlock.textContent === 'Enter code here...') {
+          const range = document.createRange();
+          range.selectNodeContents(codeBlock);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }
+      }
+    }, 0);
+    
+    checkChanges();
+    triggerAutoSave();
+  }, [isEditMode, checkChanges, triggerAutoSave]);
+
+  // Handle code block exit button
+  useEffect(() => {
+    if (!contentRef.current || !isEditMode) return;
+    
+    const container = contentRef.current;
+    
+    const handleCodeBlockClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const exitBtn = target.closest('.code-exit-btn') as HTMLElement;
+      
+      if (exitBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const wrapper = exitBtn.closest('.code-block-wrapper');
+        const nextSibling = wrapper?.nextElementSibling;
+        
+        // Focus the next element or create a new paragraph
+        if (nextSibling && nextSibling.tagName !== 'DIV') {
+          (nextSibling as HTMLElement).focus();
+        } else {
+          // Insert a new paragraph after the code block
+          const p = document.createElement('p');
+          p.innerHTML = '<br>';
+          wrapper?.parentNode?.insertBefore(p, wrapper.nextSibling);
+          
+          const range = document.createRange();
+          range.setStart(p, 0);
+          range.collapse(true);
+          const selection = window.getSelection();
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }
+      }
+    };
+    
+    container.addEventListener('click', handleCodeBlockClick);
+    
+    return () => {
+      container.removeEventListener('click', handleCodeBlockClick);
+    };
+  }, [isEditMode]);
 
   // Handle image resize
   useEffect(() => {
@@ -1084,8 +1361,35 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
       }
       checkChanges();
       triggerAutoSave();
+    } else if (action === 'crop' && wrapper) {
+      e.preventDefault();
+      e.stopPropagation();
+      const img = wrapper.querySelector('img') as HTMLImageElement;
+      const imageId = wrapper.getAttribute('data-image-id');
+      if (img && imageId) {
+        setCropImageData({ url: img.src, imageId });
+        setShowCropDialog(true);
+      }
     }
   }, [checkChanges, triggerAutoSave]);
+
+  // Handle crop result
+  const handleCropComplete = useCallback((croppedDataUrl: string) => {
+    if (!cropImageData || !contentRef.current) return;
+    
+    const wrapper = contentRef.current.querySelector(`[data-image-id="${cropImageData.imageId}"]`) as HTMLElement;
+    if (wrapper) {
+      const img = wrapper.querySelector('img') as HTMLImageElement;
+      if (img) {
+        img.src = croppedDataUrl;
+        checkChanges();
+        triggerAutoSave();
+        toast({ title: 'Image cropped' });
+      }
+    }
+    setShowCropDialog(false);
+    setCropImageData(null);
+  }, [cropImageData, checkChanges, triggerAutoSave, toast]);
 
   // Handle image drag to reposition
   useEffect(() => {
@@ -1228,7 +1532,18 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
           }}
         />
       )}
-      {/* Color Picker Popup */}
+
+      {/* Image Crop Dialog */}
+      {showCropDialog && cropImageData && (
+        <ImageCropDialog
+          imageUrl={cropImageData.url}
+          onCrop={handleCropComplete}
+          onClose={() => {
+            setShowCropDialog(false);
+            setCropImageData(null);
+          }}
+        />
+      )}
       {showColorPicker && (
         <div className="fixed top-20 right-4 z-50">
           <RainbowColorPicker
@@ -1445,7 +1760,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
             
             {/* Extra tools - vertical dropdown on mobile, horizontal on desktop */}
             {showExtraTools && (
-              <div className="absolute left-0 top-full mt-1 md:static md:mt-0 md:ml-1 flex flex-col md:flex-row gap-1 bg-popover md:bg-transparent border md:border-0 border-border rounded-lg p-2 md:p-0 shadow-elevated md:shadow-none z-50 min-w-[160px] md:min-w-0">
+              <div className="fixed left-4 right-4 top-[120px] md:absolute md:left-0 md:top-full md:mt-1 md:right-auto md:static md:mt-0 md:ml-1 flex flex-col md:flex-row gap-1 bg-popover md:bg-transparent border md:border-0 border-border rounded-lg p-3 md:p-0 shadow-elevated md:shadow-none z-[100] md:min-w-0">
                 <div className="flex flex-col md:flex-row gap-1">
                   <div className="flex items-center gap-1">
                     <ToolbarButton tooltipKey="fontColor" onClick={() => setShowFontColorPicker(true)}>
@@ -1466,7 +1781,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
                     <span className="text-xs text-muted-foreground md:hidden ml-2">Quote</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <ToolbarButton tooltipKey="code" onClick={() => execCommand('formatBlock', 'pre')}>
+                    <ToolbarButton tooltipKey="code" onClick={() => insertCodeBlock()}>
                       <Code className="w-4 h-4" />
                     </ToolbarButton>
                     <span className="text-xs text-muted-foreground md:hidden ml-2">Code</span>
@@ -1498,7 +1813,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
                 <Separator className="my-1 md:hidden" />
                 <div className="flex items-center gap-1">
                   <ToolbarButton tooltipKey="image" onClick={() => imageInputRef.current?.click()}>
-                    <Image className="w-4 h-4" />
+                    <ImageIcon className="w-4 h-4" />
                   </ToolbarButton>
                   <span className="text-xs text-muted-foreground md:hidden ml-2">Image</span>
                 </div>
@@ -1602,7 +1917,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
           {isDragOver && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
               <div className="bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in">
-                <Image className="w-5 h-5" />
+                <ImageIcon className="w-5 h-5" />
                 <span className="font-medium">Drop image here</span>
               </div>
             </div>
