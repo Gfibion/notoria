@@ -1133,13 +1133,17 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
   const insertCodeBlock = useCallback(() => {
     if (!contentRef.current || !isEditMode) return;
     
+    // Focus the editor first to ensure we have a valid selection context
+    contentRef.current.focus();
+    
     const selection = window.getSelection();
     const selectedText = selection?.toString() || '';
     
     const codeBlockId = `code-${Date.now()}`;
-    const codeBlockHtml = `<div class="code-block-wrapper" data-code-id="${codeBlockId}" contenteditable="false"><button class="code-exit-btn" data-action="exit-code" title="Exit code block">✓</button><pre class="code-block" contenteditable="true">${selectedText || 'Enter code here...'}</pre></div><p><br></p>`;
+    const codeBlockHtml = `<div class="code-block-wrapper" data-code-id="${codeBlockId}"><button class="code-exit-btn" data-action="exit-code" title="Exit code block" contenteditable="false">✓</button><pre class="code-block" contenteditable="true" style="white-space: pre-wrap; word-wrap: break-word;">${selectedText || ''}</pre></div><p><br></p>`;
     
-    if (selection && selection.rangeCount > 0) {
+    // Insert at cursor position or append at end
+    if (selection && selection.rangeCount > 0 && contentRef.current.contains(selection.anchorNode)) {
       const range = selection.getRangeAt(0);
       range.deleteContents();
       const fragment = range.createContextualFragment(codeBlockHtml);
@@ -1153,15 +1157,14 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
       const codeBlock = contentRef.current?.querySelector(`[data-code-id="${codeBlockId}"] .code-block`) as HTMLElement;
       if (codeBlock) {
         codeBlock.focus();
-        // Select all if default text
-        if (codeBlock.textContent === 'Enter code here...') {
-          const range = document.createRange();
-          range.selectNodeContents(codeBlock);
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-        }
+        // Place cursor at start
+        const range = document.createRange();
+        range.selectNodeContents(codeBlock);
+        range.collapse(true);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
       }
-    }, 0);
+    }, 50);
     
     checkChanges();
     triggerAutoSave();
@@ -1760,28 +1763,28 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
             
             {/* Extra tools - vertical dropdown on mobile, horizontal on desktop */}
             {showExtraTools && (
-              <div className="fixed left-4 right-4 top-[120px] md:absolute md:left-0 md:top-full md:mt-1 md:right-auto md:static md:mt-0 md:ml-1 flex flex-col md:flex-row gap-1 bg-popover md:bg-transparent border md:border-0 border-border rounded-lg p-3 md:p-0 shadow-elevated md:shadow-none z-[100] md:min-w-0">
+              <div className="fixed right-4 top-[120px] w-48 md:absolute md:left-0 md:top-full md:mt-1 md:right-auto md:w-auto md:static md:mt-0 md:ml-1 flex flex-col md:flex-row gap-1 bg-popover md:bg-transparent border md:border-0 border-border rounded-lg p-3 md:p-0 shadow-elevated md:shadow-none z-[100] md:min-w-0">
                 <div className="flex flex-col md:flex-row gap-1">
                   <div className="flex items-center gap-1">
-                    <ToolbarButton tooltipKey="fontColor" onClick={() => setShowFontColorPicker(true)}>
+                    <ToolbarButton tooltipKey="fontColor" onClick={() => { setShowFontColorPicker(true); setShowExtraTools(false); }}>
                       <Type className="w-4 h-4" />
                     </ToolbarButton>
                     <span className="text-xs text-muted-foreground md:hidden ml-2">Font Color</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <ToolbarButton tooltipKey="highlight" onClick={() => setShowHighlightPicker(true)}>
+                    <ToolbarButton tooltipKey="highlight" onClick={() => { setShowHighlightPicker(true); setShowExtraTools(false); }}>
                       <Highlighter className="w-4 h-4" />
                     </ToolbarButton>
                     <span className="text-xs text-muted-foreground md:hidden ml-2">Highlight</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <ToolbarButton tooltipKey="quote" onClick={() => execCommand('formatBlock', 'blockquote')}>
+                    <ToolbarButton tooltipKey="quote" onClick={() => { execCommand('formatBlock', 'blockquote'); setShowExtraTools(false); }}>
                       <Quote className="w-4 h-4" />
                     </ToolbarButton>
                     <span className="text-xs text-muted-foreground md:hidden ml-2">Quote</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <ToolbarButton tooltipKey="code" onClick={() => insertCodeBlock()}>
+                    <ToolbarButton tooltipKey="code" onClick={() => { insertCodeBlock(); setShowExtraTools(false); }}>
                       <Code className="w-4 h-4" />
                     </ToolbarButton>
                     <span className="text-xs text-muted-foreground md:hidden ml-2">Code</span>
@@ -1791,19 +1794,19 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
                 <Separator className="my-1 md:hidden" />
                 <div className="flex flex-col md:flex-row gap-1">
                   <div className="flex items-center gap-1">
-                    <ToolbarButton tooltipKey="export" onClick={() => handleExport('txt')}>
+                    <ToolbarButton tooltipKey="export" onClick={() => { handleExport('txt'); setShowExtraTools(false); }}>
                       <ArrowUpFromLine className="w-4 h-4" />
                     </ToolbarButton>
                     <span className="text-xs text-muted-foreground md:hidden ml-2">Export TXT</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <ToolbarButton tooltipKey="exportPdf" onClick={() => handleExport('pdf')}>
+                    <ToolbarButton tooltipKey="exportPdf" onClick={() => { handleExport('pdf'); setShowExtraTools(false); }}>
                       <FileText className="w-4 h-4" />
                     </ToolbarButton>
                     <span className="text-xs text-muted-foreground md:hidden ml-2">Export PDF</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <ToolbarButton tooltipKey="import" onClick={() => fileInputRef.current?.click()}>
+                    <ToolbarButton tooltipKey="import" onClick={() => { fileInputRef.current?.click(); setShowExtraTools(false); }}>
                       <ArrowDownToLine className="w-4 h-4" />
                     </ToolbarButton>
                     <span className="text-xs text-muted-foreground md:hidden ml-2">Import</span>
@@ -1812,7 +1815,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
                 <Separator orientation="vertical" className="h-5 mx-1 hidden md:block" />
                 <Separator className="my-1 md:hidden" />
                 <div className="flex items-center gap-1">
-                  <ToolbarButton tooltipKey="image" onClick={() => imageInputRef.current?.click()}>
+                  <ToolbarButton tooltipKey="image" onClick={() => { imageInputRef.current?.click(); setShowExtraTools(false); }}>
                     <ImageIcon className="w-4 h-4" />
                   </ToolbarButton>
                   <span className="text-xs text-muted-foreground md:hidden ml-2">Image</span>
