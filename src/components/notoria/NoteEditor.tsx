@@ -2,6 +2,15 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Note, Workspace, saveSubcategory, generateId, exportNoteAsTxt } from '@/lib/db';
 import { useSubcategories } from '@/hooks/useSubcategories';
 import { cn } from '@/lib/utils';
+import hljs from 'highlight.js/lib/core';
+import javascript from 'highlight.js/lib/languages/javascript';
+import typescript from 'highlight.js/lib/languages/typescript';
+import python from 'highlight.js/lib/languages/python';
+import css from 'highlight.js/lib/languages/css';
+import xml from 'highlight.js/lib/languages/xml';
+import json from 'highlight.js/lib/languages/json';
+import sql from 'highlight.js/lib/languages/sql';
+import bash from 'highlight.js/lib/languages/bash';
 import {
   ArrowLeft,
   Tag,
@@ -45,6 +54,17 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { RainbowColorPicker } from './RainbowColorPicker';
 import jsPDF from 'jspdf';
+
+// Register languages for syntax highlighting
+hljs.registerLanguage('javascript', javascript);
+hljs.registerLanguage('typescript', typescript);
+hljs.registerLanguage('python', python);
+hljs.registerLanguage('css', css);
+hljs.registerLanguage('html', xml);
+hljs.registerLanguage('xml', xml);
+hljs.registerLanguage('json', json);
+hljs.registerLanguage('sql', sql);
+hljs.registerLanguage('bash', bash);
 
 interface NoteEditorProps {
   note: Note | null;
@@ -1129,20 +1149,18 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
     toast({ title: 'Image inserted' });
   };
 
-  // Insert code block with exit button
+  // Insert code block with header and exit button
   const insertCodeBlock = useCallback(() => {
     if (!contentRef.current || !isEditMode) return;
     
-    // Focus the editor first to ensure we have a valid selection context
     contentRef.current.focus();
     
     const selection = window.getSelection();
     const selectedText = selection?.toString() || '';
     
     const codeBlockId = `code-${Date.now()}`;
-    const codeBlockHtml = `<div class="code-block-wrapper" data-code-id="${codeBlockId}"><button class="code-exit-btn" data-action="exit-code" title="Exit code block" contenteditable="false">✓</button><pre class="code-block" contenteditable="true" style="white-space: pre-wrap; word-wrap: break-word;">${selectedText || ''}</pre></div><p><br></p>`;
+    const codeBlockHtml = `<div class="code-block-wrapper" data-code-id="${codeBlockId}"><div class="code-block-header" contenteditable="false"><span class="code-block-lang">code</span><button class="code-exit-btn" data-action="exit-code" title="Exit code block">✓</button></div><pre class="code-block" contenteditable="true">${selectedText || ''}</pre></div><p><br></p>`;
     
-    // Insert at cursor position or append at end
     if (selection && selection.rangeCount > 0 && contentRef.current.contains(selection.anchorNode)) {
       const range = selection.getRangeAt(0);
       range.deleteContents();
@@ -1152,12 +1170,10 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
       contentRef.current.innerHTML += codeBlockHtml;
     }
     
-    // Focus the code block
     setTimeout(() => {
       const codeBlock = contentRef.current?.querySelector(`[data-code-id="${codeBlockId}"] .code-block`) as HTMLElement;
       if (codeBlock) {
         codeBlock.focus();
-        // Place cursor at start
         const range = document.createRange();
         range.selectNodeContents(codeBlock);
         range.collapse(true);
@@ -1170,7 +1186,29 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
     triggerAutoSave();
   }, [isEditMode, checkChanges, triggerAutoSave]);
 
-  // Handle code block exit button
+  // Apply syntax highlighting to code blocks
+  const highlightCodeBlocks = useCallback(() => {
+    if (!contentRef.current) return;
+    
+    const codeBlocks = contentRef.current.querySelectorAll('.code-block');
+    codeBlocks.forEach((block) => {
+      const preElement = block as HTMLPreElement;
+      const code = preElement.textContent || '';
+      if (code.trim()) {
+        try {
+          const result = hljs.highlightAuto(code);
+          const langLabel = preElement.closest('.code-block-wrapper')?.querySelector('.code-block-lang');
+          if (langLabel) {
+            langLabel.textContent = result.language || 'code';
+          }
+        } catch (e) {
+          // Ignore highlighting errors
+        }
+      }
+    });
+  }, []);
+
+  // Handle code block exit button and blur highlighting
   useEffect(() => {
     if (!contentRef.current || !isEditMode) return;
     
@@ -1185,13 +1223,30 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
         e.stopPropagation();
         
         const wrapper = exitBtn.closest('.code-block-wrapper');
+        const codeBlock = wrapper?.querySelector('.code-block') as HTMLPreElement;
+        
+        // Apply syntax highlighting before exiting
+        if (codeBlock) {
+          const code = codeBlock.textContent || '';
+          if (code.trim()) {
+            try {
+              const result = hljs.highlightAuto(code);
+              codeBlock.innerHTML = result.value;
+              const langLabel = wrapper?.querySelector('.code-block-lang');
+              if (langLabel) {
+                langLabel.textContent = result.language || 'code';
+              }
+            } catch (e) {
+              // Ignore
+            }
+          }
+        }
+        
         const nextSibling = wrapper?.nextElementSibling;
         
-        // Focus the next element or create a new paragraph
         if (nextSibling && nextSibling.tagName !== 'DIV') {
           (nextSibling as HTMLElement).focus();
         } else {
-          // Insert a new paragraph after the code block
           const p = document.createElement('p');
           p.innerHTML = '<br>';
           wrapper?.parentNode?.insertBefore(p, wrapper.nextSibling);
@@ -1203,15 +1258,41 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
           selection?.removeAllRanges();
           selection?.addRange(range);
         }
+        
+        checkChanges();
+        triggerAutoSave();
+      }
+    };
+    
+    const handleCodeBlockBlur = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains('code-block')) {
+        const code = target.textContent || '';
+        if (code.trim()) {
+          try {
+            const result = hljs.highlightAuto(code);
+            target.innerHTML = result.value;
+            const langLabel = target.closest('.code-block-wrapper')?.querySelector('.code-block-lang');
+            if (langLabel) {
+              langLabel.textContent = result.language || 'code';
+            }
+          } catch (e) {
+            // Ignore
+          }
+        }
+        checkChanges();
+        triggerAutoSave();
       }
     };
     
     container.addEventListener('click', handleCodeBlockClick);
+    container.addEventListener('focusout', handleCodeBlockBlur);
     
     return () => {
       container.removeEventListener('click', handleCodeBlockClick);
+      container.removeEventListener('focusout', handleCodeBlockBlur);
     };
-  }, [isEditMode]);
+  }, [isEditMode, checkChanges, triggerAutoSave]);
 
   // Handle image resize
   useEffect(() => {
