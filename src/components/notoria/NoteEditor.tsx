@@ -1761,9 +1761,9 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
               <ChevronRight className="w-4 h-4" />
             </Button>
             
-            {/* Extra tools - vertical dropdown on mobile, horizontal on desktop */}
+            {/* Extra tools dropdown - positioned absolutely on both mobile and desktop */}
             {showExtraTools && (
-              <div className="fixed right-4 top-[120px] w-48 md:absolute md:left-0 md:top-full md:mt-1 md:right-auto md:w-auto md:static md:mt-0 md:ml-1 flex flex-col md:flex-row gap-1 bg-popover md:bg-transparent border md:border-0 border-border rounded-lg p-3 md:p-0 shadow-elevated md:shadow-none z-[100] md:min-w-0">
+              <div className="absolute right-0 md:left-0 top-full mt-1 w-48 md:w-auto flex flex-col md:flex-row gap-1 bg-popover border border-border rounded-lg p-3 md:p-2 shadow-elevated z-[100]">
                 <div className="flex flex-col md:flex-row gap-1">
                   <div className="flex items-center gap-1">
                     <ToolbarButton tooltipKey="fontColor" onClick={() => { setShowFontColorPicker(true); setShowExtraTools(false); }}>
