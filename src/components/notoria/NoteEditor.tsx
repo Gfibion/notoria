@@ -1830,81 +1830,147 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
             <ListOrdered className="w-4 h-4" />
           </ToolbarButton>
           
-          {/* Collapsible extra tools toggle */}
+          {/* Extra tools toggle */}
           <Separator orientation="vertical" className="h-5 mx-1" />
-          <div className="relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn('h-8 w-8 shrink-0 transition-transform', showExtraTools && 'rotate-90 md:rotate-90')}
-              onClick={() => setShowExtraTools(!showExtraTools)}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-            
-            {/* Extra tools dropdown - positioned absolutely on both mobile and desktop */}
-            {showExtraTools && (
-              <div className="absolute right-0 md:left-0 top-full mt-1 w-48 md:w-auto flex flex-col md:flex-row gap-1 bg-popover border border-border rounded-lg p-3 md:p-2 shadow-elevated z-[100]">
-                <div className="flex flex-col md:flex-row gap-1">
-                  <div className="flex items-center gap-1">
-                    <ToolbarButton tooltipKey="fontColor" onClick={() => { setShowFontColorPicker(true); setShowExtraTools(false); }}>
-                      <Type className="w-4 h-4" />
-                    </ToolbarButton>
-                    <span className="text-xs text-muted-foreground md:hidden ml-2">Font Color</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <ToolbarButton tooltipKey="highlight" onClick={() => { setShowHighlightPicker(true); setShowExtraTools(false); }}>
-                      <Highlighter className="w-4 h-4" />
-                    </ToolbarButton>
-                    <span className="text-xs text-muted-foreground md:hidden ml-2">Highlight</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <ToolbarButton tooltipKey="quote" onClick={() => { execCommand('formatBlock', 'blockquote'); setShowExtraTools(false); }}>
-                      <Quote className="w-4 h-4" />
-                    </ToolbarButton>
-                    <span className="text-xs text-muted-foreground md:hidden ml-2">Quote</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <ToolbarButton tooltipKey="code" onClick={() => { insertCodeBlock(); setShowExtraTools(false); }}>
-                      <Code className="w-4 h-4" />
-                    </ToolbarButton>
-                    <span className="text-xs text-muted-foreground md:hidden ml-2">Code</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              'h-8 w-8 shrink-0 transition-all duration-200',
+              showExtraTools && 'bg-accent text-accent-foreground'
+            )}
+            onClick={() => setShowExtraTools(!showExtraTools)}
+          >
+            <Plus className={cn('w-4 h-4 transition-transform duration-200', showExtraTools && 'rotate-45')} />
+          </Button>
+        </div>
+      )}
+
+      {/* Floating Extra Formats Panel */}
+      {isEditMode && showExtraTools && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 z-40 bg-background/40 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none"
+            onClick={() => setShowExtraTools(false)}
+          />
+          
+          {/* Panel */}
+          <div className="fixed md:absolute bottom-0 left-0 right-0 md:bottom-auto md:top-[104px] md:left-auto md:right-4 z-50 animate-fade-in">
+            <div className="bg-popover border border-border rounded-t-2xl md:rounded-xl shadow-elevated mx-auto md:mx-0 max-w-lg md:max-w-none md:w-80">
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                <span className="text-sm font-medium text-foreground">More Formats</span>
+                <button 
+                  onClick={() => setShowExtraTools(false)}
+                  className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-muted transition-colors"
+                >
+                  <Plus className="w-4 h-4 rotate-45 text-muted-foreground" />
+                </button>
+              </div>
+              
+              {/* Content */}
+              <div className="p-3 space-y-3">
+                {/* Styling Section */}
+                <div className="space-y-2">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">Styling</span>
+                  <div className="grid grid-cols-4 gap-2">
+                    <button
+                      onClick={() => { setShowFontColorPicker(true); setShowExtraTools(false); }}
+                      className="flex flex-col items-center gap-1.5 p-3 rounded-lg hover:bg-muted transition-colors group"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-400 via-yellow-400 to-blue-400 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <Type className="w-4 h-4 text-white drop-shadow" />
+                      </div>
+                      <span className="text-xs text-muted-foreground">Color</span>
+                    </button>
+                    <button
+                      onClick={() => { setShowHighlightPicker(true); setShowExtraTools(false); }}
+                      className="flex flex-col items-center gap-1.5 p-3 rounded-lg hover:bg-muted transition-colors group"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-yellow-300 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <Highlighter className="w-4 h-4 text-yellow-800" />
+                      </div>
+                      <span className="text-xs text-muted-foreground">Highlight</span>
+                    </button>
+                    <button
+                      onClick={() => { execCommand('formatBlock', 'blockquote'); setShowExtraTools(false); }}
+                      className="flex flex-col items-center gap-1.5 p-3 rounded-lg hover:bg-muted transition-colors group"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <Quote className="w-4 h-4 text-foreground" />
+                      </div>
+                      <span className="text-xs text-muted-foreground">Quote</span>
+                    </button>
+                    <button
+                      onClick={() => { insertCodeBlock(); setShowExtraTools(false); }}
+                      className="flex flex-col items-center gap-1.5 p-3 rounded-lg hover:bg-muted transition-colors group"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-slate-800 dark:bg-slate-700 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <Code className="w-4 h-4 text-emerald-400" />
+                      </div>
+                      <span className="text-xs text-muted-foreground">Code</span>
+                    </button>
                   </div>
                 </div>
-                <Separator orientation="vertical" className="h-5 mx-1 hidden md:block" />
-                <Separator className="my-1 md:hidden" />
-                <div className="flex flex-col md:flex-row gap-1">
-                  <div className="flex items-center gap-1">
-                    <ToolbarButton tooltipKey="export" onClick={() => { handleExport('txt'); setShowExtraTools(false); }}>
-                      <ArrowUpFromLine className="w-4 h-4" />
-                    </ToolbarButton>
-                    <span className="text-xs text-muted-foreground md:hidden ml-2">Export TXT</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <ToolbarButton tooltipKey="exportPdf" onClick={() => { handleExport('pdf'); setShowExtraTools(false); }}>
-                      <FileText className="w-4 h-4" />
-                    </ToolbarButton>
-                    <span className="text-xs text-muted-foreground md:hidden ml-2">Export PDF</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <ToolbarButton tooltipKey="import" onClick={() => { fileInputRef.current?.click(); setShowExtraTools(false); }}>
-                      <ArrowDownToLine className="w-4 h-4" />
-                    </ToolbarButton>
-                    <span className="text-xs text-muted-foreground md:hidden ml-2">Import</span>
-                  </div>
+                
+                {/* Media Section */}
+                <div className="space-y-2">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">Media</span>
+                  <button
+                    onClick={() => { imageInputRef.current?.click(); setShowExtraTools(false); }}
+                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors group"
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                      <ImageIcon className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="text-sm font-medium text-foreground">Insert Image</span>
+                      <p className="text-xs text-muted-foreground">Add photos or graphics</p>
+                    </div>
+                  </button>
                 </div>
-                <Separator orientation="vertical" className="h-5 mx-1 hidden md:block" />
-                <Separator className="my-1 md:hidden" />
-                <div className="flex items-center gap-1">
-                  <ToolbarButton tooltipKey="image" onClick={() => { imageInputRef.current?.click(); setShowExtraTools(false); }}>
-                    <ImageIcon className="w-4 h-4" />
-                  </ToolbarButton>
-                  <span className="text-xs text-muted-foreground md:hidden ml-2">Image</span>
+                
+                {/* Import/Export Section */}
+                <div className="space-y-2">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">File</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      onClick={() => { handleExport('txt'); setShowExtraTools(false); }}
+                      className="flex flex-col items-center gap-1.5 p-3 rounded-lg hover:bg-muted transition-colors group"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <ArrowUpFromLine className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <span className="text-xs text-muted-foreground">TXT</span>
+                    </button>
+                    <button
+                      onClick={() => { handleExport('pdf'); setShowExtraTools(false); }}
+                      className="flex flex-col items-center gap-1.5 p-3 rounded-lg hover:bg-muted transition-colors group"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-red-100 dark:bg-red-900/50 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <FileText className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      </div>
+                      <span className="text-xs text-muted-foreground">PDF</span>
+                    </button>
+                    <button
+                      onClick={() => { fileInputRef.current?.click(); setShowExtraTools(false); }}
+                      className="flex flex-col items-center gap-1.5 p-3 rounded-lg hover:bg-muted transition-colors group"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <ArrowDownToLine className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <span className="text-xs text-muted-foreground">Import</span>
+                    </button>
+                  </div>
                 </div>
               </div>
-            )}
+              
+              {/* Mobile safe area padding */}
+              <div className="h-6 md:hidden" />
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Content */}
