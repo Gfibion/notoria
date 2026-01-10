@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Menu, Search, Plus, BookOpen, Trash2, Settings, Star, ChevronDown, ChevronRight, Hash, MoreHorizontal, Pencil, GripVertical, FileText } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Menu, Search, Plus, BookOpen, Trash2, Settings, Star, ChevronDown, ChevronRight, Hash, MoreHorizontal, Pencil, GripVertical, FileText, CheckSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Workspace, Subcategory, getSubcategoriesByWorkspace } from '@/lib/db';
@@ -391,6 +392,13 @@ export function MobileHeader({
             </div>
           </SheetContent>
         </Sheet>
+
+        <Link 
+          to="/tasks" 
+          className="p-2 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 hover:from-primary/30 hover:to-accent/30 transition-all duration-200"
+        >
+          <CheckSquare className="w-5 h-5 text-primary" />
+        </Link>
 
         <div className="flex items-center gap-2 flex-1 justify-center overflow-hidden">
           {showStarred ? <Star className="w-5 h-5 text-gold flex-shrink-0" /> : <BookOpen className="w-5 h-5 text-gold flex-shrink-0" />}
