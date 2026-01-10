@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Workspace, Subcategory, getSubcategoriesByWorkspace } from '@/lib/db';
 import {
@@ -31,6 +32,7 @@ import {
   Trophy,
   GripVertical,
   FileText,
+  CheckSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
@@ -363,6 +365,20 @@ export function Sidebar({
               <Star className="w-4 h-4 flex-shrink-0 text-gold" />
               {!collapsed && <span>Starred</span>}
             </button>
+
+            {/* Tasks */}
+            <Link
+              to="/tasks"
+              className={cn(
+                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'text-sidebar-foreground hover:bg-sidebar-accent/50 group'
+              )}
+            >
+              <div className="relative">
+                <CheckSquare className="w-4 h-4 flex-shrink-0 text-primary" />
+              </div>
+              {!collapsed && <span>Tasks</span>}
+            </Link>
 
             {workspaces.map((workspace) => {
               const Icon = iconMap[workspace.icon] || iconMap.default;
