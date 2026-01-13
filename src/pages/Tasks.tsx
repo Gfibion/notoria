@@ -100,6 +100,17 @@ const Tasks: React.FC = () => {
     }
   };
 
+  const handleSubtaskToggle = async (taskId: string, subtaskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (task && task.subtasks) {
+      const updatedSubtasks = task.subtasks.map(s => 
+        s.id === subtaskId ? { ...s, completed: !s.completed } : s
+      );
+      await saveTask({ ...task, subtasks: updatedSubtasks });
+      loadData();
+    }
+  };
+
   const handleCreateProject = (project: Project) => {
     setProjects(prev => [...prev, project]);
   };
@@ -162,6 +173,7 @@ const Tasks: React.FC = () => {
                   onEditTask={handleEditTask}
                   onDeleteTask={handleDeleteTask}
                   onDropTask={handleDropTask}
+                  onSubtaskToggle={handleSubtaskToggle}
                   gradient="bg-gradient-to-br from-slate-600 to-slate-700"
                   icon={<Circle className="w-5 h-5 text-white" />}
                 />
@@ -174,6 +186,7 @@ const Tasks: React.FC = () => {
                   onEditTask={handleEditTask}
                   onDeleteTask={handleDeleteTask}
                   onDropTask={handleDropTask}
+                  onSubtaskToggle={handleSubtaskToggle}
                   gradient="bg-gradient-to-br from-amber-500 to-orange-600"
                   icon={<Clock className="w-5 h-5 text-white" />}
                 />
@@ -186,6 +199,7 @@ const Tasks: React.FC = () => {
                   onEditTask={handleEditTask}
                   onDeleteTask={handleDeleteTask}
                   onDropTask={handleDropTask}
+                  onSubtaskToggle={handleSubtaskToggle}
                   gradient="bg-gradient-to-br from-emerald-500 to-teal-600"
                   icon={<CheckCircle2 className="w-5 h-5 text-white" />}
                 />

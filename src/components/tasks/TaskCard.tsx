@@ -1,6 +1,6 @@
 import React from 'react';
-import { Task, Project } from '@/lib/tasks-db';
-import { Calendar, Clock, Flag, GripVertical, Pencil, Trash2 } from 'lucide-react';
+import { Task, Project, Subtask } from '@/lib/tasks-db';
+import { Calendar, Clock, Flag, GripVertical, Pencil, Trash2, CheckCircle2, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isToday, isTomorrow, isPast } from 'date-fns';
 
@@ -9,7 +9,7 @@ interface TaskCardProps {
   project?: Project;
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
-  isDragging?: boolean;
+  onSubtaskToggle?: (taskId: string, subtaskId: string) => void;
 }
 
 const priorityConfig = {
@@ -23,7 +23,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   project,
   onEdit,
   onDelete,
-  isDragging,
+  onSubtaskToggle,
 }) => {
   const formatDueDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -33,6 +33,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   };
 
   const isDuePast = task.dueDate && isPast(new Date(task.dueDate)) && task.status !== 'done';
+  
+  const completedSubtasks = task.subtasks?.filter(s => s.completed).length || 0;
+  const totalSubtasks = task.subtasks?.length || 0;
+  const subtaskProgress = totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0;
 
   return (
     <div
@@ -40,7 +44,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         "group relative rounded-xl border bg-card p-4 transition-all duration-300",
         "hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5",
         "cursor-grab active:cursor-grabbing",
-        isDragging && "opacity-50 scale-95 shadow-2xl rotate-2",
         task.status === 'done' && "opacity-60"
       )}
       style={{
@@ -54,7 +57,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       </div>
 
       {/* Actions */}
-      <div className="absolute right-2 top-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute right-2 top-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
         <button
           onClick={(e) => { e.stopPropagation(); onEdit(task); }}
           className="p-1.5 rounded-lg bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
@@ -82,6 +85,52 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           <p className="text-xs text-muted-foreground line-clamp-2">
             {task.description}
           </p>
+        )}
+
+        {/* Subtasks Preview */}
+        {totalSubtasks > 0 && (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-300"
+                  style={{ width: `${subtaskProgress}%` }}
+                />
+              </div>
+              <span className="text-[10px] text-muted-foreground font-medium">
+                {completedSubtasks}/{totalSubtasks}
+              </span>
+            </div>
+            <div className="space-y-0.5">
+              {task.subtasks?.slice(0, 2).map(subtask => (
+                <div 
+                  key={subtask.id}
+                  className="flex items-center gap-1.5 text-[11px]"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSubtaskToggle?.(task.id, subtask.id);
+                  }}
+                >
+                  {subtask.completed ? (
+                    <CheckCircle2 className="w-3 h-3 text-primary" />
+                  ) : (
+                    <Circle className="w-3 h-3 text-muted-foreground" />
+                  )}
+                  <span className={cn(
+                    "truncate cursor-pointer hover:text-foreground transition-colors",
+                    subtask.completed ? "line-through text-muted-foreground" : "text-muted-foreground"
+                  )}>
+                    {subtask.title}
+                  </span>
+                </div>
+              ))}
+              {totalSubtasks > 2 && (
+                <span className="text-[10px] text-muted-foreground/70 ml-4">
+                  +{totalSubtasks - 2} more
+                </span>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Meta */}
