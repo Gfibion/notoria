@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Task, Project, PROJECT_COLORS, createProject } from '@/lib/tasks-db';
+import { Task, Project, PROJECT_COLORS, createProject, Subtask, generateId } from '@/lib/tasks-db';
 import {
   Dialog,
   DialogContent,
@@ -17,8 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar, Clock, Flag, Folder, Plus, X } from 'lucide-react';
+import { Calendar, Clock, Flag, Folder, Plus, X, ListTodo, CheckCircle2, Circle, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface TaskDialogProps {
   isOpen: boolean;
@@ -46,6 +47,8 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
   const [dueDate, setDueDate] = useState('');
   const [reminder, setReminder] = useState('');
   const [projectId, setProjectId] = useState<string>('');
+  const [subtasks, setSubtasks] = useState<Subtask[]>([]);
+  const [newSubtask, setNewSubtask] = useState('');
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectColor, setNewProjectColor] = useState(PROJECT_COLORS[0]);
@@ -59,6 +62,7 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
       setDueDate(task.dueDate?.split('T')[0] || '');
       setReminder(task.reminder || '');
       setProjectId(task.projectId || '');
+      setSubtasks(task.subtasks || []);
     } else {
       setTitle('');
       setDescription('');
@@ -67,7 +71,9 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
       setDueDate('');
       setReminder('');
       setProjectId('');
+      setSubtasks([]);
     }
+    setNewSubtask('');
   }, [task, defaultStatus, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -83,6 +89,7 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
       dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
       reminder: reminder || undefined,
       projectId: projectId || undefined,
+      subtasks: subtasks.length > 0 ? subtasks : undefined,
     });
     onClose();
   };
@@ -99,6 +106,22 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
     setNewProjectName('');
   };
 
+  const handleAddSubtask = () => {
+    if (!newSubtask.trim()) return;
+    setSubtasks(prev => [...prev, { id: generateId(), title: newSubtask.trim(), completed: false }]);
+    setNewSubtask('');
+  };
+
+  const handleToggleSubtask = (subtaskId: string) => {
+    setSubtasks(prev => prev.map(s => 
+      s.id === subtaskId ? { ...s, completed: !s.completed } : s
+    ));
+  };
+
+  const handleDeleteSubtask = (subtaskId: string) => {
+    setSubtasks(prev => prev.filter(s => s.id !== subtaskId));
+  };
+
   const priorityOptions = [
     { value: 'low', label: 'Low', color: 'bg-emerald-500' },
     { value: 'medium', label: 'Medium', color: 'bg-amber-500' },
@@ -107,7 +130,7 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-display text-xl">
             {task ? 'Edit Task' : 'New Task'}
@@ -138,6 +161,75 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
               placeholder="Add more details..."
               rows={3}
             />
+          </div>
+
+          {/* Subtasks */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <ListTodo className="w-3.5 h-3.5" />
+              Subtasks
+            </Label>
+            <div className="space-y-2">
+              <AnimatePresence>
+                {subtasks.map((subtask) => (
+                  <motion.div
+                    key={subtask.id}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="flex items-center gap-2 group"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSubtask(subtask.id)}
+                      className="flex-shrink-0 p-0.5"
+                    >
+                      {subtask.completed ? (
+                        <CheckCircle2 className="w-5 h-5 text-primary" />
+                      ) : (
+                        <Circle className="w-5 h-5 text-muted-foreground hover:text-primary transition-colors" />
+                      )}
+                    </button>
+                    <span className={cn(
+                      "flex-1 text-sm",
+                      subtask.completed && "line-through text-muted-foreground"
+                    )}>
+                      {subtask.title}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSubtask(subtask.id)}
+                      className="p-1 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 rounded transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                    </button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              <div className="flex gap-2">
+                <Input
+                  value={newSubtask}
+                  onChange={(e) => setNewSubtask(e.target.value)}
+                  placeholder="Add a subtask..."
+                  className="flex-1"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddSubtask();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="secondary"
+                  onClick={handleAddSubtask}
+                  disabled={!newSubtask.trim()}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* Status & Priority */}

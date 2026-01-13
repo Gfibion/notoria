@@ -1,5 +1,11 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 
+export interface Subtask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -9,6 +15,7 @@ export interface Task {
   dueDate?: string;
   reminder?: string;
   projectId?: string;
+  subtasks?: Subtask[];
   createdAt: string;
   updatedAt: string;
   order: number;
