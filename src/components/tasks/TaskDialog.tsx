@@ -106,7 +106,7 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
   ];
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-display text-xl">
@@ -216,12 +216,12 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
             </Label>
             {!showNewProject ? (
               <div className="flex gap-2">
-                <Select value={projectId} onValueChange={setProjectId}>
+                <Select value={projectId || "none"} onValueChange={(v) => setProjectId(v === "none" ? "" : v)}>
                   <SelectTrigger className="flex-1">
                     <SelectValue placeholder="Select project..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No Project</SelectItem>
+                    <SelectItem value="none">No Project</SelectItem>
                     {projects.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         <div className="flex items-center gap-2">
