@@ -37,12 +37,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   return (
     <div
       className={cn(
-        "group relative rounded-xl border bg-card p-4 transition-all duration-200 ease-out",
-        "hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1",
-        "cursor-grab active:cursor-grabbing select-none",
-        isDragging && "opacity-0 scale-90 pointer-events-none",
-        task.status === 'done' && "opacity-60",
-        "touch-none" // Prevents scroll issues on touch devices
+        "group relative rounded-xl border bg-card p-4 transition-all duration-300",
+        "hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5",
+        "cursor-grab active:cursor-grabbing",
+        isDragging && "opacity-50 scale-95 shadow-2xl rotate-2",
+        task.status === 'done' && "opacity-60"
       )}
       style={{
         borderLeftWidth: '4px',
