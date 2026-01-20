@@ -1,11 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Bell, Calendar, Filter, LayoutGrid, List, Plus, Search, Sparkles } from 'lucide-react';
+import { ArrowLeft, Calendar, Filter, LayoutGrid, List, Plus, Search, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/notoria/ThemeToggle';
-
+import { NotificationSettings } from './NotificationSettings';
 interface TasksHeaderProps {
   view: 'kanban' | 'list';
   onViewChange: (view: 'kanban' | 'list') => void;
@@ -58,14 +58,7 @@ export const TasksHeader: React.FC<TasksHeaderProps> = ({
           <ThemeToggle />
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="w-5 h-5" />
-            {todayCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
-                {todayCount > 9 ? '9+' : todayCount}
-              </span>
-            )}
-          </Button>
+          <NotificationSettings />
         </div>
       </div>
 
