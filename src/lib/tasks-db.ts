@@ -48,13 +48,17 @@ const getDB = async (): Promise<IDBPDatabase<TasksDB>> => {
     dbPromise = openDB<TasksDB>('notoria-tasks', 1, {
       upgrade(db) {
         // Tasks store
-        const taskStore = db.createObjectStore('tasks', { keyPath: 'id' });
-        taskStore.createIndex('by-status', 'status');
-        taskStore.createIndex('by-project', 'projectId');
-        taskStore.createIndex('by-due-date', 'dueDate');
+        if (!db.objectStoreNames.contains('tasks')) {
+          const taskStore = db.createObjectStore('tasks', { keyPath: 'id' });
+          taskStore.createIndex('by-status', 'status');
+          taskStore.createIndex('by-project', 'projectId');
+          taskStore.createIndex('by-due-date', 'dueDate');
+        }
 
         // Projects store
-        db.createObjectStore('projects', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('projects')) {
+          db.createObjectStore('projects', { keyPath: 'id' });
+        }
       },
     });
   }
@@ -67,9 +71,14 @@ export const generateId = (): string => {
 
 // Task operations
 export const getAllTasks = async (): Promise<Task[]> => {
-  const db = await getDB();
-  const tasks = await db.getAll('tasks');
-  return tasks.sort((a, b) => a.order - b.order);
+  try {
+    const db = await getDB();
+    const tasks = await db.getAll('tasks');
+    return tasks.sort((a, b) => (a.order || 0) - (b.order || 0));
+  } catch (error) {
+    console.error('Error getting tasks:', error);
+    return [];
+  }
 };
 
 export const getTasksByStatus = async (status: Task['status']): Promise<Task[]> => {
@@ -89,32 +98,43 @@ export const deleteTask = async (id: string): Promise<void> => {
 };
 
 export const createTask = async (taskData: Partial<Task>): Promise<Task> => {
-  const db = await getDB();
-  const allTasks = await db.getAll('tasks');
-  const maxOrder = allTasks.length > 0 ? Math.max(...allTasks.map(t => t.order)) : 0;
-  
-  const task: Task = {
-    id: generateId(),
-    title: taskData.title || 'New Task',
-    description: taskData.description || '',
-    status: taskData.status || 'todo',
-    priority: taskData.priority || 'medium',
-    dueDate: taskData.dueDate,
-    reminder: taskData.reminder,
-    projectId: taskData.projectId,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    order: maxOrder + 1,
-  };
-  
-  await db.put('tasks', task);
-  return task;
+  try {
+    const db = await getDB();
+    const allTasks = await db.getAll('tasks');
+    const maxOrder = allTasks.length > 0 ? Math.max(...allTasks.map(t => t.order || 0)) : 0;
+    
+    const task: Task = {
+      id: generateId(),
+      title: taskData.title || 'New Task',
+      description: taskData.description || '',
+      status: taskData.status || 'todo',
+      priority: taskData.priority || 'medium',
+      dueDate: taskData.dueDate,
+      reminder: taskData.reminder,
+      projectId: taskData.projectId,
+      subtasks: taskData.subtasks,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      order: maxOrder + 1,
+    };
+    
+    await db.put('tasks', task);
+    return task;
+  } catch (error) {
+    console.error('Error creating task:', error);
+    throw error;
+  }
 };
 
 // Project operations
 export const getAllProjects = async (): Promise<Project[]> => {
-  const db = await getDB();
-  return db.getAll('projects');
+  try {
+    const db = await getDB();
+    return db.getAll('projects');
+  } catch (error) {
+    console.error('Error getting projects:', error);
+    return [];
+  }
 };
 
 export const saveProject = async (project: Project): Promise<void> => {
@@ -143,23 +163,33 @@ export const createProject = async (projectData: Partial<Project>): Promise<Proj
 
 // Task due today / upcoming
 export const getTasksDueToday = async (): Promise<Task[]> => {
-  const db = await getDB();
-  const tasks = await db.getAll('tasks');
-  const today = new Date().toISOString().split('T')[0];
-  return tasks.filter(t => t.dueDate?.startsWith(today) && t.status !== 'done');
+  try {
+    const db = await getDB();
+    const tasks = await db.getAll('tasks');
+    const today = new Date().toISOString().split('T')[0];
+    return tasks.filter(t => t.dueDate?.startsWith(today) && t.status !== 'done');
+  } catch (error) {
+    console.error('Error getting tasks due today:', error);
+    return [];
+  }
 };
 
 export const getUpcomingTasks = async (days: number = 7): Promise<Task[]> => {
-  const db = await getDB();
-  const tasks = await db.getAll('tasks');
-  const now = new Date();
-  const future = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
-  
-  return tasks.filter(t => {
-    if (!t.dueDate || t.status === 'done') return false;
-    const dueDate = new Date(t.dueDate);
-    return dueDate >= now && dueDate <= future;
-  }).sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+  try {
+    const db = await getDB();
+    const tasks = await db.getAll('tasks');
+    const now = new Date();
+    const future = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    
+    return tasks.filter(t => {
+      if (!t.dueDate || t.status === 'done') return false;
+      const dueDate = new Date(t.dueDate);
+      return dueDate >= now && dueDate <= future;
+    }).sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+  } catch (error) {
+    console.error('Error getting upcoming tasks:', error);
+    return [];
+  }
 };
 
 export const PROJECT_COLORS = [
