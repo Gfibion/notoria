@@ -33,16 +33,21 @@ const Tasks: React.FC = () => {
 
   // Load data
   const loadData = useCallback(async () => {
-    const [allTasks, allProjects, today, upcoming] = await Promise.all([
-      getAllTasks(),
-      getAllProjects(),
-      getTasksDueToday(),
-      getUpcomingTasks(7),
-    ]);
-    setTasks(allTasks);
-    setProjects(allProjects);
-    setTodayTasks(today);
-    setUpcomingTasks(upcoming);
+    try {
+      const [allTasks, allProjects, today, upcoming] = await Promise.all([
+        getAllTasks(),
+        getAllProjects(),
+        getTasksDueToday(),
+        getUpcomingTasks(7),
+      ]);
+      setTasks(allTasks || []);
+      setProjects(allProjects || []);
+      setTodayTasks(today || []);
+      setUpcomingTasks(upcoming || []);
+    } catch (error) {
+      console.error('Error loading tasks data:', error);
+      toast.error('Failed to load tasks');
+    }
   }, []);
 
   useEffect(() => {
@@ -75,39 +80,59 @@ const Tasks: React.FC = () => {
   };
 
   const handleSaveTask = async (taskData: Partial<Task>) => {
-    if (editingTask) {
-      await saveTask({ ...editingTask, ...taskData } as Task);
-      toast.success('Task updated');
-    } else {
-      await createTask(taskData);
-      toast.success('Task created');
+    try {
+      if (editingTask) {
+        await saveTask({ ...editingTask, ...taskData } as Task);
+        toast.success('Task updated');
+      } else {
+        await createTask(taskData);
+        toast.success('Task created');
+      }
+      await loadData();
+      setTaskDialogOpen(false);
+    } catch (error) {
+      console.error('Error saving task:', error);
+      toast.error('Failed to save task');
     }
-    loadData();
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    await deleteTask(taskId);
-    toast.success('Task deleted');
-    loadData();
+    try {
+      await deleteTask(taskId);
+      toast.success('Task deleted');
+      await loadData();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast.error('Failed to delete task');
+    }
   };
 
   const handleDropTask = async (taskId: string, newStatus: Task['status']) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (task && task.status !== newStatus) {
-      await saveTask({ ...task, status: newStatus });
-      toast.success(`Moved to ${newStatus.replace('-', ' ')}`);
-      loadData();
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (task && task.status !== newStatus) {
+        await saveTask({ ...task, status: newStatus });
+        toast.success(`Moved to ${newStatus.replace('-', ' ')}`);
+        await loadData();
+      }
+    } catch (error) {
+      console.error('Error moving task:', error);
+      toast.error('Failed to move task');
     }
   };
 
   const handleSubtaskToggle = async (taskId: string, subtaskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (task && task.subtasks) {
-      const updatedSubtasks = task.subtasks.map(s => 
-        s.id === subtaskId ? { ...s, completed: !s.completed } : s
-      );
-      await saveTask({ ...task, subtasks: updatedSubtasks });
-      loadData();
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (task && task.subtasks) {
+        const updatedSubtasks = task.subtasks.map(s => 
+          s.id === subtaskId ? { ...s, completed: !s.completed } : s
+        );
+        await saveTask({ ...task, subtasks: updatedSubtasks });
+        await loadData();
+      }
+    } catch (error) {
+      console.error('Error toggling subtask:', error);
     }
   };
 
@@ -116,12 +141,17 @@ const Tasks: React.FC = () => {
   };
 
   const handleDeleteProject = async (projectId: string) => {
-    await deleteProject(projectId);
-    if (selectedProjectId === projectId) {
-      setSelectedProjectId(undefined);
+    try {
+      await deleteProject(projectId);
+      if (selectedProjectId === projectId) {
+        setSelectedProjectId(undefined);
+      }
+      await loadData();
+      toast.success('Project deleted');
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      toast.error('Failed to delete project');
     }
-    loadData();
-    toast.success('Project deleted');
   };
 
   return (

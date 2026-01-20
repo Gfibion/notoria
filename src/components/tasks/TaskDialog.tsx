@@ -91,7 +91,7 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
       projectId: projectId || undefined,
       subtasks: subtasks.length > 0 ? subtasks : undefined,
     });
-    onClose();
+    // Note: Dialog closing is handled by the parent component after save completes
   };
 
   const handleCreateProject = async () => {
