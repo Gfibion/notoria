@@ -36,21 +36,30 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
   const columnRef = useRef<HTMLDivElement>(null);
 
-  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, taskId: string) => {
     e.dataTransfer.setData('taskId', taskId);
     e.dataTransfer.setData('sourceStatus', status);
     e.dataTransfer.effectAllowed = 'move';
     
-    // Create custom drag image
-    const dragElement = e.currentTarget as HTMLElement;
-    const clone = dragElement.cloneNode(true) as HTMLElement;
-    clone.style.transform = 'rotate(3deg)';
-    clone.style.position = 'absolute';
-    clone.style.top = '-1000px';
-    clone.style.opacity = '0.9';
-    document.body.appendChild(clone);
-    e.dataTransfer.setDragImage(clone, 100, 30);
-    setTimeout(() => document.body.removeChild(clone), 0);
+    // Create custom drag image safely
+    try {
+      const dragElement = e.currentTarget;
+      const clone = dragElement.cloneNode(true) as HTMLElement;
+      clone.style.transform = 'rotate(3deg)';
+      clone.style.position = 'absolute';
+      clone.style.top = '-1000px';
+      clone.style.opacity = '0.9';
+      clone.style.width = `${dragElement.offsetWidth}px`;
+      document.body.appendChild(clone);
+      e.dataTransfer.setDragImage(clone, 100, 30);
+      setTimeout(() => {
+        if (document.body.contains(clone)) {
+          document.body.removeChild(clone);
+        }
+      }, 0);
+    } catch (err) {
+      console.log('Could not set custom drag image:', err);
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -117,9 +126,8 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   );
 
   return (
-    <motion.div
+    <div
       ref={columnRef}
-      layout
       className={cn(
         "flex flex-col rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden transition-all duration-300",
         isDragOver && "ring-2 ring-primary/50 border-primary/50 bg-primary/5 scale-[1.02]"
@@ -133,12 +141,14 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
         <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
         <div className="relative flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <motion.div 
-              className="p-2 rounded-xl bg-white/20 backdrop-blur-sm"
-              animate={isDragOver ? { scale: 1.1, rotate: 5 } : { scale: 1, rotate: 0 }}
+            <div 
+              className={cn(
+                "p-2 rounded-xl bg-white/20 backdrop-blur-sm transition-transform",
+                isDragOver && "scale-110 rotate-[5deg]"
+              )}
             >
               {icon}
-            </motion.div>
+            </div>
             <div>
               <h3 className="font-semibold text-white text-sm">{title}</h3>
               <p className="text-white/70 text-xs">{tasks.length} tasks</p>
@@ -156,15 +166,10 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
           {tasks.map((task, index) => (
             <React.Fragment key={task.id}>
               {dropIndicatorIndex === index && isDragOver && <DropIndicator />}
-              <motion.div
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.2 }}
+              <div
                 className="task-card-wrapper"
                 draggable
-                onDragStart={(e) => handleDragStart(e as unknown as React.DragEvent, task.id)}
+                onDragStart={(e) => handleDragStart(e, task.id)}
               >
                 <TaskCard
                   task={task}
@@ -173,48 +178,38 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
                   onDelete={onDeleteTask}
                   onSubtaskToggle={onSubtaskToggle}
                 />
-              </motion.div>
+              </div>
             </React.Fragment>
           ))}
           {dropIndicatorIndex === tasks.length && isDragOver && <DropIndicator />}
         </AnimatePresence>
 
         {tasks.length === 0 && !isDragOver && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="py-8 text-center"
-          >
+          <div className="py-8 text-center">
             <div className="w-12 h-12 mx-auto rounded-full bg-muted/50 flex items-center justify-center mb-3">
               {icon}
             </div>
             <p className="text-sm text-muted-foreground">No tasks yet</p>
-          </motion.div>
+          </div>
         )}
 
         {tasks.length === 0 && isDragOver && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="py-8 text-center border-2 border-dashed border-primary/50 rounded-xl bg-primary/5"
-          >
+          <div className="py-8 text-center border-2 border-dashed border-primary/50 rounded-xl bg-primary/5">
             <p className="text-sm text-primary font-medium">Drop task here</p>
-          </motion.div>
+          </div>
         )}
       </div>
 
       {/* Add Task */}
       <div className="p-3 border-t border-border/50">
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+        <button
           onClick={() => onAddTask(status)}
           className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-dashed border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary transition-all duration-200 group"
         >
           <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
           <span className="text-sm font-medium">Add Task</span>
-        </motion.button>
+        </button>
       </div>
-    </motion.div>
+    </div>
   );
 };
