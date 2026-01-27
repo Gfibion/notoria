@@ -1,8 +1,8 @@
 import React from 'react';
-import { Task, Project, Subtask } from '@/lib/tasks-db';
+import { Task, Project } from '@/lib/tasks-db';
 import { Calendar, Clock, Flag, GripVertical, Pencil, Trash2, CheckCircle2, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, isToday, isTomorrow, isPast } from 'date-fns';
+import { format, isPast, isToday, isTomorrow, isValid, parse } from 'date-fns';
 
 interface TaskCardProps {
   task: Task;
@@ -30,6 +30,20 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     if (isToday(date)) return 'Today';
     if (isTomorrow(date)) return 'Tomorrow';
     return format(date, 'MMM d');
+  };
+
+  const formatReminderTime = (reminder: string) => {
+    // `task.reminder` is stored as "HH:mm" (time only). Using `new Date(reminder)` can be Invalid Date and crash.
+    try {
+      const base = new Date();
+      const date = reminder.includes('T') || reminder.includes('-')
+        ? new Date(reminder)
+        : parse(reminder, 'HH:mm', base);
+
+      return isValid(date) ? format(date, 'h:mm a') : reminder;
+    } catch {
+      return reminder;
+    }
   };
 
   const isDuePast = task.dueDate && isPast(new Date(task.dueDate)) && task.status !== 'done';
@@ -161,7 +175,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           {task.reminder && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent/20 text-accent-foreground">
               <Clock className="w-2.5 h-2.5" />
-              {format(new Date(task.reminder), 'h:mm a')}
+              {formatReminderTime(task.reminder)}
             </span>
           )}
 
