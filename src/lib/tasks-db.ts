@@ -82,19 +82,34 @@ export const getAllTasks = async (): Promise<Task[]> => {
 };
 
 export const getTasksByStatus = async (status: Task['status']): Promise<Task[]> => {
-  const db = await getDB();
-  const tasks = await db.getAllFromIndex('tasks', 'by-status', status);
-  return tasks.sort((a, b) => a.order - b.order);
+  try {
+    const db = await getDB();
+    const tasks = await db.getAllFromIndex('tasks', 'by-status', status);
+    return tasks.sort((a, b) => (a.order || 0) - (b.order || 0));
+  } catch (error) {
+    console.error('Error getting tasks by status:', error);
+    return [];
+  }
 };
 
 export const saveTask = async (task: Task): Promise<void> => {
-  const db = await getDB();
-  await db.put('tasks', { ...task, updatedAt: new Date().toISOString() });
+  try {
+    const db = await getDB();
+    await db.put('tasks', { ...task, updatedAt: new Date().toISOString() });
+  } catch (error) {
+    console.error('Error saving task:', error);
+    throw error;
+  }
 };
 
 export const deleteTask = async (id: string): Promise<void> => {
-  const db = await getDB();
-  await db.delete('tasks', id);
+  try {
+    const db = await getDB();
+    await db.delete('tasks', id);
+  } catch (error) {
+    console.error('Error deleting task:', error);
+    throw error;
+  }
 };
 
 export const createTask = async (taskData: Partial<Task>): Promise<Task> => {
@@ -138,27 +153,42 @@ export const getAllProjects = async (): Promise<Project[]> => {
 };
 
 export const saveProject = async (project: Project): Promise<void> => {
-  const db = await getDB();
-  await db.put('projects', project);
+  try {
+    const db = await getDB();
+    await db.put('projects', project);
+  } catch (error) {
+    console.error('Error saving project:', error);
+    throw error;
+  }
 };
 
 export const deleteProject = async (id: string): Promise<void> => {
-  const db = await getDB();
-  await db.delete('projects', id);
+  try {
+    const db = await getDB();
+    await db.delete('projects', id);
+  } catch (error) {
+    console.error('Error deleting project:', error);
+    throw error;
+  }
 };
 
 export const createProject = async (projectData: Partial<Project>): Promise<Project> => {
-  const project: Project = {
-    id: generateId(),
-    name: projectData.name || 'New Project',
-    color: projectData.color || '#6366f1',
-    icon: projectData.icon || 'folder',
-    createdAt: new Date().toISOString(),
-  };
-  
-  const db = await getDB();
-  await db.put('projects', project);
-  return project;
+  try {
+    const project: Project = {
+      id: generateId(),
+      name: projectData.name || 'New Project',
+      color: projectData.color || '#6366f1',
+      icon: projectData.icon || 'folder',
+      createdAt: new Date().toISOString(),
+    };
+    
+    const db = await getDB();
+    await db.put('projects', project);
+    return project;
+  } catch (error) {
+    console.error('Error creating project:', error);
+    throw error;
+  }
 };
 
 // Task due today / upcoming

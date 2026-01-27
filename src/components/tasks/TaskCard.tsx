@@ -12,11 +12,13 @@ interface TaskCardProps {
   onSubtaskToggle?: (taskId: string, subtaskId: string) => void;
 }
 
-const priorityConfig = {
+const priorityConfig: Record<string, { color: string; icon: string }> = {
   low: { color: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400', icon: 'border-emerald-500/50' },
   medium: { color: 'bg-amber-500/20 text-amber-600 dark:text-amber-400', icon: 'border-amber-500/50' },
   high: { color: 'bg-rose-500/20 text-rose-600 dark:text-rose-400', icon: 'border-rose-500/50' },
 };
+
+const defaultPriorityStyle = { color: 'bg-secondary text-muted-foreground', icon: 'border-border' };
 
 export const TaskCard: React.FC<TaskCardProps> = ({
   task,
@@ -26,14 +28,18 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   onSubtaskToggle,
 }) => {
   const formatDueDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    if (isToday(date)) return 'Today';
-    if (isTomorrow(date)) return 'Tomorrow';
-    return format(date, 'MMM d');
+    try {
+      const date = new Date(dateStr);
+      if (!isValid(date)) return dateStr;
+      if (isToday(date)) return 'Today';
+      if (isTomorrow(date)) return 'Tomorrow';
+      return format(date, 'MMM d');
+    } catch {
+      return dateStr;
+    }
   };
 
   const formatReminderTime = (reminder: string) => {
-    // `task.reminder` is stored as "HH:mm" (time only). Using `new Date(reminder)` can be Invalid Date and crash.
     try {
       const base = new Date();
       const date = reminder.includes('T') || reminder.includes('-')
@@ -46,11 +52,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     }
   };
 
-  const isDuePast = task.dueDate && isPast(new Date(task.dueDate)) && task.status !== 'done';
+  const isDuePast = task.dueDate && isValid(new Date(task.dueDate)) && isPast(new Date(task.dueDate)) && task.status !== 'done';
   
   const completedSubtasks = task.subtasks?.filter(s => s.completed).length || 0;
   const totalSubtasks = task.subtasks?.length || 0;
   const subtaskProgress = totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0;
+
+  const priorityStyle = priorityConfig[task.priority] || defaultPriorityStyle;
 
   return (
     <div
@@ -152,10 +160,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           {/* Priority */}
           <span className={cn(
             "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide",
-            priorityConfig[task.priority].color
+            priorityStyle.color
           )}>
             <Flag className="w-2.5 h-2.5" />
-            {task.priority}
+            {task.priority || 'medium'}
           </span>
 
           {/* Due Date */}
