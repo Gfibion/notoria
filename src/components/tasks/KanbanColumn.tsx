@@ -37,29 +37,15 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   const columnRef = useRef<HTMLDivElement>(null);
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, taskId: string) => {
-    e.dataTransfer.setData('taskId', taskId);
-    e.dataTransfer.setData('sourceStatus', status);
+    e.dataTransfer.setData('text/plain', taskId);
     e.dataTransfer.effectAllowed = 'move';
     
-    // Create custom drag image safely
-    try {
-      const dragElement = e.currentTarget;
-      const clone = dragElement.cloneNode(true) as HTMLElement;
-      clone.style.transform = 'rotate(3deg)';
-      clone.style.position = 'absolute';
-      clone.style.top = '-1000px';
-      clone.style.opacity = '0.9';
-      clone.style.width = `${dragElement.offsetWidth}px`;
-      document.body.appendChild(clone);
-      e.dataTransfer.setDragImage(clone, 100, 30);
-      setTimeout(() => {
-        if (document.body.contains(clone)) {
-          document.body.removeChild(clone);
-        }
-      }, 0);
-    } catch (err) {
-      console.log('Could not set custom drag image:', err);
-    }
+    // Add dragging class for visual feedback
+    e.currentTarget.style.opacity = '0.5';
+  };
+
+  const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+    e.currentTarget.style.opacity = '1';
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -104,10 +90,12 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragOver(false);
     setDropIndicatorIndex(null);
-    const taskId = e.dataTransfer.getData('taskId');
-    if (taskId) {
+    
+    const taskId = e.dataTransfer.getData('text/plain');
+    if (taskId && taskId.trim()) {
       onDropTask(taskId, status);
     }
   };
@@ -167,9 +155,10 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
             <React.Fragment key={task.id}>
               {dropIndicatorIndex === index && isDragOver && <DropIndicator />}
               <div
-                className="task-card-wrapper"
-                draggable
+                className="task-card-wrapper cursor-grab active:cursor-grabbing"
+                draggable="true"
                 onDragStart={(e) => handleDragStart(e, task.id)}
+                onDragEnd={handleDragEnd}
               >
                 <TaskCard
                   task={task}
