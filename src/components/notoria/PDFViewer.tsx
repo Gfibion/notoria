@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -49,7 +49,6 @@ export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFVi
   const [pdfTitle, setPdfTitle] = useState(fileName);
   const [pdfData, setPdfData] = useState<ArrayBuffer | string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -57,7 +56,6 @@ export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFVi
   useEffect(() => {
     const loadPdf = async () => {
       setIsLoading(true);
-      setLoadError(null);
       try {
         if (file instanceof File) {
           const arrayBuffer = await file.arrayBuffer();
@@ -67,7 +65,6 @@ export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFVi
         }
       } catch (err) {
         console.error('Failed to load PDF:', err);
-        setLoadError('Failed to load PDF file');
         toast({ title: 'Failed to load PDF', variant: 'destructive' });
       } finally {
         setIsLoading(false);
@@ -76,22 +73,9 @@ export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFVi
     loadPdf();
   }, [file, toast]);
 
-  // Memoize the file object to prevent unnecessary re-renders
-  const documentFile = useMemo(() => {
-    if (!pdfData) return null;
-    return { data: pdfData };
-  }, [pdfData]);
-
   // Handle document load
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
-    setLoadError(null);
-  };
-
-  // Handle document load error
-  const onDocumentLoadError = (error: Error) => {
-    console.error('PDF load error:', error);
-    setLoadError('Failed to render PDF. The file may be corrupted or unsupported.');
   };
 
   // Handle text selection with debounce
@@ -190,19 +174,10 @@ export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFVi
             <div className="flex items-center justify-center h-96">
               <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
             </div>
-          ) : loadError ? (
-            <div className="flex flex-col items-center justify-center h-96 text-muted-foreground">
-              <FileText className="w-12 h-12 mb-4" />
-              <p>{loadError}</p>
-              <Button variant="outline" className="mt-4" onClick={onClose}>
-                Close
-              </Button>
-            </div>
-          ) : documentFile ? (
+          ) : pdfData ? (
             <Document
-              file={documentFile}
+              file={{ data: pdfData }}
               onLoadSuccess={onDocumentLoadSuccess}
-              onLoadError={onDocumentLoadError}
               loading={
                 <div className="flex items-center justify-center h-96">
                   <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
