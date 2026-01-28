@@ -465,16 +465,12 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
     if (searchQuery && contentRef.current) {
       const content = contentRef.current;
       const text = content.innerHTML;
-      
-      // Escape special RegEx characters to prevent XSS/injection attacks
-      const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const escapedQuery = escapeRegex(searchQuery);
-      const regex = new RegExp(`(${escapedQuery})`, 'gi');
+      const regex = new RegExp(`(${searchQuery})`, 'gi');
       
       // First, remove any existing highlights
       const cleanHtml = text.replace(/<mark class="search-highlight"[^>]*>([^<]+)<\/mark>/gi, '$1');
       
-      // Then add new highlights (safe because escapedQuery contains no special chars)
+      // Then add new highlights
       const highlightedHtml = cleanHtml.replace(regex, '<mark class="search-highlight" style="background-color: #86efac; padding: 0 2px; border-radius: 2px;">$1</mark>');
       content.innerHTML = highlightedHtml;
       
