@@ -13,7 +13,8 @@ import { TrashView } from '@/components/notoria/TrashView';
 import { SettingsDialog } from '@/components/notoria/SettingsDialog';
 import { PDFViewer, ExtractedTextMetadata } from '@/components/notoria/PDFViewer';
 import { generateExtractedTextHtml } from '@/components/notoria/ExtractedTextDisplay';
-import { Plus, BookOpen, Search, FileText } from 'lucide-react';
+import { Plus, Search, FileText } from 'lucide-react';
+import logoImage from '@/assets/logo.png';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -407,7 +408,7 @@ const Index = () => {
               {loading ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-4">
-                    <BookOpen className="w-12 h-12 text-gold animate-pulse" />
+                    <img src={logoImage} alt="Loading" className="w-12 h-12 object-contain animate-pulse" />
                     <p className="text-muted-foreground">Loading your notes...</p>
                   </div>
                 </div>
