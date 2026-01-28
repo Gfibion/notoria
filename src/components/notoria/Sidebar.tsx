@@ -7,7 +7,6 @@ import {
   PanelLeft,
   Plus,
   Search,
-  BookOpen,
   User,
   Briefcase,
   Lightbulb,
@@ -43,6 +42,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { WorkspaceDialog } from './WorkspaceDialog';
+import logoImage from '@/assets/logo.png';
 
 const iconMap: Record<string, React.ElementType> = {
   user: User,
@@ -270,13 +270,13 @@ export function Sidebar({
         <div className="p-4 flex items-center justify-between border-b border-sidebar-border">
           {!collapsed && (
             <div className="flex items-center gap-2">
-              <BookOpen className="w-6 h-6 text-gold" />
+              <img src={logoImage} alt="Notoria" className="w-7 h-7 object-contain" />
               <span className="font-display text-xl font-semibold tracking-tight text-sidebar-foreground">
                 Notoria
               </span>
             </div>
           )}
-          {collapsed && <BookOpen className="w-6 h-6 text-gold mx-auto" />}
+          {collapsed && <img src={logoImage} alt="Notoria" className="w-7 h-7 object-contain mx-auto" />}
           <Button
             variant="ghost"
             size="icon"
@@ -348,7 +348,7 @@ export function Sidebar({
                   : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
               )}
             >
-              <BookOpen className="w-4 h-4 flex-shrink-0" />
+              <img src={logoImage} alt="" className="w-4 h-4 object-contain flex-shrink-0" />
               {!collapsed && <span>All Notes</span>}
             </button>
             

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, Search, Plus, BookOpen, Trash2, Settings, Star, ChevronDown, ChevronRight, Hash, MoreHorizontal, Pencil, GripVertical, FileText, CheckSquare } from 'lucide-react';
+import { Menu, Search, Plus, Trash2, Settings, Star, ChevronDown, ChevronRight, Hash, MoreHorizontal, Pencil, GripVertical, FileText, CheckSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Workspace, Subcategory, getSubcategoriesByWorkspace } from '@/lib/db';
@@ -14,6 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import logoImage from '@/assets/logo.png';
 
 const iconMap: Record<string, React.ElementType> = {
   user: User,
@@ -184,7 +185,7 @@ export function MobileHeader({
               {/* Header */}
               <div className="p-4 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <BookOpen className="w-6 h-6 text-gold" />
+                  <img src={logoImage} alt="Notoria" className="w-7 h-7 object-contain" />
                   <span className="font-display text-xl font-semibold">Notoria</span>
                 </div>
               </div>
@@ -221,7 +222,7 @@ export function MobileHeader({
                       : 'text-muted-foreground hover:bg-secondary/50'
                   )}
                 >
-                  <BookOpen className="w-4 h-4" />
+                  <img src={logoImage} alt="" className="w-4 h-4 object-contain" />
                   <span>All Notes</span>
                 </button>
 
@@ -401,7 +402,7 @@ export function MobileHeader({
         </Link>
 
         <div className="flex items-center gap-2 flex-1 justify-center overflow-hidden">
-          {showStarred ? <Star className="w-5 h-5 text-gold flex-shrink-0" /> : <BookOpen className="w-5 h-5 text-gold flex-shrink-0" />}
+          {showStarred ? <Star className="w-5 h-5 text-gold flex-shrink-0" /> : <img src={logoImage} alt="Notoria" className="w-6 h-6 object-contain flex-shrink-0" />}
           <span className="font-display font-semibold truncate">
             {getTitle()}
           </span>

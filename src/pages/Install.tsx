@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, Download, Check, Smartphone, Monitor, Share, Plus, X, Zap, Wifi, WifiOff } from 'lucide-react';
+import { Download, Check, Smartphone, Monitor, Share, Plus, X, Zap, Wifi, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ThemeToggle } from '@/components/notoria/ThemeToggle';
+import logoImage from '@/assets/logo.png';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -69,7 +70,7 @@ const Install = () => {
       {/* Header */}
       <header className="p-4 md:p-6 border-b border-border flex items-center justify-between">
         <a href="/" className="flex items-center gap-2 w-fit">
-          <BookOpen className="w-6 h-6 text-gold" />
+          <img src={logoImage} alt="Notoria" className="w-7 h-7 object-contain" />
           <span className="font-display text-xl font-semibold">Notoria</span>
         </a>
         <div className="flex items-center gap-2">
@@ -87,8 +88,8 @@ const Install = () => {
         <div className="max-w-lg w-full space-y-6 md:space-y-8 animate-fade-in">
           {/* Hero */}
           <div className="text-center space-y-4">
-            <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-gold/20 to-secondary flex items-center justify-center shadow-card">
-              <BookOpen className="w-10 h-10 text-gold" />
+            <div className="w-20 h-20 mx-auto rounded-2xl overflow-hidden shadow-card">
+              <img src={logoImage} alt="Notoria" className="w-full h-full object-cover" />
             </div>
             <h1 className="font-display text-2xl md:text-3xl font-semibold text-foreground">
               Install Notoria
