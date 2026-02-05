@@ -45,7 +45,8 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // Include .mjs so the PDF.js worker (pdf.worker.min.mjs) is precached and works offline.
+        globPatterns: ["**/*.{js,mjs,css,html,ico,png,svg,woff2,wasm}"],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
