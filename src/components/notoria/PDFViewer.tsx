@@ -12,7 +12,8 @@ import {
   X,
   Plus,
   FileText,
-  Check,
+  WifiOff,
+  RefreshCw,
 } from 'lucide-react';
 import { Note } from '@/lib/db';
 import { useToast } from '@/hooks/use-toast';
@@ -50,6 +51,8 @@ export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFVi
   const [pdfData, setPdfData] = useState<ArrayBuffer | string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isOfflineError, setIsOfflineError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -58,6 +61,7 @@ export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFVi
     const loadPdf = async () => {
       setIsLoading(true);
       setLoadError(null);
+      setIsOfflineError(false);
       try {
         if (file instanceof File) {
           const arrayBuffer = await file.arrayBuffer();
@@ -67,14 +71,28 @@ export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFVi
         }
       } catch (err) {
         console.error('Failed to load PDF:', err);
-        setLoadError('Failed to load PDF file');
-        toast({ title: 'Failed to load PDF', variant: 'destructive' });
+        const isOffline = !navigator.onLine;
+        setIsOfflineError(isOffline);
+        setLoadError(isOffline 
+          ? 'Unable to load PDF while offline. Please check your connection and try again.'
+          : 'Failed to load PDF file'
+        );
+        toast({ 
+          title: isOffline ? 'You are offline' : 'Failed to load PDF', 
+          description: isOffline ? 'PDF viewer requires an internet connection on first load' : undefined,
+          variant: 'destructive' 
+        });
       } finally {
         setIsLoading(false);
       }
     };
     loadPdf();
-  }, [file, toast]);
+  }, [file, toast, retryCount]);
+
+  // Handle retry
+  const handleRetry = () => {
+    setRetryCount(c => c + 1);
+  };
 
   // Memoize the file object to prevent unnecessary re-renders
   const documentFile = useMemo(() => {
@@ -91,7 +109,12 @@ export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFVi
   // Handle document load error
   const onDocumentLoadError = (error: Error) => {
     console.error('PDF load error:', error);
-    setLoadError('Failed to render PDF. The file may be corrupted or unsupported.');
+    const isOffline = !navigator.onLine;
+    setIsOfflineError(isOffline);
+    setLoadError(isOffline 
+      ? 'Unable to render PDF while offline. The PDF viewer requires cached assets.'
+      : 'Failed to render PDF. The file may be corrupted or unsupported.'
+    );
   };
 
   // Handle text selection with debounce
@@ -191,12 +214,23 @@ export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFVi
               <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
             </div>
           ) : loadError ? (
-            <div className="flex flex-col items-center justify-center h-96 text-muted-foreground">
-              <FileText className="w-12 h-12 mb-4" />
-              <p>{loadError}</p>
-              <Button variant="outline" className="mt-4" onClick={onClose}>
-                Close
-              </Button>
+            <div className="flex flex-col items-center justify-center h-96 text-muted-foreground max-w-sm text-center">
+              {isOfflineError ? (
+                <WifiOff className="w-12 h-12 mb-4 text-destructive" />
+              ) : (
+                <FileText className="w-12 h-12 mb-4" />
+              )}
+              <p className="font-medium mb-2">{isOfflineError ? "You're offline" : "Failed to load PDF"}</p>
+              <p className="text-sm mb-4">{loadError}</p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleRetry} className="gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  Retry
+                </Button>
+                <Button variant="ghost" onClick={onClose}>
+                  Close
+                </Button>
+              </div>
             </div>
           ) : documentFile ? (
             <Document
