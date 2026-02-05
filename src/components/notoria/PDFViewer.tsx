@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
 import {
   ChevronLeft,
   ChevronRight,
@@ -14,9 +15,19 @@ import {
   FileText,
   WifiOff,
   RefreshCw,
+  Download,
+  Check,
 } from 'lucide-react';
 import { Note } from '@/lib/db';
 import { useToast } from '@/hooks/use-toast';
+import {
+  generatePDFId,
+  getCachedPDF,
+  cachePDF,
+  removeCachedPDF,
+  isPDFCached,
+  formatBytes,
+} from '@/lib/pdf-cache-db';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
@@ -29,6 +40,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 interface PDFViewerProps {
   file: File | string;
   fileName: string;
+  fileSize?: number; // Size in bytes for cache identification
   notes: Note[];
   onClose: () => void;
   onAddToNote: (noteId: string, text: string, metadata: ExtractedTextMetadata) => void;
@@ -40,7 +52,7 @@ export interface ExtractedTextMetadata {
   timestamp: Date;
 }
 
-export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFViewerProps) {
+export function PDFViewer({ file, fileName, fileSize, notes, onClose, onAddToNote }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [scale, setScale] = useState(1.0);
@@ -53,8 +65,27 @@ export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFVi
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isOfflineError, setIsOfflineError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [isSavedOffline, setIsSavedOffline] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [actualFileSize, setActualFileSize] = useState(fileSize || 0);
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Generate cache ID for this PDF
+  const cacheId = useMemo(() => {
+    return generatePDFId(fileName, actualFileSize);
+  }, [fileName, actualFileSize]);
+
+  // Check if PDF is already cached
+  useEffect(() => {
+    const checkCache = async () => {
+      if (actualFileSize > 0) {
+        const cached = await isPDFCached(cacheId);
+        setIsSavedOffline(cached);
+      }
+    };
+    checkCache();
+  }, [cacheId, actualFileSize]);
 
   // Load PDF file into memory for offline support
   useEffect(() => {
@@ -62,24 +93,58 @@ export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFVi
       setIsLoading(true);
       setLoadError(null);
       setIsOfflineError(false);
+      
       try {
+        // First, try to load from cache if offline
+        if (!navigator.onLine && actualFileSize > 0) {
+          const cached = await getCachedPDF(cacheId);
+          if (cached) {
+            setPdfData(cached.data);
+            setIsSavedOffline(true);
+            toast({ title: 'Loaded from offline cache' });
+            return;
+          }
+        }
+
         if (file instanceof File) {
           const arrayBuffer = await file.arrayBuffer();
           setPdfData(arrayBuffer);
+          setActualFileSize(file.size);
         } else {
+          // For string URLs, try cache first when offline
+          if (!navigator.onLine) {
+            const cached = await getCachedPDF(cacheId);
+            if (cached) {
+              setPdfData(cached.data);
+              setIsSavedOffline(true);
+              return;
+            }
+          }
           setPdfData(file);
         }
       } catch (err) {
         console.error('Failed to load PDF:', err);
+        
+        // Try cache as fallback
+        if (actualFileSize > 0) {
+          const cached = await getCachedPDF(cacheId);
+          if (cached) {
+            setPdfData(cached.data);
+            setIsSavedOffline(true);
+            toast({ title: 'Loaded from offline cache' });
+            return;
+          }
+        }
+        
         const isOffline = !navigator.onLine;
         setIsOfflineError(isOffline);
         setLoadError(isOffline 
-          ? 'Unable to load PDF while offline. Please check your connection and try again.'
+          ? 'Unable to load PDF while offline. Save PDFs for offline access to view them without internet.'
           : 'Failed to load PDF file'
         );
         toast({ 
           title: isOffline ? 'You are offline' : 'Failed to load PDF', 
-          description: isOffline ? 'PDF viewer requires an internet connection on first load' : undefined,
+          description: isOffline ? 'This PDF is not saved for offline viewing' : undefined,
           variant: 'destructive' 
         });
       } finally {
@@ -87,7 +152,42 @@ export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFVi
       }
     };
     loadPdf();
-  }, [file, toast, retryCount]);
+  }, [file, toast, retryCount, cacheId, actualFileSize]);
+
+  // Handle saving/removing from offline cache
+  const handleToggleOffline = async () => {
+    if (!pdfData || !(pdfData instanceof ArrayBuffer)) {
+      toast({ title: 'Cannot save this PDF offline', variant: 'destructive' });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      if (isSavedOffline) {
+        await removeCachedPDF(cacheId);
+        setIsSavedOffline(false);
+        toast({ title: 'Removed from offline storage' });
+      } else {
+        await cachePDF({
+          id: cacheId,
+          fileName,
+          data: pdfData,
+          size: actualFileSize,
+          cachedAt: new Date(),
+        });
+        setIsSavedOffline(true);
+        toast({ 
+          title: 'Saved for offline', 
+          description: `${formatBytes(actualFileSize)} stored locally` 
+        });
+      }
+    } catch (err) {
+      console.error('Failed to toggle offline storage:', err);
+      toast({ title: 'Failed to save offline', variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Handle retry
   const handleRetry = () => {
@@ -175,6 +275,29 @@ export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFVi
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Save for offline toggle */}
+          {pdfData instanceof ArrayBuffer && actualFileSize > 0 && (
+            <button
+              onClick={handleToggleOffline}
+              disabled={isSaving}
+              className={cn(
+                "hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
+                isSavedOffline 
+                  ? "bg-primary/10 text-primary" 
+                  : "bg-muted hover:bg-muted/80 text-muted-foreground"
+              )}
+            >
+              {isSaving ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : isSavedOffline ? (
+                <Check className="w-3.5 h-3.5" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              {isSavedOffline ? 'Saved offline' : 'Save offline'}
+            </button>
+          )}
+
           {/* Zoom controls */}
           <Button variant="ghost" size="icon" onClick={zoomOut} disabled={scale <= 0.5}>
             <ZoomOut className="w-4 h-4" />
@@ -267,16 +390,46 @@ export function PDFViewer({ file, fileName, notes, onClose, onAddToNote }: PDFVi
       </div>
 
       {/* Mobile Page Navigation */}
-      <div className="md:hidden flex items-center justify-center gap-4 py-2 border-t border-border bg-card">
-        <Button variant="ghost" size="icon" onClick={goToPrevPage} disabled={currentPage <= 1}>
-          <ChevronLeft className="w-5 h-5" />
-        </Button>
-        <span className="text-sm text-muted-foreground">
-          {currentPage} / {numPages}
-        </span>
-        <Button variant="ghost" size="icon" onClick={goToNextPage} disabled={currentPage >= numPages}>
-          <ChevronRight className="w-5 h-5" />
-        </Button>
+      <div className="md:hidden flex items-center justify-between px-4 py-2 border-t border-border bg-card">
+        {/* Save offline button - mobile */}
+        {pdfData instanceof ArrayBuffer && actualFileSize > 0 ? (
+          <button
+            onClick={handleToggleOffline}
+            disabled={isSaving}
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors",
+              isSavedOffline 
+                ? "bg-primary/10 text-primary" 
+                : "bg-muted text-muted-foreground"
+            )}
+          >
+            {isSaving ? (
+              <RefreshCw className="w-3 h-3 animate-spin" />
+            ) : isSavedOffline ? (
+              <Check className="w-3 h-3" />
+            ) : (
+              <Download className="w-3 h-3" />
+            )}
+            {isSavedOffline ? 'Saved' : 'Save'}
+          </button>
+        ) : (
+          <div className="w-12" />
+        )}
+
+        {/* Page navigation */}
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={goToPrevPage} disabled={currentPage <= 1}>
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            {currentPage} / {numPages}
+          </span>
+          <Button variant="ghost" size="icon" onClick={goToNextPage} disabled={currentPage >= numPages}>
+            <ChevronRight className="w-5 h-5" />
+          </Button>
+        </div>
+
+        <div className="w-12" /> {/* Spacer for balance */}
       </div>
 
       {/* Selected Text Action Bar */}
