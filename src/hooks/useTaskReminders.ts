@@ -6,12 +6,24 @@ interface ReminderSettings {
   enabled: boolean;
   checkIntervalMinutes: number;
   reminderThresholdMinutes: number;
+  volume: number;
 }
+
+const VOLUME_STORAGE_KEY = 'notoria-notification-volume';
+
+const getStoredVolume = (): number => {
+  try {
+    const stored = localStorage.getItem(VOLUME_STORAGE_KEY);
+    if (stored !== null) return parseFloat(stored);
+  } catch {}
+  return 0.7;
+};
 
 const DEFAULT_SETTINGS: ReminderSettings = {
   enabled: true,
   checkIntervalMinutes: 5,
   reminderThresholdMinutes: 30,
+  volume: getStoredVolume(),
 };
 
 const NOTIFICATION_SOUND_URL = '/sounds/notification.wav';
@@ -26,7 +38,7 @@ export const useTaskReminders = () => {
   // Initialize audio element
   useEffect(() => {
     audioRef.current = new Audio(NOTIFICATION_SOUND_URL);
-    audioRef.current.volume = 0.7;
+    audioRef.current.volume = settings.volume;
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -228,12 +240,23 @@ export const useTaskReminders = () => {
     }
   }, [notificationPermission, playNotificationSound]);
 
+  // Set volume
+  const setVolume = useCallback((volume: number) => {
+    const clamped = Math.max(0, Math.min(1, volume));
+    setSettings(prev => ({ ...prev, volume: clamped }));
+    if (audioRef.current) {
+      audioRef.current.volume = clamped;
+    }
+    localStorage.setItem(VOLUME_STORAGE_KEY, String(clamped));
+  }, []);
+
   return {
     notificationPermission,
     settings,
     requestPermission,
     toggleReminders,
     testNotification,
+    setVolume,
     isSupported: 'Notification' in window,
   };
 };
