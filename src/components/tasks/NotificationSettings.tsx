@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, BellOff, BellRing, CheckCircle, XCircle } from 'lucide-react';
+import { Bell, BellOff, BellRing, CheckCircle, Volume2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { useTaskReminders } from '@/hooks/useTaskReminders';
 import { cn } from '@/lib/utils';
 
@@ -18,6 +19,7 @@ export const NotificationSettings: React.FC = () => {
     requestPermission,
     toggleReminders,
     testNotification,
+    setVolume,
     isSupported,
   } = useTaskReminders();
 
@@ -134,6 +136,27 @@ export const NotificationSettings: React.FC = () => {
                   id="reminders-enabled"
                   checked={settings.enabled}
                   onCheckedChange={toggleReminders}
+                />
+              </div>
+
+              {/* Volume Control */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm flex items-center gap-2">
+                    <Volume2 className="w-4 h-4" />
+                    Volume
+                  </Label>
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {Math.round(settings.volume * 100)}%
+                  </span>
+                </div>
+                <Slider
+                  value={[settings.volume * 100]}
+                  onValueChange={([val]) => setVolume(val / 100)}
+                  min={0}
+                  max={100}
+                  step={5}
+                  className="w-full"
                 />
               </div>
 
