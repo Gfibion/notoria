@@ -14,7 +14,7 @@ const DEFAULT_SETTINGS: ReminderSettings = {
   reminderThresholdMinutes: 30,
 };
 
-const NOTIFICATION_SOUND_URL = '/sounds/notification.mp3';
+const NOTIFICATION_SOUND_URL = '/sounds/notification.wav';
 const REMINDED_TASKS_KEY = 'notoria-reminded-tasks';
 
 export const useTaskReminders = () => {
