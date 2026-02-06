@@ -214,27 +214,17 @@ export const useTaskReminders = () => {
 
   // Test notification
   const testNotification = useCallback(() => {
+    // Always play the sound so users can test it
+    playNotificationSound();
+
     if (notificationPermission === 'granted') {
-      const testTask: Task = {
-        id: 'test',
-        title: 'Test Notification',
-        description: 'This is a test notification to check if reminders are working.',
-        status: 'todo',
-        priority: 'medium',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        order: 0,
-      };
-      
-      new Notification(`Task Reminder: ${testTask.title}`, {
-        body: testTask.description,
+      new Notification('Task Reminder: Test Notification', {
+        body: 'This is a test notification to check if reminders are working.',
         icon: '/pwa-192x192.png',
         tag: 'test-notification',
       });
-      
-      playNotificationSound();
     } else {
-      toast.error('Please enable notifications first');
+      toast.info('Sound played! Enable browser notifications for visual alerts too.');
     }
   }, [notificationPermission, playNotificationSound]);
 
