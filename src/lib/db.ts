@@ -35,7 +35,7 @@ export interface Subcategory {
 export interface AppSettings {
   id: string;
   theme: 'default' | 'dark' | 'purple-gradient';
-  fontFamily: 'inter' | 'times' | 'calibri' | 'georgia';
+  fontFamily: 'cambria' | 'times' | 'calibri' | 'georgia';
   fontSize: 'small' | 'medium' | 'large' | 'xlarge';
 }
 
@@ -274,7 +274,7 @@ export async function getSettings(): Promise<AppSettings> {
   return settings || {
     id: 'app-settings',
     theme: 'default',
-    fontFamily: 'inter',
+    fontFamily: 'cambria',
     fontSize: 'medium',
   };
 }
