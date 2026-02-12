@@ -32,7 +32,7 @@ export function NotesGrid({
             <span className="w-1.5 h-1.5 rounded-full bg-gold" />
             Pinned
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {pinnedNotes.map((note, index) => (
               <div
                 key={note.id}
@@ -62,7 +62,7 @@ export function NotesGrid({
               Recent
             </h2>
           )}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {unpinnedNotes.map((note, index) => (
               <div
                 key={note.id}
