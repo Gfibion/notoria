@@ -233,7 +233,7 @@
 
   /* Editor Styles */
   .editor-content {
-    @apply prose prose-stone max-w-none;
+    @apply prose prose-stone max-w-none text-foreground;
     font-family: var(--app-font-family);
   }
 
@@ -247,6 +247,47 @@
   .editor-content h2,
   .editor-content h3 {
     font-family: 'EB Garamond', Georgia, serif;
+    @apply text-foreground;
+  }
+
+  /* Dark theme prose overrides */
+  .dark .editor-content,
+  [data-theme="purple-gradient"] .editor-content {
+    @apply text-foreground;
+  }
+
+  .dark .editor-content p,
+  [data-theme="purple-gradient"] .editor-content p {
+    @apply text-foreground;
+  }
+
+  .dark .editor-content a,
+  [data-theme="purple-gradient"] .editor-content a {
+    @apply text-foreground underline;
+  }
+
+  .dark .editor-content strong,
+  [data-theme="purple-gradient"] .editor-content strong {
+    @apply text-foreground;
+  }
+
+  .dark .editor-content em,
+  [data-theme="purple-gradient"] .editor-content em {
+    @apply text-foreground;
+  }
+
+  .dark .editor-content li,
+  [data-theme="purple-gradient"] .editor-content li {
+    @apply text-foreground;
+  }
+
+  .dark .editor-content blockquote,
+  [data-theme="purple-gradient"] .editor-content blockquote {
+    @apply text-foreground border-border;
+  }
+
+  .dark .editor-content code,
+  [data-theme="purple-gradient"] .editor-content code {
     @apply text-foreground;
   }
 
