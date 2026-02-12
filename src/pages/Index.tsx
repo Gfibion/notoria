@@ -61,12 +61,12 @@ const Index = () => {
       const settings = await getSettings();
       
       // Apply font
-      const fonts: Record<string, string> = {
-        inter: 'Inter, system-ui, sans-serif',
-        times: '"Times New Roman", Times, serif',
-        calibri: 'Calibri, "Gill Sans", sans-serif',
-        georgia: 'Georgia, "Times New Roman", serif',
-      };
+       const fonts: Record<string, string> = {
+         cambria: 'Cambria, "Hoefler Text", Georgia, serif',
+         times: '"Times New Roman", Times, serif',
+         calibri: 'Calibri, "Gill Sans", sans-serif',
+         georgia: 'Georgia, "Times New Roman", serif',
+       };
       document.documentElement.style.setProperty('--app-font-family', fonts[settings.fontFamily] || fonts.inter);
       
       // Apply font size

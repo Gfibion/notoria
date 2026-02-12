@@ -17,7 +17,7 @@ const themes = [
 ] as const;
 
 const fonts = [
-  { id: 'inter', name: 'Inter', family: 'Inter, system-ui, sans-serif', description: 'Modern sans-serif' },
+  { id: 'cambria', name: 'Cambria', family: 'Cambria, "Hoefler Text", Georgia, serif', description: 'Elegant serif' },
   { id: 'times', name: 'Times New Roman', family: '"Times New Roman", Times, serif', description: 'Classic serif' },
   { id: 'calibri', name: 'Calibri', family: 'Calibri, "Gill Sans", sans-serif', description: 'Clean sans-serif' },
   { id: 'georgia', name: 'Georgia', family: 'Georgia, "Times New Roman", serif', description: 'Elegant serif' },
@@ -34,7 +34,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [settings, setSettings] = useState<AppSettings>({
     id: 'app-settings',
     theme: 'default',
-    fontFamily: 'inter',
+    fontFamily: 'cambria',
     fontSize: 'medium',
   });
   const { setTheme } = useTheme();
