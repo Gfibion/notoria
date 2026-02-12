@@ -18,6 +18,7 @@ import { ProjectsList } from '@/components/tasks/ProjectsList';
 import { UpcomingWidget } from '@/components/tasks/UpcomingWidget';
 import { CheckCircle2, Circle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { MobileTasksNav } from '@/components/tasks/MobileTasksNav';
 
 const Tasks: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -30,6 +31,7 @@ const Tasks: React.FC = () => {
   const [defaultStatus, setDefaultStatus] = useState<Task['status']>('todo');
   const [todayTasks, setTodayTasks] = useState<Task[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([]);
+  const [mobileTab, setMobileTab] = useState<'board' | 'projects'>('board');
 
   // Load data
   const loadData = useCallback(async () => {
@@ -191,92 +193,119 @@ const Tasks: React.FC = () => {
           </aside>
 
           {/* Main Content */}
-          <main className="flex-1 p-4 md:p-6">
-            {view === 'kanban' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                <KanbanColumn
-                  title="To Do"
-                  status="todo"
-                  tasks={todoTasks}
+          <main className="flex-1 p-4 md:p-6 pb-20 lg:pb-6">
+            {/* Mobile Projects Subpage */}
+            {mobileTab === 'projects' && (
+              <div className="lg:hidden space-y-4 max-w-lg mx-auto">
+                <ProjectsList
                   projects={projects}
-                  onAddTask={handleNewTask}
-                  onEditTask={handleEditTask}
-                  onDeleteTask={handleDeleteTask}
-                  onDropTask={handleDropTask}
-                  onSubtaskToggle={handleSubtaskToggle}
-                  gradient="bg-gradient-to-br from-slate-600 to-slate-700"
-                  icon={<Circle className="w-5 h-5 text-white" />}
+                  tasks={tasks}
+                  selectedProjectId={selectedProjectId}
+                  onSelectProject={(id) => {
+                    setSelectedProjectId(id);
+                    setMobileTab('board');
+                  }}
+                  onDeleteProject={handleDeleteProject}
+                  onNewProject={() => handleNewTask()}
                 />
-                <KanbanColumn
-                  title="In Progress"
-                  status="in-progress"
-                  tasks={inProgressTasks}
+                <UpcomingWidget
+                  tasks={upcomingTasks}
                   projects={projects}
-                  onAddTask={handleNewTask}
-                  onEditTask={handleEditTask}
-                  onDeleteTask={handleDeleteTask}
-                  onDropTask={handleDropTask}
-                  onSubtaskToggle={handleSubtaskToggle}
-                  gradient="bg-gradient-to-br from-amber-500 to-orange-600"
-                  icon={<Clock className="w-5 h-5 text-white" />}
+                  onTaskClick={handleEditTask}
                 />
-                <KanbanColumn
-                  title="Done"
-                  status="done"
-                  tasks={doneTasks}
-                  projects={projects}
-                  onAddTask={handleNewTask}
-                  onEditTask={handleEditTask}
-                  onDeleteTask={handleDeleteTask}
-                  onDropTask={handleDropTask}
-                  onSubtaskToggle={handleSubtaskToggle}
-                  gradient="bg-gradient-to-br from-emerald-500 to-teal-600"
-                  icon={<CheckCircle2 className="w-5 h-5 text-white" />}
-                />
-              </div>
-            ) : (
-              <div className="max-w-3xl mx-auto space-y-2">
-                {filteredTasks.map(task => (
-                  <div
-                    key={task.id}
-                    onClick={() => handleEditTask(task)}
-                    className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:shadow-md transition-all cursor-pointer group"
-                  >
-                    <div 
-                      className="w-3 h-3 rounded-full"
-                      style={{ 
-                        backgroundColor: projects.find(p => p.id === task.projectId)?.color || 'hsl(var(--muted))' 
-                      }}
-                    />
-                    <div className="flex-1">
-                      <p className={`font-medium ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
-                        {task.title}
-                      </p>
-                      {task.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-1">{task.description}</p>
-                      )}
-                    </div>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      task.status === 'done' 
-                        ? 'bg-emerald-500/20 text-emerald-600' 
-                        : task.status === 'in-progress'
-                        ? 'bg-amber-500/20 text-amber-600'
-                        : 'bg-secondary text-muted-foreground'
-                    }`}>
-                      {task.status.replace('-', ' ')}
-                    </span>
-                  </div>
-                ))}
-                {filteredTasks.length === 0 && (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground">No tasks found</p>
-                  </div>
-                )}
               </div>
             )}
+
+            {/* Board / List view (hidden on mobile when projects tab is active) */}
+            <div className={mobileTab === 'projects' ? 'hidden lg:block' : ''}>
+              {view === 'kanban' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  <KanbanColumn
+                    title="To Do"
+                    status="todo"
+                    tasks={todoTasks}
+                    projects={projects}
+                    onAddTask={handleNewTask}
+                    onEditTask={handleEditTask}
+                    onDeleteTask={handleDeleteTask}
+                    onDropTask={handleDropTask}
+                    onSubtaskToggle={handleSubtaskToggle}
+                    gradient="bg-gradient-to-br from-slate-600 to-slate-700"
+                    icon={<Circle className="w-5 h-5 text-white" />}
+                  />
+                  <KanbanColumn
+                    title="In Progress"
+                    status="in-progress"
+                    tasks={inProgressTasks}
+                    projects={projects}
+                    onAddTask={handleNewTask}
+                    onEditTask={handleEditTask}
+                    onDeleteTask={handleDeleteTask}
+                    onDropTask={handleDropTask}
+                    onSubtaskToggle={handleSubtaskToggle}
+                    gradient="bg-gradient-to-br from-amber-500 to-orange-600"
+                    icon={<Clock className="w-5 h-5 text-white" />}
+                  />
+                  <KanbanColumn
+                    title="Done"
+                    status="done"
+                    tasks={doneTasks}
+                    projects={projects}
+                    onAddTask={handleNewTask}
+                    onEditTask={handleEditTask}
+                    onDeleteTask={handleDeleteTask}
+                    onDropTask={handleDropTask}
+                    onSubtaskToggle={handleSubtaskToggle}
+                    gradient="bg-gradient-to-br from-emerald-500 to-teal-600"
+                    icon={<CheckCircle2 className="w-5 h-5 text-white" />}
+                  />
+                </div>
+              ) : (
+                <div className="max-w-3xl mx-auto space-y-2">
+                  {filteredTasks.map(task => (
+                    <div
+                      key={task.id}
+                      onClick={() => handleEditTask(task)}
+                      className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:shadow-md transition-all cursor-pointer group"
+                    >
+                      <div 
+                        className="w-3 h-3 rounded-full"
+                        style={{ 
+                          backgroundColor: projects.find(p => p.id === task.projectId)?.color || 'hsl(var(--muted))' 
+                        }}
+                      />
+                      <div className="flex-1">
+                        <p className={`font-medium ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
+                          {task.title}
+                        </p>
+                        {task.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-1">{task.description}</p>
+                        )}
+                      </div>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        task.status === 'done' 
+                          ? 'bg-emerald-500/20 text-emerald-600' 
+                          : task.status === 'in-progress'
+                          ? 'bg-amber-500/20 text-amber-600'
+                          : 'bg-secondary text-muted-foreground'
+                      }`}>
+                        {task.status.replace('-', ' ')}
+                      </span>
+                    </div>
+                  ))}
+                  {filteredTasks.length === 0 && (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground">No tasks found</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </main>
         </div>
       </div>
+
+      <MobileTasksNav activeTab={mobileTab} onTabChange={setMobileTab} />
 
       <TaskDialog
         isOpen={taskDialogOpen}
