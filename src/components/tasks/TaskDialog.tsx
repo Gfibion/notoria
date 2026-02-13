@@ -306,37 +306,39 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
               <Folder className="w-3.5 h-3.5" />
               Project
             </Label>
-            {!showNewProject ? (
-              <div className="flex gap-2">
-                <Select value={projectId || "none"} onValueChange={(v) => setProjectId(v === "none" ? "" : v)}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select project..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No Project</SelectItem>
-                    {projects.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: p.color }}
-                          />
-                          {p.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setShowNewProject(true)}
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-            ) : (
+            <div className={showNewProject ? 'hidden' : 'flex gap-2'}>
+              <Select 
+                value={projectId || "none"} 
+                onValueChange={(v) => setProjectId(v === "none" ? "" : v)}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Select project..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Project</SelectItem>
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: p.color }}
+                        />
+                        {p.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setShowNewProject(true)}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            {showNewProject && (
               <div className="space-y-3 p-3 rounded-lg bg-secondary/50 border border-border">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">New Project</span>

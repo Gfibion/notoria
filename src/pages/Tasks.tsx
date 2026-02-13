@@ -195,7 +195,11 @@ const Tasks: React.FC = () => {
               selectedProjectId={selectedProjectId}
               onSelectProject={setSelectedProjectId}
               onDeleteProject={handleDeleteProject}
-              onNewProject={() => handleNewTask()}
+              onNewProject={() => {
+                setEditingTask(null);
+                setDefaultStatus('todo');
+                setTaskDialogOpen(true);
+              }}
               onOpenProject={handleOpenProject}
             />
             <UpcomingWidget
