@@ -24,8 +24,11 @@ export interface Task {
 export interface Project {
   id: string;
   name: string;
+  description?: string;
   color: string;
   icon: string;
+  startDate?: string;
+  endDate?: string;
   createdAt: string;
 }
 
@@ -177,8 +180,11 @@ export const createProject = async (projectData: Partial<Project>): Promise<Proj
     const project: Project = {
       id: generateId(),
       name: projectData.name || 'New Project',
+      description: projectData.description || '',
       color: projectData.color || '#6366f1',
       icon: projectData.icon || 'folder',
+      startDate: projectData.startDate,
+      endDate: projectData.endDate,
       createdAt: new Date().toISOString(),
     };
     

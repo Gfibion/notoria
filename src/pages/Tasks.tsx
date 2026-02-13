@@ -16,6 +16,7 @@ import { KanbanColumn } from '@/components/tasks/KanbanColumn';
 import { TaskDialog } from '@/components/tasks/TaskDialog';
 import { ProjectsList } from '@/components/tasks/ProjectsList';
 import { UpcomingWidget } from '@/components/tasks/UpcomingWidget';
+import { ProjectDetailDialog } from '@/components/tasks/ProjectDetailDialog';
 import { CheckCircle2, Circle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { MobileTasksNav } from '@/components/tasks/MobileTasksNav';
@@ -32,6 +33,8 @@ const Tasks: React.FC = () => {
   const [todayTasks, setTodayTasks] = useState<Task[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([]);
   const [mobileTab, setMobileTab] = useState<'board' | 'projects'>('board');
+  const [projectDetailOpen, setProjectDetailOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
   // Load data
   const loadData = useCallback(async () => {
@@ -156,6 +159,15 @@ const Tasks: React.FC = () => {
     }
   };
 
+  const handleOpenProject = (project: Project) => {
+    setSelectedProject(project);
+    setProjectDetailOpen(true);
+  };
+
+  const handleSaveProject = (updatedProject: Project) => {
+    setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
       {/* Decorative Elements */}
@@ -184,6 +196,7 @@ const Tasks: React.FC = () => {
               onSelectProject={setSelectedProjectId}
               onDeleteProject={handleDeleteProject}
               onNewProject={() => handleNewTask()}
+              onOpenProject={handleOpenProject}
             />
             <UpcomingWidget
               tasks={upcomingTasks}
@@ -197,7 +210,7 @@ const Tasks: React.FC = () => {
             {/* Mobile Projects Subpage */}
             {mobileTab === 'projects' && (
               <div className="lg:hidden space-y-4 max-w-lg mx-auto">
-                <ProjectsList
+              <ProjectsList
                   projects={projects}
                   tasks={tasks}
                   selectedProjectId={selectedProjectId}
@@ -207,6 +220,7 @@ const Tasks: React.FC = () => {
                   }}
                   onDeleteProject={handleDeleteProject}
                   onNewProject={() => handleNewTask()}
+                  onOpenProject={handleOpenProject}
                 />
                 <UpcomingWidget
                   tasks={upcomingTasks}
@@ -315,6 +329,18 @@ const Tasks: React.FC = () => {
         projects={projects}
         onCreateProject={handleCreateProject}
         defaultStatus={defaultStatus}
+      />
+
+      <ProjectDetailDialog
+        isOpen={projectDetailOpen}
+        onClose={() => setProjectDetailOpen(false)}
+        project={selectedProject}
+        tasks={tasks}
+        onSaveProject={handleSaveProject}
+        onDeleteProject={handleDeleteProject}
+        onEditTask={handleEditTask}
+        onDeleteTask={handleDeleteTask}
+        onSubtaskToggle={handleSubtaskToggle}
       />
     </div>
   );
