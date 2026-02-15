@@ -40,6 +40,8 @@ interface ProjectDetailDialogProps {
   onEditTask: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
   onSubtaskToggle: (taskId: string, subtaskId: string) => void;
+  isCreating?: boolean;
+  onCreateProject?: (project: Project) => void;
 }
 
 export const ProjectDetailDialog: React.FC<ProjectDetailDialogProps> = ({
@@ -52,6 +54,8 @@ export const ProjectDetailDialog: React.FC<ProjectDetailDialogProps> = ({
   onEditTask,
   onDeleteTask,
   onSubtaskToggle,
+  isCreating = false,
+  onCreateProject,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState('');
@@ -69,7 +73,14 @@ export const ProjectDetailDialog: React.FC<ProjectDetailDialogProps> = ({
   const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   useEffect(() => {
-    if (project) {
+    if (isCreating) {
+      setName('');
+      setDescription('');
+      setColor('#6366f1');
+      setStartDate('');
+      setEndDate('');
+      setIsEditing(true);
+    } else if (project) {
       setName(project.name);
       setDescription(project.description || '');
       setColor(project.color);
@@ -77,10 +88,25 @@ export const ProjectDetailDialog: React.FC<ProjectDetailDialogProps> = ({
       setEndDate(project.endDate?.split('T')[0] || '');
       setIsEditing(false);
     }
-  }, [project, isOpen]);
+  }, [project, isOpen, isCreating]);
 
   const handleSave = async () => {
-    if (!project || !name.trim()) return;
+    if (!name.trim()) return;
+    if (isCreating) {
+      const { createProject } = await import('@/lib/tasks-db');
+      const newProject = await createProject({
+        name: name.trim(),
+        description: description.trim(),
+        color,
+        startDate: startDate ? new Date(startDate).toISOString() : undefined,
+        endDate: endDate ? new Date(endDate).toISOString() : undefined,
+      });
+      onCreateProject?.(newProject);
+      toast.success('Project created');
+      onClose();
+      return;
+    }
+    if (!project) return;
     const updated: Project = {
       ...project,
       name: name.trim(),
@@ -101,7 +127,7 @@ export const ProjectDetailDialog: React.FC<ProjectDetailDialogProps> = ({
     onClose();
   };
 
-  if (!project) return null;
+  if (!project && !isCreating) return null;
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -130,6 +156,9 @@ export const ProjectDetailDialog: React.FC<ProjectDetailDialogProps> = ({
 
         <div className="p-6 space-y-6">
           <DialogHeader className="space-y-1">
+            {isCreating && (
+              <DialogTitle className="font-display text-xl">New Project</DialogTitle>
+            )}
             {isEditing ? (
               <div className="space-y-3">
                 <Input
@@ -192,7 +221,7 @@ export const ProjectDetailDialog: React.FC<ProjectDetailDialogProps> = ({
                   </Button>
                 </div>
               </div>
-            ) : (
+            ) : project ? (
               <div>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
@@ -236,11 +265,11 @@ export const ProjectDetailDialog: React.FC<ProjectDetailDialogProps> = ({
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
           </DialogHeader>
 
           {/* Progress overview */}
-          {!isEditing && (
+          {!isEditing && project && (
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Progress</span>
@@ -265,7 +294,7 @@ export const ProjectDetailDialog: React.FC<ProjectDetailDialogProps> = ({
           )}
 
           {/* Task list */}
-          {!isEditing && (
+          {!isEditing && project && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-semibold flex items-center gap-1.5">
@@ -337,7 +366,7 @@ export const ProjectDetailDialog: React.FC<ProjectDetailDialogProps> = ({
           )}
 
           {/* Meta info */}
-          {!isEditing && (
+          {!isEditing && project && (
             <div className="pt-2 border-t border-border/50 text-xs text-muted-foreground">
               Created {format(new Date(project.createdAt), 'MMM d, yyyy')}
             </div>

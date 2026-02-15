@@ -35,6 +35,7 @@ const Tasks: React.FC = () => {
   const [mobileTab, setMobileTab] = useState<'board' | 'projects'>('board');
   const [projectDetailOpen, setProjectDetailOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
 
   // Load data
   const loadData = useCallback(async () => {
@@ -141,8 +142,9 @@ const Tasks: React.FC = () => {
     }
   };
 
-  const handleCreateProject = (project: Project) => {
+  const handleCreateProject = async (project: Project) => {
     setProjects(prev => [...prev, project]);
+    await loadData();
   };
 
   const handleDeleteProject = async (projectId: string) => {
@@ -161,6 +163,13 @@ const Tasks: React.FC = () => {
 
   const handleOpenProject = (project: Project) => {
     setSelectedProject(project);
+    setIsCreatingProject(false);
+    setProjectDetailOpen(true);
+  };
+
+  const handleNewProject = () => {
+    setSelectedProject(null);
+    setIsCreatingProject(true);
     setProjectDetailOpen(true);
   };
 
@@ -195,11 +204,7 @@ const Tasks: React.FC = () => {
               selectedProjectId={selectedProjectId}
               onSelectProject={setSelectedProjectId}
               onDeleteProject={handleDeleteProject}
-              onNewProject={() => {
-                setEditingTask(null);
-                setDefaultStatus('todo');
-                setTaskDialogOpen(true);
-              }}
+              onNewProject={handleNewProject}
               onOpenProject={handleOpenProject}
             />
             <UpcomingWidget
@@ -223,7 +228,7 @@ const Tasks: React.FC = () => {
                     setMobileTab('board');
                   }}
                   onDeleteProject={handleDeleteProject}
-                  onNewProject={() => handleNewTask()}
+                  onNewProject={handleNewProject}
                   onOpenProject={handleOpenProject}
                 />
                 <UpcomingWidget
@@ -337,7 +342,7 @@ const Tasks: React.FC = () => {
 
       <ProjectDetailDialog
         isOpen={projectDetailOpen}
-        onClose={() => setProjectDetailOpen(false)}
+        onClose={() => { setProjectDetailOpen(false); setIsCreatingProject(false); }}
         project={selectedProject}
         tasks={tasks}
         onSaveProject={handleSaveProject}
@@ -345,6 +350,8 @@ const Tasks: React.FC = () => {
         onEditTask={handleEditTask}
         onDeleteTask={handleDeleteTask}
         onSubtaskToggle={handleSubtaskToggle}
+        isCreating={isCreatingProject}
+        onCreateProject={handleCreateProject}
       />
     </div>
   );
