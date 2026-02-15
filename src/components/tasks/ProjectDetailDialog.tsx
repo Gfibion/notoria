@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Project, Task, PROJECT_COLORS, saveProject, Subtask } from '@/lib/tasks-db';
+import { Project, Task, PROJECT_COLORS, saveProject, Subtask, ProjectModule, generateId } from '@/lib/tasks-db';
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,9 @@ import {
   Clock,
   Edit3,
   Flag,
+  Layers,
   ListTodo,
+  Plus,
   Save,
   Target,
   Trash2,
@@ -63,6 +65,10 @@ export const ProjectDetailDialog: React.FC<ProjectDetailDialogProps> = ({
   const [color, setColor] = useState('#6366f1');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [modules, setModules] = useState<ProjectModule[]>([]);
+  const [newModuleName, setNewModuleName] = useState('');
+  const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
+  const [editingModuleDesc, setEditingModuleDesc] = useState('');
 
   const projectTasks = tasks.filter(t => t.projectId === project?.id);
   const todoTasks = projectTasks.filter(t => t.status === 'todo');
@@ -79,6 +85,7 @@ export const ProjectDetailDialog: React.FC<ProjectDetailDialogProps> = ({
       setColor('#6366f1');
       setStartDate('');
       setEndDate('');
+      setModules([]);
       setIsEditing(true);
     } else if (project) {
       setName(project.name);
@@ -86,8 +93,11 @@ export const ProjectDetailDialog: React.FC<ProjectDetailDialogProps> = ({
       setColor(project.color);
       setStartDate(project.startDate?.split('T')[0] || '');
       setEndDate(project.endDate?.split('T')[0] || '');
+      setModules(project.modules || []);
       setIsEditing(false);
     }
+    setNewModuleName('');
+    setEditingModuleId(null);
   }, [project, isOpen, isCreating]);
 
   const handleSave = async () => {
@@ -98,6 +108,7 @@ export const ProjectDetailDialog: React.FC<ProjectDetailDialogProps> = ({
         name: name.trim(),
         description: description.trim(),
         color,
+        modules,
         startDate: startDate ? new Date(startDate).toISOString() : undefined,
         endDate: endDate ? new Date(endDate).toISOString() : undefined,
       });
@@ -112,6 +123,7 @@ export const ProjectDetailDialog: React.FC<ProjectDetailDialogProps> = ({
       name: name.trim(),
       description: description.trim(),
       color,
+      modules,
       startDate: startDate ? new Date(startDate).toISOString() : undefined,
       endDate: endDate ? new Date(endDate).toISOString() : undefined,
     };
@@ -144,6 +156,73 @@ export const ProjectDetailDialog: React.FC<ProjectDetailDialogProps> = ({
       default: return 'bg-secondary text-muted-foreground';
     }
   };
+
+  const getModuleStatusBadge = (status: ProjectModule['status']) => {
+    switch (status) {
+      case 'completed': return 'bg-emerald-500/15 text-emerald-600';
+      case 'in-progress': return 'bg-amber-500/15 text-amber-600';
+      default: return 'bg-secondary text-muted-foreground';
+    }
+  };
+
+  const handleAddModule = () => {
+    if (!newModuleName.trim()) return;
+    const newModule: ProjectModule = {
+      id: generateId(),
+      name: newModuleName.trim(),
+      status: 'planned',
+    };
+    const updated = [...modules, newModule];
+    setModules(updated);
+    setNewModuleName('');
+    // Auto-save for existing projects
+    if (project && !isCreating) {
+      const updatedProject = { ...project, modules: updated };
+      saveProject(updatedProject);
+      onSaveProject(updatedProject);
+    }
+  };
+
+  const handleDeleteModule = (moduleId: string) => {
+    const updated = modules.filter(m => m.id !== moduleId);
+    setModules(updated);
+    if (project && !isCreating) {
+      const updatedProject = { ...project, modules: updated };
+      saveProject(updatedProject);
+      onSaveProject(updatedProject);
+    }
+  };
+
+  const handleModuleStatusChange = (moduleId: string) => {
+    const statusOrder: ProjectModule['status'][] = ['planned', 'in-progress', 'completed'];
+    const updated = modules.map(m => {
+      if (m.id !== moduleId) return m;
+      const nextIdx = (statusOrder.indexOf(m.status) + 1) % statusOrder.length;
+      return { ...m, status: statusOrder[nextIdx] };
+    });
+    setModules(updated);
+    if (project && !isCreating) {
+      const updatedProject = { ...project, modules: updated };
+      saveProject(updatedProject);
+      onSaveProject(updatedProject);
+    }
+  };
+
+  const handleSaveModuleDesc = (moduleId: string) => {
+    const updated = modules.map(m =>
+      m.id === moduleId ? { ...m, description: editingModuleDesc.trim() || undefined } : m
+    );
+    setModules(updated);
+    setEditingModuleId(null);
+    if (project && !isCreating) {
+      const updatedProject = { ...project, modules: updated };
+      saveProject(updatedProject);
+      onSaveProject(updatedProject);
+    }
+  };
+
+  const modulesCompleted = modules.filter(m => m.status === 'completed').length;
+  const modulesProgress = modules.length > 0 ? Math.round((modulesCompleted / modules.length) * 100) : 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -289,6 +368,127 @@ export const ProjectDetailDialog: React.FC<ProjectDetailDialogProps> = ({
                   <p className="text-lg font-bold text-emerald-600">{doneTasks.length}</p>
                   <p className="text-xs text-muted-foreground">Done</p>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modules section */}
+          {(project || isCreating) && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold flex items-center gap-1.5">
+                  <Layers className="w-4 h-4" />
+                  Modules ({modules.length})
+                </h4>
+                {modules.length > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    {modulesCompleted}/{modules.length} completed
+                  </span>
+                )}
+              </div>
+
+              {modules.length > 0 && (
+                <Progress value={modulesProgress} className="h-1.5" />
+              )}
+
+              <div className="space-y-1.5">
+                <AnimatePresence>
+                  {modules.map((mod) => (
+                    <motion.div
+                      key={mod.id}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="group rounded-lg border border-border/50 bg-secondary/20 p-3 space-y-1.5"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <button
+                          onClick={() => handleModuleStatusChange(mod.id)}
+                          className="flex-shrink-0"
+                          title="Cycle status: planned → in-progress → completed"
+                        >
+                          {mod.status === 'completed' ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          ) : mod.status === 'in-progress' ? (
+                            <Clock className="w-4 h-4 text-amber-500" />
+                          ) : (
+                            <Circle className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </button>
+                        <span className={cn(
+                          "text-sm font-medium flex-1",
+                          mod.status === 'completed' && "line-through text-muted-foreground"
+                        )}>
+                          {mod.name}
+                        </span>
+                        <span className={cn(
+                          "text-[10px] px-1.5 py-0.5 rounded-full font-medium capitalize",
+                          getModuleStatusBadge(mod.status)
+                        )}>
+                          {mod.status.replace('-', ' ')}
+                        </span>
+                        <button
+                          onClick={() => {
+                            if (editingModuleId === mod.id) {
+                              setEditingModuleId(null);
+                            } else {
+                              setEditingModuleId(mod.id);
+                              setEditingModuleDesc(mod.description || '');
+                            }
+                          }}
+                          className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-secondary text-muted-foreground transition-all"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteModule(mod.id)}
+                          className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-destructive/10 text-destructive transition-all"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                      {mod.description && editingModuleId !== mod.id && (
+                        <p className="text-xs text-muted-foreground pl-7">{mod.description}</p>
+                      )}
+                      {editingModuleId === mod.id && (
+                        <div className="pl-7 flex gap-2">
+                          <Input
+                            value={editingModuleDesc}
+                            onChange={(e) => setEditingModuleDesc(e.target.value)}
+                            placeholder="Module description..."
+                            className="text-xs h-8"
+                            autoFocus
+                            onKeyDown={(e) => e.key === 'Enter' && handleSaveModuleDesc(mod.id)}
+                          />
+                          <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => handleSaveModuleDesc(mod.id)}>
+                            <Save className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+
+              {/* Add module input */}
+              <div className="flex gap-2">
+                <Input
+                  value={newModuleName}
+                  onChange={(e) => setNewModuleName(e.target.value)}
+                  placeholder="Add a module..."
+                  className="text-sm h-9"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddModule()}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 px-3"
+                  onClick={handleAddModule}
+                  disabled={!newModuleName.trim()}
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  Add
+                </Button>
               </div>
             </div>
           )}
