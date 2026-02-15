@@ -1,6 +1,6 @@
 import React from 'react';
 import { Project, Task } from '@/lib/tasks-db';
-import { Folder, Plus, Trash2, Calendar, CalendarClock, Target } from 'lucide-react';
+import { Folder, Layers, Plus, Trash2, Calendar, CalendarClock, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Progress } from '@/components/ui/progress';
@@ -141,6 +141,16 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
                           {format(new Date(project.endDate), 'MMM d')}
                         </span>
                       )}
+                    </div>
+                  )}
+
+                  {/* Modules indicator */}
+                  {project.modules && project.modules.length > 0 && (
+                    <div className="flex items-center gap-1.5 pl-5 text-[10px] text-muted-foreground">
+                      <Layers className="w-3 h-3" />
+                      <span>
+                        {project.modules.filter(m => m.status === 'completed').length}/{project.modules.length} modules
+                      </span>
                     </div>
                   )}
 

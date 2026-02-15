@@ -21,6 +21,13 @@ export interface Task {
   order: number;
 }
 
+export interface ProjectModule {
+  id: string;
+  name: string;
+  description?: string;
+  status: 'planned' | 'in-progress' | 'completed';
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -29,6 +36,7 @@ export interface Project {
   icon: string;
   startDate?: string;
   endDate?: string;
+  modules?: ProjectModule[];
   createdAt: string;
 }
 
@@ -185,6 +193,7 @@ export const createProject = async (projectData: Partial<Project>): Promise<Proj
       icon: projectData.icon || 'folder',
       startDate: projectData.startDate,
       endDate: projectData.endDate,
+      modules: projectData.modules || [],
       createdAt: new Date().toISOString(),
     };
     
