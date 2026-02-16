@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Check, Sun, Moon, Palette, Type } from 'lucide-react';
+import { X, Check, Sun, Moon, Palette, Type, Monitor, Smartphone, MonitorSmartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getSettings, saveSettings, AppSettings } from '@/lib/db';
 import { useTheme } from 'next-themes';
@@ -36,6 +36,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     theme: 'default',
     fontFamily: 'cambria',
     fontSize: 'medium',
+    uiLayout: 'auto',
   });
   const { setTheme } = useTheme();
 
@@ -182,6 +183,43 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     <p className="text-xs text-muted-foreground">{size.description}</p>
                   </div>
                   {settings.fontSize === size.id && (
+                    <Check className="w-4 h-4 text-primary" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* UI Layout Section */}
+          <div>
+            <h3 className="text-sm font-medium text-foreground mb-3">UI Layout</h3>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { id: 'auto' as const, name: 'Auto', icon: MonitorSmartphone, description: 'Detect screen' },
+                { id: 'desktop' as const, name: 'Desktop', icon: Monitor, description: 'Desktop view' },
+                { id: 'mobile' as const, name: 'Mobile', icon: Smartphone, description: 'Mobile view' },
+              ]).map((layout) => (
+                <button
+                  key={layout.id}
+                  onClick={async () => {
+                    const newSettings = { ...settings, uiLayout: layout.id };
+                    setSettings(newSettings);
+                    await saveSettings(newSettings);
+                    window.dispatchEvent(new Event('layout-setting-changed'));
+                  }}
+                  className={cn(
+                    'flex flex-col items-center gap-2 p-3 rounded-lg border transition-colors',
+                    settings.uiLayout === layout.id
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:bg-muted/50'
+                  )}
+                >
+                  <layout.icon className="w-5 h-5 text-muted-foreground" />
+                  <div className="text-center">
+                    <p className="font-medium text-foreground text-sm">{layout.name}</p>
+                    <p className="text-xs text-muted-foreground">{layout.description}</p>
+                  </div>
+                  {settings.uiLayout === layout.id && (
                     <Check className="w-4 h-4 text-primary" />
                   )}
                 </button>
