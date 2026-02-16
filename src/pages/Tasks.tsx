@@ -88,8 +88,21 @@ const Tasks: React.FC = () => {
   const handleSaveTask = async (taskData: Partial<Task>) => {
     try {
       if (editingTask) {
-        await saveTask({ ...editingTask, ...taskData } as Task);
-        toast.success('Task updated');
+        // If recurring task status changed to done via dialog
+        if (taskData.status === 'done' && editingTask.isRecurring && !editingTask.isCompleted && taskData.isRecurring) {
+          const updatedTask = {
+            ...editingTask,
+            ...taskData,
+            status: 'todo' as Task['status'],
+            completedCycles: (editingTask.completedCycles || 0) + 1,
+            subtasks: taskData.subtasks?.map(s => ({ ...s, completed: false })),
+          };
+          await saveTask(updatedTask as Task);
+          toast.success(`Recurring task cycle #${updatedTask.completedCycles} completed — restarted`);
+        } else {
+          await saveTask({ ...editingTask, ...taskData } as Task);
+          toast.success('Task updated');
+        }
       } else {
         await createTask(taskData);
         toast.success('Task created');
@@ -117,8 +130,21 @@ const Tasks: React.FC = () => {
     try {
       const task = tasks.find(t => t.id === taskId);
       if (task && task.status !== newStatus) {
-        await saveTask({ ...task, status: newStatus });
-        toast.success(`Moved to ${newStatus.replace('-', ' ')}`);
+        // Recurring task logic: when moved to done, restart the cycle
+        if (newStatus === 'done' && task.isRecurring && !task.isCompleted) {
+          const updatedTask = {
+            ...task,
+            status: 'todo' as Task['status'],
+            completedCycles: (task.completedCycles || 0) + 1,
+            // Reset subtasks for the new cycle
+            subtasks: task.subtasks?.map(s => ({ ...s, completed: false })),
+          };
+          await saveTask(updatedTask);
+          toast.success(`Recurring task cycle #${updatedTask.completedCycles} completed — restarted`);
+        } else {
+          await saveTask({ ...task, status: newStatus });
+          toast.success(`Moved to ${newStatus.replace('-', ' ')}`);
+        }
         await loadData();
       }
     } catch (error) {
@@ -139,6 +165,20 @@ const Tasks: React.FC = () => {
       }
     } catch (error) {
       console.error('Error toggling subtask:', error);
+    }
+  };
+
+  const handleCompleteRecurring = async (taskId: string) => {
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (task && task.isRecurring) {
+        await saveTask({ ...task, isCompleted: true, status: 'done' });
+        toast.success(`Recurring task completed after ${task.completedCycles || 0} cycle(s)`);
+        await loadData();
+      }
+    } catch (error) {
+      console.error('Error completing recurring task:', error);
+      toast.error('Failed to complete task');
     }
   };
 
@@ -253,6 +293,7 @@ const Tasks: React.FC = () => {
                     onDeleteTask={handleDeleteTask}
                     onDropTask={handleDropTask}
                     onSubtaskToggle={handleSubtaskToggle}
+                    onCompleteRecurring={handleCompleteRecurring}
                     gradient="bg-gradient-to-br from-slate-600 to-slate-700"
                     icon={<Circle className="w-5 h-5 text-white" />}
                   />
@@ -266,6 +307,7 @@ const Tasks: React.FC = () => {
                     onDeleteTask={handleDeleteTask}
                     onDropTask={handleDropTask}
                     onSubtaskToggle={handleSubtaskToggle}
+                    onCompleteRecurring={handleCompleteRecurring}
                     gradient="bg-gradient-to-br from-amber-500 to-orange-600"
                     icon={<Clock className="w-5 h-5 text-white" />}
                   />
@@ -279,6 +321,7 @@ const Tasks: React.FC = () => {
                     onDeleteTask={handleDeleteTask}
                     onDropTask={handleDropTask}
                     onSubtaskToggle={handleSubtaskToggle}
+                    onCompleteRecurring={handleCompleteRecurring}
                     gradient="bg-gradient-to-br from-emerald-500 to-teal-600"
                     icon={<CheckCircle2 className="w-5 h-5 text-white" />}
                   />

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Task, Project } from '@/lib/tasks-db';
-import { Calendar, Clock, Flag, GripVertical, Pencil, Trash2, CheckCircle2, Circle } from 'lucide-react';
+import { Calendar, Clock, Flag, GripVertical, Pencil, Trash2, CheckCircle2, Circle, Repeat, SquareCheckBig } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isPast, isToday, isTomorrow, isValid, parse } from 'date-fns';
 
@@ -10,6 +10,7 @@ interface TaskCardProps {
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
   onSubtaskToggle?: (taskId: string, subtaskId: string) => void;
+  onCompleteRecurring?: (taskId: string) => void;
 }
 
 const priorityConfig: Record<string, { color: string; icon: string }> = {
@@ -26,6 +27,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   onEdit,
   onDelete,
   onSubtaskToggle,
+  onCompleteRecurring,
 }) => {
   const formatDueDate = (dateStr: string) => {
     try {
@@ -80,6 +82,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
       {/* Actions */}
       <div className="absolute right-2 top-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+        {task.isRecurring && !task.isCompleted && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onCompleteRecurring?.(task.id); }}
+            className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 transition-colors"
+            title="Complete recurring task (stop cycles)"
+          >
+            <SquareCheckBig className="w-3.5 h-3.5" />
+          </button>
+        )}
         <button
           onClick={(e) => { e.stopPropagation(); onEdit(task); }}
           className="p-1.5 rounded-lg bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
@@ -194,6 +205,22 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               style={{ backgroundColor: `${project.color}20`, color: project.color }}
             >
               {project.name}
+            </span>
+          )}
+
+          {/* Recurring */}
+          {task.isRecurring && (
+            <span className={cn(
+              "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium",
+              task.isCompleted
+                ? "bg-muted text-muted-foreground"
+                : "bg-primary/15 text-primary"
+            )}>
+              <Repeat className="w-2.5 h-2.5" />
+              {task.isCompleted ? 'Completed' : 'Recurring'}
+              {(task.completedCycles || 0) > 0 && (
+                <span className="ml-0.5 font-bold">#{task.completedCycles}</span>
+              )}
             </span>
           )}
         </div>

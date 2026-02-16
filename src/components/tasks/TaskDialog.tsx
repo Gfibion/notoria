@@ -17,7 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar, Clock, Flag, Folder, Plus, X, ListTodo, CheckCircle2, Circle, Trash2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Calendar, Clock, Flag, Folder, Plus, X, ListTodo, CheckCircle2, Circle, Trash2, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -49,6 +50,7 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
   const [projectId, setProjectId] = useState<string>('');
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
   const [newSubtask, setNewSubtask] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectColor, setNewProjectColor] = useState(PROJECT_COLORS[0]);
@@ -63,6 +65,7 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
       setReminder(task.reminder || '');
       setProjectId(task.projectId || '');
       setSubtasks(task.subtasks || []);
+      setIsRecurring(task.isRecurring || false);
     } else {
       setTitle('');
       setDescription('');
@@ -72,6 +75,7 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
       setReminder('');
       setProjectId('');
       setSubtasks([]);
+      setIsRecurring(false);
     }
     setNewSubtask('');
   }, [task, defaultStatus, isOpen]);
@@ -90,6 +94,7 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
       reminder: reminder || undefined,
       projectId: projectId || undefined,
       subtasks: subtasks.length > 0 ? subtasks : undefined,
+      isRecurring,
     });
     // Note: Dialog closing is handled by the parent component after save completes
   };
@@ -301,6 +306,33 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
           </div>
 
           {/* Project */}
+          <div className="space-y-2">
+
+            {/* Recurring Toggle */}
+            <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-secondary/30">
+              <Label className="flex items-center gap-2 cursor-pointer">
+                <Repeat className="w-4 h-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">Recurring Task</p>
+                  <p className="text-xs text-muted-foreground">Restarts when marked done</p>
+                </div>
+              </Label>
+              <Switch
+                checked={isRecurring}
+                onCheckedChange={setIsRecurring}
+              />
+            </div>
+
+            {task?.isRecurring && (task?.completedCycles || 0) > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
+                <Repeat className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-medium text-primary">
+                  {task.completedCycles} cycle{task.completedCycles !== 1 ? 's' : ''} completed
+                </span>
+              </div>
+            )}
+          </div>
+
           <div className="space-y-2">
             <Label className="flex items-center gap-1.5">
               <Folder className="w-3.5 h-3.5" />
