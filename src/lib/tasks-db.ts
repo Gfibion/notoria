@@ -16,6 +16,9 @@ export interface Task {
   reminder?: string;
   projectId?: string;
   subtasks?: Subtask[];
+  isRecurring?: boolean;
+  completedCycles?: number;
+  isCompleted?: boolean; // true = permanently done (stops recurring)
   createdAt: string;
   updatedAt: string;
   order: number;
@@ -139,6 +142,9 @@ export const createTask = async (taskData: Partial<Task>): Promise<Task> => {
       reminder: taskData.reminder,
       projectId: taskData.projectId,
       subtasks: taskData.subtasks,
+      isRecurring: taskData.isRecurring || false,
+      completedCycles: taskData.completedCycles || 0,
+      isCompleted: taskData.isCompleted || false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       order: maxOrder + 1,

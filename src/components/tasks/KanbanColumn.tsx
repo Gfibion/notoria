@@ -15,6 +15,7 @@ interface KanbanColumnProps {
   onDeleteTask: (taskId: string) => void;
   onDropTask: (taskId: string, newStatus: Task['status']) => void;
   onSubtaskToggle?: (taskId: string, subtaskId: string) => void;
+  onCompleteRecurring?: (taskId: string) => void;
   gradient: string;
   icon: React.ReactNode;
 }
@@ -29,6 +30,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   onDeleteTask,
   onDropTask,
   onSubtaskToggle,
+  onCompleteRecurring,
   gradient,
   icon,
 }) => {
@@ -166,6 +168,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
                   onEdit={onEditTask}
                   onDelete={onDeleteTask}
                   onSubtaskToggle={onSubtaskToggle}
+                  onCompleteRecurring={onCompleteRecurring}
                 />
               </div>
             </React.Fragment>
