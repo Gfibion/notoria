@@ -37,6 +37,7 @@ export interface AppSettings {
   theme: 'default' | 'dark' | 'purple-gradient';
   fontFamily: 'cambria' | 'times' | 'calibri' | 'georgia';
   fontSize: 'small' | 'medium' | 'large' | 'xlarge';
+  uiLayout: 'auto' | 'desktop' | 'mobile';
 }
 
 interface NotoriaDB extends DBSchema {
@@ -276,6 +277,7 @@ export async function getSettings(): Promise<AppSettings> {
     theme: 'default',
     fontFamily: 'cambria',
     fontSize: 'medium',
+    uiLayout: 'auto',
   };
 }
 
