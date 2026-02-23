@@ -10,6 +10,7 @@ import {
   deleteProject,
   getTasksDueToday,
   getUpcomingTasks,
+  advanceDueDate,
 } from '@/lib/tasks-db';
 import { TasksHeader } from '@/components/tasks/TasksHeader';
 import { KanbanColumn } from '@/components/tasks/KanbanColumn';
@@ -90,12 +91,14 @@ const Tasks: React.FC = () => {
       if (editingTask) {
         // If recurring task status changed to done via dialog
         if (taskData.status === 'done' && editingTask.isRecurring && !editingTask.isCompleted && taskData.isRecurring) {
+          const freq = taskData.recurringFrequency || editingTask.recurringFrequency;
           const updatedTask = {
             ...editingTask,
             ...taskData,
             status: 'todo' as Task['status'],
             completedCycles: (editingTask.completedCycles || 0) + 1,
             subtasks: taskData.subtasks?.map(s => ({ ...s, completed: false })),
+            dueDate: freq ? advanceDueDate(taskData.dueDate || editingTask.dueDate, freq) : (taskData.dueDate || editingTask.dueDate),
           };
           await saveTask(updatedTask as Task);
           toast.success(`Recurring task cycle #${updatedTask.completedCycles} completed — restarted`);
@@ -136,8 +139,8 @@ const Tasks: React.FC = () => {
             ...task,
             status: 'todo' as Task['status'],
             completedCycles: (task.completedCycles || 0) + 1,
-            // Reset subtasks for the new cycle
             subtasks: task.subtasks?.map(s => ({ ...s, completed: false })),
+            dueDate: task.recurringFrequency ? advanceDueDate(task.dueDate, task.recurringFrequency) : task.dueDate,
           };
           await saveTask(updatedTask);
           toast.success(`Recurring task cycle #${updatedTask.completedCycles} completed — restarted`);

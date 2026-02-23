@@ -217,7 +217,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 : "bg-primary/15 text-primary"
             )}>
               <Repeat className="w-2.5 h-2.5" />
-              {task.isCompleted ? 'Completed' : 'Recurring'}
+              {task.isCompleted ? 'Completed' : task.recurringFrequency ? task.recurringFrequency.charAt(0).toUpperCase() + task.recurringFrequency.slice(1) : 'Recurring'}
               {(task.completedCycles || 0) > 0 && (
                 <span className="ml-0.5 font-bold">#{task.completedCycles}</span>
               )}
