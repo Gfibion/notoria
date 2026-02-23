@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Task, Project, PROJECT_COLORS, createProject, Subtask, generateId } from '@/lib/tasks-db';
+import { Task, Project, PROJECT_COLORS, createProject, Subtask, generateId, RecurringFrequency } from '@/lib/tasks-db';
 import {
   Dialog,
   DialogContent,
@@ -51,6 +51,7 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
   const [newSubtask, setNewSubtask] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringFrequency, setRecurringFrequency] = useState<RecurringFrequency>('daily');
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectColor, setNewProjectColor] = useState(PROJECT_COLORS[0]);
@@ -66,6 +67,7 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
       setProjectId(task.projectId || '');
       setSubtasks(task.subtasks || []);
       setIsRecurring(task.isRecurring || false);
+      setRecurringFrequency(task.recurringFrequency || 'daily');
     } else {
       setTitle('');
       setDescription('');
@@ -76,6 +78,7 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
       setProjectId('');
       setSubtasks([]);
       setIsRecurring(false);
+      setRecurringFrequency('daily');
     }
     setNewSubtask('');
   }, [task, defaultStatus, isOpen]);
@@ -95,6 +98,7 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
       projectId: projectId || undefined,
       subtasks: subtasks.length > 0 ? subtasks : undefined,
       isRecurring,
+      recurringFrequency: isRecurring ? recurringFrequency : undefined,
     });
     // Note: Dialog closing is handled by the parent component after save completes
   };
@@ -322,6 +326,26 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
                 onCheckedChange={setIsRecurring}
               />
             </div>
+
+            {isRecurring && (
+              <div className="flex gap-1">
+                {(['daily', 'weekly', 'monthly'] as RecurringFrequency[]).map((freq) => (
+                  <button
+                    key={freq}
+                    type="button"
+                    onClick={() => setRecurringFrequency(freq)}
+                    className={cn(
+                      "flex-1 py-2 px-3 rounded-lg text-xs font-medium capitalize transition-all",
+                      recurringFrequency === freq
+                        ? "bg-primary text-primary-foreground shadow-md"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                    )}
+                  >
+                    {freq}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {task?.isRecurring && (task?.completedCycles || 0) > 0 && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">

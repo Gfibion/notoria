@@ -6,6 +6,8 @@ export interface Subtask {
   completed: boolean;
 }
 
+export type RecurringFrequency = 'daily' | 'weekly' | 'monthly';
+
 export interface Task {
   id: string;
   title: string;
@@ -17,6 +19,7 @@ export interface Task {
   projectId?: string;
   subtasks?: Subtask[];
   isRecurring?: boolean;
+  recurringFrequency?: RecurringFrequency;
   completedCycles?: number;
   isCompleted?: boolean; // true = permanently done (stops recurring)
   createdAt: string;
@@ -143,6 +146,7 @@ export const createTask = async (taskData: Partial<Task>): Promise<Task> => {
       projectId: taskData.projectId,
       subtasks: taskData.subtasks,
       isRecurring: taskData.isRecurring || false,
+      recurringFrequency: taskData.recurringFrequency,
       completedCycles: taskData.completedCycles || 0,
       isCompleted: taskData.isCompleted || false,
       createdAt: new Date().toISOString(),
@@ -247,3 +251,15 @@ export const PROJECT_COLORS = [
   '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', 
   '#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#64748b'
 ];
+
+export const advanceDueDate = (dueDate: string | undefined, frequency: RecurringFrequency): string | undefined => {
+  if (!dueDate) return undefined;
+  const date = new Date(dueDate);
+  if (isNaN(date.getTime())) return undefined;
+  switch (frequency) {
+    case 'daily': date.setDate(date.getDate() + 1); break;
+    case 'weekly': date.setDate(date.getDate() + 7); break;
+    case 'monthly': date.setMonth(date.getMonth() + 1); break;
+  }
+  return date.toISOString();
+};
