@@ -16,9 +16,9 @@ export function useNotes(workspaceId?: string, starredOnly?: boolean) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadNotes = useCallback(async () => {
+  const loadNotes = useCallback(async (showLoader = false) => {
     try {
-      setLoading(true);
+      if (showLoader) setLoading(true);
       let data: Note[];
       if (starredOnly) {
         data = await getStarredNotes();
@@ -38,7 +38,7 @@ export function useNotes(workspaceId?: string, starredOnly?: boolean) {
   }, [workspaceId, starredOnly]);
 
   useEffect(() => {
-    loadNotes();
+    loadNotes(true);
   }, [loadNotes]);
 
   const createNote = useCallback(
@@ -58,10 +58,11 @@ export function useNotes(workspaceId?: string, starredOnly?: boolean) {
         tags,
       };
       await saveNote(note);
-      await loadNotes();
+      // Optimistic: add to local state
+      setNotes(prev => [note, ...prev]);
       return note;
     },
-    [loadNotes]
+    []
   );
 
   const updateNote = useCallback(
@@ -74,47 +75,75 @@ export function useNotes(workspaceId?: string, starredOnly?: boolean) {
           updatedAt: new Date(),
         };
         await saveNote(updated);
-        await loadNotes();
+        // Optimistic: update in local state
+        setNotes(prev =>
+          prev.map(n => (n.id === id ? updated : n))
+            .sort((a, b) => {
+              if (a.isPinned !== b.isPinned) return b.isPinned ? 1 : -1;
+              return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+            })
+        );
         return updated;
       }
       return null;
     },
-    [loadNotes]
+    []
   );
 
   const removeNote = useCallback(
     async (id: string) => {
       await softDeleteNote(id);
-      await loadNotes();
+      // Optimistic: remove from local state
+      setNotes(prev => prev.filter(n => n.id !== id));
     },
-    [loadNotes]
+    []
   );
 
   const togglePin = useCallback(
     async (id: string) => {
       const existing = await getNote(id);
       if (existing) {
-        await updateNote(id, { isPinned: !existing.isPinned });
+        const updated = { ...existing, isPinned: !existing.isPinned, updatedAt: new Date() };
+        await saveNote(updated);
+        setNotes(prev =>
+          prev.map(n => (n.id === id ? updated : n))
+            .sort((a, b) => {
+              if (a.isPinned !== b.isPinned) return b.isPinned ? 1 : -1;
+              return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+            })
+        );
       }
     },
-    [updateNote]
+    []
   );
 
   const toggleStar = useCallback(
     async (id: string) => {
       const existing = await getNote(id);
       if (existing) {
-        await updateNote(id, { isStarred: !existing.isStarred });
+        const updated = { ...existing, isStarred: !existing.isStarred, updatedAt: new Date() };
+        await saveNote(updated);
+        if (starredOnly && updated.isStarred === false) {
+          // Remove from starred view
+          setNotes(prev => prev.filter(n => n.id !== id));
+        } else {
+          setNotes(prev => prev.map(n => (n.id === id ? updated : n)));
+        }
       }
     },
-    [updateNote]
+    [starredOnly]
   );
 
   const updateNoteColor = useCallback(
     async (id: string, color: string) => {
-      await updateNote(id, { color });
+      const existing = await getNote(id);
+      if (existing) {
+        const updated = { ...existing, color, updatedAt: new Date() };
+        await saveNote(updated);
+        setNotes(prev => prev.map(n => (n.id === id ? updated : n)));
+      }
     },
-    [updateNote]
+    []
   );
 
   const search = useCallback(async (query: string) => {
@@ -135,6 +164,6 @@ export function useNotes(workspaceId?: string, starredOnly?: boolean) {
     toggleStar,
     updateNoteColor,
     search,
-    refresh: loadNotes,
+    refresh: () => loadNotes(false),
   };
 }
