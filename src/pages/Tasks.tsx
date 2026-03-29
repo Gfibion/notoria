@@ -11,6 +11,7 @@ import {
   getTasksDueToday,
   getUpcomingTasks,
   advanceDueDate,
+  generateId,
 } from '@/lib/tasks-db';
 import { TasksHeader } from '@/components/tasks/TasksHeader';
 import { KanbanColumn } from '@/components/tasks/KanbanColumn';
@@ -92,16 +93,41 @@ const Tasks: React.FC = () => {
         // If recurring task status changed to done via dialog
         if (taskData.status === 'done' && editingTask.isRecurring && !editingTask.isCompleted && taskData.isRecurring) {
           const freq = taskData.recurringFrequency || editingTask.recurringFrequency;
+          const newCycleCount = (editingTask.completedCycles || 0) + 1;
+          
+          // Create trail record in done column
+          const trailRecord: Task = {
+            id: generateId(),
+            title: editingTask.title,
+            description: editingTask.description,
+            status: 'done',
+            priority: editingTask.priority,
+            dueDate: editingTask.dueDate,
+            projectId: editingTask.projectId,
+            subtasks: editingTask.subtasks?.map(s => ({ ...s })),
+            isRecurring: true,
+            recurringFrequency: freq,
+            isTrailRecord: true,
+            trailCycleNumber: newCycleCount,
+            parentRecurringTaskId: editingTask.id,
+            trailCompletedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            order: Date.now(),
+          };
+          await saveTask(trailRecord);
+          
+          // Reset original task to todo
           const updatedTask = {
             ...editingTask,
             ...taskData,
             status: 'todo' as Task['status'],
-            completedCycles: (editingTask.completedCycles || 0) + 1,
+            completedCycles: newCycleCount,
             subtasks: taskData.subtasks?.map(s => ({ ...s, completed: false })),
             dueDate: freq ? advanceDueDate(taskData.dueDate || editingTask.dueDate, freq) : (taskData.dueDate || editingTask.dueDate),
           };
           await saveTask(updatedTask as Task);
-          toast.success(`Recurring task cycle #${updatedTask.completedCycles} completed — restarted`);
+          toast.success(`Recurring task cycle #${newCycleCount} completed — restarted`);
         } else {
           await saveTask({ ...editingTask, ...taskData } as Task);
           toast.success('Task updated');
@@ -133,17 +159,42 @@ const Tasks: React.FC = () => {
     try {
       const task = tasks.find(t => t.id === taskId);
       if (task && task.status !== newStatus) {
-        // Recurring task logic: when moved to done, restart the cycle
+        // Recurring task logic: when moved to done, create trail and restart
         if (newStatus === 'done' && task.isRecurring && !task.isCompleted) {
+          const newCycleCount = (task.completedCycles || 0) + 1;
+          
+          // Create trail record in done column
+          const trailRecord: Task = {
+            id: generateId(),
+            title: task.title,
+            description: task.description,
+            status: 'done',
+            priority: task.priority,
+            dueDate: task.dueDate,
+            projectId: task.projectId,
+            subtasks: task.subtasks?.map(s => ({ ...s })),
+            isRecurring: true,
+            recurringFrequency: task.recurringFrequency,
+            isTrailRecord: true,
+            trailCycleNumber: newCycleCount,
+            parentRecurringTaskId: task.id,
+            trailCompletedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            order: Date.now(),
+          };
+          await saveTask(trailRecord);
+          
+          // Reset original task
           const updatedTask = {
             ...task,
             status: 'todo' as Task['status'],
-            completedCycles: (task.completedCycles || 0) + 1,
+            completedCycles: newCycleCount,
             subtasks: task.subtasks?.map(s => ({ ...s, completed: false })),
             dueDate: task.recurringFrequency ? advanceDueDate(task.dueDate, task.recurringFrequency) : task.dueDate,
           };
           await saveTask(updatedTask);
-          toast.success(`Recurring task cycle #${updatedTask.completedCycles} completed — restarted`);
+          toast.success(`Recurring task cycle #${newCycleCount} completed — restarted`);
         } else {
           await saveTask({ ...task, status: newStatus });
           toast.success(`Moved to ${newStatus.replace('-', ' ')}`);

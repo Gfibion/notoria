@@ -1,6 +1,6 @@
 import React from 'react';
 import { Task, Project } from '@/lib/tasks-db';
-import { Calendar, Clock, Flag, GripVertical, Pencil, Trash2, CheckCircle2, Circle, Repeat, SquareCheckBig } from 'lucide-react';
+import { Calendar, Clock, Flag, GripVertical, Pencil, Trash2, CheckCircle2, Circle, Repeat, SquareCheckBig, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isPast, isToday, isTomorrow, isValid, parse } from 'date-fns';
 
@@ -61,6 +61,63 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const subtaskProgress = totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0;
 
   const priorityStyle = priorityConfig[task.priority] || defaultPriorityStyle;
+
+  // Trail record - simplified done card
+  if (task.isTrailRecord) {
+    return (
+      <div
+        className={cn(
+          "relative rounded-xl border bg-card/50 p-4 opacity-70",
+          "border-dashed"
+        )}
+        style={{
+          borderLeftWidth: '4px',
+          borderLeftColor: project?.color || 'hsl(var(--border))',
+        }}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <History className="w-3.5 h-3.5 text-muted-foreground" />
+            <h4 className="font-medium text-sm leading-snug line-through text-muted-foreground">
+              {task.title}
+            </h4>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+              <Repeat className="w-2.5 h-2.5" />
+              Cycle #{task.trailCycleNumber}
+            </span>
+
+            {task.trailCompletedAt && (
+              <span className="text-[10px] text-muted-foreground">
+                {format(new Date(task.trailCompletedAt), 'MMM d, h:mm a')}
+              </span>
+            )}
+
+            {project && (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                style={{ backgroundColor: `${project.color}20`, color: project.color }}
+              >
+                {project.name}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Delete trail record */}
+        <div className="absolute right-2 top-2 opacity-0 hover:opacity-100 transition-opacity">
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
+            className="p-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -208,7 +265,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             </span>
           )}
 
-          {/* Recurring */}
+          {/* Recurring - no cycle count on active tasks */}
           {task.isRecurring && (
             <span className={cn(
               "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium",
@@ -218,9 +275,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             )}>
               <Repeat className="w-2.5 h-2.5" />
               {task.isCompleted ? 'Completed' : task.recurringFrequency ? task.recurringFrequency.charAt(0).toUpperCase() + task.recurringFrequency.slice(1) : 'Recurring'}
-              {(task.completedCycles || 0) > 0 && (
-                <span className="ml-0.5 font-bold">#{task.completedCycles}</span>
-              )}
             </span>
           )}
         </div>
