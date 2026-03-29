@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import DOMPurify from 'dompurify';
 import { Note, Workspace, saveSubcategory, generateId, exportNoteAsTxt } from '@/lib/db';
 import { useSubcategories } from '@/hooks/useSubcategories';
 import { cn } from '@/lib/utils';
@@ -456,7 +457,10 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
   // Initialize content once on mount
   useEffect(() => {
     if (contentRef.current && note?.content) {
-      contentRef.current.innerHTML = note.content;
+      contentRef.current.innerHTML = DOMPurify.sanitize(note.content, {
+        ALLOWED_TAGS: ['p','br','b','i','u','h1','h2','h3','ul','ol','li','a','span','div','mark','code','pre','blockquote','strong','em','img','sup'],
+        ALLOWED_ATTR: ['href','target','rel','class','style','src','alt','width','height','data-pdf-metadata','title'],
+      });
     }
   }, []);
 
@@ -476,7 +480,10 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
       
       // Then add new highlights (safe because escapedQuery contains no special chars)
       const highlightedHtml = cleanHtml.replace(regex, '<mark class="search-highlight" style="background-color: #86efac; padding: 0 2px; border-radius: 2px;">$1</mark>');
-      content.innerHTML = highlightedHtml;
+      content.innerHTML = DOMPurify.sanitize(highlightedHtml, {
+        ALLOWED_TAGS: ['p','br','b','i','u','h1','h2','h3','ul','ol','li','a','span','div','mark','code','pre','blockquote','strong','em','img','sup'],
+        ALLOWED_ATTR: ['href','target','rel','class','style','src','alt','width','height','data-pdf-metadata','title'],
+      });
       
       // Scroll to the first match
       setTimeout(() => {
@@ -759,7 +766,10 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
         html = html.replace(url, `<a href="${url}" target="_blank" rel="noopener noreferrer" class="note-link">${url}</a>`);
       });
       const span = document.createElement('span');
-      span.innerHTML = html;
+      span.innerHTML = DOMPurify.sanitize(html, {
+        ALLOWED_TAGS: ['a','span'],
+        ALLOWED_ATTR: ['href','target','rel','class'],
+      });
       node.parentNode?.replaceChild(span, node);
     });
   }, []);
@@ -1038,7 +1048,10 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
       
       if (importedTitle) setTitle(importedTitle);
       if (contentRef.current && importedContent) {
-        contentRef.current.innerHTML = importedContent;
+        contentRef.current.innerHTML = DOMPurify.sanitize(importedContent, {
+          ALLOWED_TAGS: ['p','br'],
+          ALLOWED_ATTR: [],
+        });
       }
       triggerAutoSave();
       toast({ title: 'File imported' });
