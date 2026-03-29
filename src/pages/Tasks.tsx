@@ -11,6 +11,7 @@ import {
   getTasksDueToday,
   getUpcomingTasks,
   advanceDueDate,
+  generateId,
 } from '@/lib/tasks-db';
 import { TasksHeader } from '@/components/tasks/TasksHeader';
 import { KanbanColumn } from '@/components/tasks/KanbanColumn';
