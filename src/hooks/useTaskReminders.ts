@@ -32,7 +32,7 @@ const REMINDED_TASKS_KEY = 'notoria-reminded-tasks';
 export const useTaskReminders = () => {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [settings, setSettings] = useState<ReminderSettings>(DEFAULT_SETTINGS);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Initialize audio element

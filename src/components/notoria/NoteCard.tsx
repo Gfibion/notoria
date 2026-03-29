@@ -48,7 +48,7 @@ export function NoteCard({ note, workspace, onClick, onPin, onStar, onDelete, on
   const [menuOpen, setMenuOpen] = useState(false);
   const [infoPopupOpen, setInfoPopupOpen] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cardRef = useRef<HTMLElement>(null);
 
   // Get first words if no title
