@@ -93,16 +93,41 @@ const Tasks: React.FC = () => {
         // If recurring task status changed to done via dialog
         if (taskData.status === 'done' && editingTask.isRecurring && !editingTask.isCompleted && taskData.isRecurring) {
           const freq = taskData.recurringFrequency || editingTask.recurringFrequency;
+          const newCycleCount = (editingTask.completedCycles || 0) + 1;
+          
+          // Create trail record in done column
+          const trailRecord: Task = {
+            id: generateId(),
+            title: editingTask.title,
+            description: editingTask.description,
+            status: 'done',
+            priority: editingTask.priority,
+            dueDate: editingTask.dueDate,
+            projectId: editingTask.projectId,
+            subtasks: editingTask.subtasks?.map(s => ({ ...s })),
+            isRecurring: true,
+            recurringFrequency: freq,
+            isTrailRecord: true,
+            trailCycleNumber: newCycleCount,
+            parentRecurringTaskId: editingTask.id,
+            trailCompletedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            order: Date.now(),
+          };
+          await saveTask(trailRecord);
+          
+          // Reset original task to todo
           const updatedTask = {
             ...editingTask,
             ...taskData,
             status: 'todo' as Task['status'],
-            completedCycles: (editingTask.completedCycles || 0) + 1,
+            completedCycles: newCycleCount,
             subtasks: taskData.subtasks?.map(s => ({ ...s, completed: false })),
             dueDate: freq ? advanceDueDate(taskData.dueDate || editingTask.dueDate, freq) : (taskData.dueDate || editingTask.dueDate),
           };
           await saveTask(updatedTask as Task);
-          toast.success(`Recurring task cycle #${updatedTask.completedCycles} completed — restarted`);
+          toast.success(`Recurring task cycle #${newCycleCount} completed — restarted`);
         } else {
           await saveTask({ ...editingTask, ...taskData } as Task);
           toast.success('Task updated');
