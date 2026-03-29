@@ -1,6 +1,6 @@
 import React from 'react';
 import { Task, Project } from '@/lib/tasks-db';
-import { Calendar, Clock, Flag, GripVertical, Pencil, Trash2, CheckCircle2, Circle, Repeat, SquareCheckBig } from 'lucide-react';
+import { Calendar, Clock, Flag, GripVertical, Pencil, Trash2, CheckCircle2, Circle, Repeat, SquareCheckBig, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isPast, isToday, isTomorrow, isValid, parse } from 'date-fns';
 
