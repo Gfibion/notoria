@@ -22,6 +22,11 @@ export interface Task {
   recurringFrequency?: RecurringFrequency;
   completedCycles?: number;
   isCompleted?: boolean; // true = permanently done (stops recurring)
+  // Trail record fields for recurring task history in Done column
+  isTrailRecord?: boolean;
+  trailCycleNumber?: number;
+  parentRecurringTaskId?: string;
+  trailCompletedAt?: string;
   createdAt: string;
   updatedAt: string;
   order: number;
