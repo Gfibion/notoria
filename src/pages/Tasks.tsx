@@ -159,17 +159,42 @@ const Tasks: React.FC = () => {
     try {
       const task = tasks.find(t => t.id === taskId);
       if (task && task.status !== newStatus) {
-        // Recurring task logic: when moved to done, restart the cycle
+        // Recurring task logic: when moved to done, create trail and restart
         if (newStatus === 'done' && task.isRecurring && !task.isCompleted) {
+          const newCycleCount = (task.completedCycles || 0) + 1;
+          
+          // Create trail record in done column
+          const trailRecord: Task = {
+            id: generateId(),
+            title: task.title,
+            description: task.description,
+            status: 'done',
+            priority: task.priority,
+            dueDate: task.dueDate,
+            projectId: task.projectId,
+            subtasks: task.subtasks?.map(s => ({ ...s })),
+            isRecurring: true,
+            recurringFrequency: task.recurringFrequency,
+            isTrailRecord: true,
+            trailCycleNumber: newCycleCount,
+            parentRecurringTaskId: task.id,
+            trailCompletedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            order: Date.now(),
+          };
+          await saveTask(trailRecord);
+          
+          // Reset original task
           const updatedTask = {
             ...task,
             status: 'todo' as Task['status'],
-            completedCycles: (task.completedCycles || 0) + 1,
+            completedCycles: newCycleCount,
             subtasks: task.subtasks?.map(s => ({ ...s, completed: false })),
             dueDate: task.recurringFrequency ? advanceDueDate(task.dueDate, task.recurringFrequency) : task.dueDate,
           };
           await saveTask(updatedTask);
-          toast.success(`Recurring task cycle #${updatedTask.completedCycles} completed — restarted`);
+          toast.success(`Recurring task cycle #${newCycleCount} completed — restarted`);
         } else {
           await saveTask({ ...task, status: newStatus });
           toast.success(`Moved to ${newStatus.replace('-', ' ')}`);
