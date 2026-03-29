@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import DOMPurify from 'dompurify';
 import { cn } from '@/lib/utils';
 import { X, FileText, Calendar, Hash } from 'lucide-react';
 
@@ -102,8 +103,10 @@ export function ExtractedTextDisplay({ text, metadata, onRemove }: ExtractedText
 export function generateExtractedTextHtml(text: string, metadata: ExtractedTextMetadata): string {
   const metadataJson = JSON.stringify(metadata);
   const encodedMetadata = encodeURIComponent(metadataJson);
+  // Strip all HTML from extracted text to prevent injection
+  const sanitizedText = DOMPurify.sanitize(text, { ALLOWED_TAGS: [] });
   
-  return `<span class="pdf-extracted-text" data-pdf-metadata="${encodedMetadata}"><span class="extracted-content">${text}</span><sup class="pdf-source-marker" title="View source">^</sup></span>`;
+  return `<span class="pdf-extracted-text" data-pdf-metadata="${encodedMetadata}"><span class="extracted-content">${sanitizedText}</span><sup class="pdf-source-marker" title="View source">^</sup></span>`;
 }
 
 // Parse extracted text metadata from HTML element
