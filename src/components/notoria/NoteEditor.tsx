@@ -437,12 +437,12 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
   const { subcategories, createSubcategory, refresh: refreshSubcategories } = useSubcategories(workspace || undefined);
   
   const contentRef = useRef<HTMLDivElement>(null);
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const tooltipTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const savedIndicatorTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const savedIndicatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef({ 
     title: note?.title || '', 
     content: note?.content || '', 
