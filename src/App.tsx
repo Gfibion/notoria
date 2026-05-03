@@ -37,6 +37,7 @@ const App = () => {
               <Route path="/install" element={<Install />} />
               <Route path="/tasks" element={<TasksErrorBoundary><Tasks /></TasksErrorBoundary>} />
               <Route path="/coffee" element={<CoffeePage />} />
+              <Route path="/about" element={<About />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
