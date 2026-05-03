@@ -27,7 +27,7 @@ const formatPrice = (amount?: number | null, currency?: string | null) => {
   }).format(amount / 100);
 };
 
-export default function Coffee() {
+export default function CoffeePage() {
   const [products, setProducts] = useState<PolarProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
@@ -102,7 +102,7 @@ export default function Coffee() {
             </Link>
           </Button>
           <div className="flex items-center gap-2">
-            <CoffeeIcon className="w-5 h-5 text-amber-600" />
+            <Coffee className="w-5 h-5 text-amber-600" />
             <h1 className="font-display text-lg font-semibold">Notoria Coffee</h1>
           </div>
         </div>
@@ -161,7 +161,7 @@ export default function Coffee() {
                         <p className="text-sm text-muted-foreground mt-1">{p.description}</p>
                       )}
                     </div>
-                    <CoffeeIcon className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                    <Coffee className="w-5 h-5 text-amber-600 flex-shrink-0" />
                   </div>
                   <div className="text-2xl font-bold text-amber-700 dark:text-amber-500">
                     {formatPrice(price?.price_amount, price?.price_currency)}
