@@ -32,6 +32,7 @@ import {
   GripVertical,
   FileText,
   CheckSquare,
+  Coffee,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
@@ -378,6 +379,24 @@ export function Sidebar({
                 <CheckSquare className="w-4 h-4 flex-shrink-0 text-primary" />
               </div>
               {!collapsed && <span>Tasks</span>}
+            </Link>
+
+            {/* Notoria Coffee - Buy Me Coffee */}
+            <Link
+              to="/coffee"
+              className={cn(
+                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'text-sidebar-foreground hover:bg-sidebar-accent/50'
+              )}
+              title="Buy Me Coffee"
+            >
+              <Coffee className="w-4 h-4 flex-shrink-0 text-amber-600" />
+              {!collapsed && (
+                <div className="flex flex-col leading-tight">
+                  <span>Notoria Coffee</span>
+                  <span className="text-[10px] text-muted-foreground">Buy Me Coffee</span>
+                </div>
+              )}
             </Link>
 
             {workspaces.map((workspace) => {
