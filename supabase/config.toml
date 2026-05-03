@@ -1,1 +1,10 @@
 project_id = "timqmjawukvkfvkhiygo"
+
+[functions.polar-products]
+verify_jwt = false
+
+[functions.polar-checkout]
+verify_jwt = false
+
+[functions.polar-verify]
+verify_jwt = false
