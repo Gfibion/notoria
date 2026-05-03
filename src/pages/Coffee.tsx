@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Coffee as CoffeeIcon, Loader2, Heart, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, Coffee, Loader2, Heart, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 interface PolarProduct {
