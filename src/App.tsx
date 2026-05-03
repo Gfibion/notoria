@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Install from "./pages/Install";
 import Tasks from "./pages/Tasks";
 import CoffeePage from "./pages/Coffee";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 import { TasksErrorBoundary } from "./components/tasks/TasksErrorBoundary";
 import SplashLoader from "./components/notoria/SplashLoader";
