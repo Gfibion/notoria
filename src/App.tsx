@@ -35,7 +35,7 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/install" element={<Install />} />
               <Route path="/tasks" element={<TasksErrorBoundary><Tasks /></TasksErrorBoundary>} />
-              <Route path="/coffee" element={<Coffee />} />
+              <Route path="/coffee" element={<CoffeePage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
