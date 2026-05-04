@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { X, Check, Sun, Moon, Palette, Type, Monitor, Smartphone, MonitorSmartphone, Shield, WifiOff, Database, Lock, Info, ExternalLink } from 'lucide-react';
+import { X, Check, Sun, Moon, Palette, Type, Monitor, Smartphone, MonitorSmartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getSettings, saveSettings, AppSettings } from '@/lib/db';
 import { useTheme } from 'next-themes';
@@ -226,72 +225,6 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 </button>
               ))}
             </div>
-          </div>
-
-          {/* Privacy & Offline Section */}
-          <div>
-            <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              Privacy & Offline
-            </h3>
-            <div className="space-y-2">
-              <div className="flex items-start gap-3 p-3 rounded-lg border border-border bg-muted/30">
-                <Database className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <div className="flex-1 text-sm">
-                  <p className="font-medium text-foreground">Your data lives on this device</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    All notes, tasks, and PDFs are stored locally in your browser using IndexedDB. Nothing is uploaded to a server, and we never see your content.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3 rounded-lg border border-border bg-muted/30">
-                <WifiOff className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <div className="flex-1 text-sm">
-                  <p className="font-medium text-foreground">Works fully offline</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Notoria is a Progressive Web App. Once loaded, you can read, write, and organize without an internet connection. Install it to your home screen for an app-like experience.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3 rounded-lg border border-border bg-muted/30">
-                <Lock className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <div className="flex-1 text-sm">
-                  <p className="font-medium text-foreground">No accounts, no tracking</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    There's no sign-up, no analytics, and no ads. Clearing your browser data will permanently erase your notes — consider exporting important notes as PDF or TXT for backup.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5">
-                <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div className="flex-1 text-sm">
-                  <p className="font-medium text-foreground">Important to know</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Data is tied to this browser on this device. To use Notoria on another device, you'll need to export and re-import your notes.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* About Section */}
-          <div>
-            <h3 className="text-sm font-medium text-foreground mb-3">About</h3>
-            <Link
-              to="/about"
-              onClick={onClose}
-              className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-            >
-              <Info className="w-5 h-5 text-muted-foreground" />
-              <div className="flex-1">
-                <p className="font-medium text-foreground text-sm">About Notoria</p>
-                <p className="text-xs text-muted-foreground">Version, story, and credits</p>
-              </div>
-              <ExternalLink className="w-4 h-4 text-muted-foreground" />
-            </Link>
           </div>
         </div>
       </div>
