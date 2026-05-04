@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, Search, Plus, Trash2, Settings, Star, ChevronDown, ChevronRight, Hash, MoreHorizontal, Pencil, GripVertical, FileText, CheckSquare } from 'lucide-react';
+import { Menu, Search, Plus, Trash2, Settings, Star, ChevronDown, ChevronRight, Hash, MoreHorizontal, Pencil, GripVertical, FileText, CheckSquare, Coffee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Workspace, Subcategory, getSubcategoriesByWorkspace } from '@/lib/db';
@@ -192,6 +192,19 @@ export function MobileHeader({
 
               {/* Navigation */}
               <nav className="flex-1 overflow-y-auto p-2">
+                {/* Notoria Coffee */}
+                <Link
+                  to="/coffee"
+                  onClick={() => setIsSheetOpen(false)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-secondary/50 transition-colors"
+                >
+                  <Coffee className="w-4 h-4 flex-shrink-0 text-amber-600" />
+                  <div className="flex flex-col leading-tight">
+                    <span>Notoria Coffee</span>
+                    <span className="text-[10px] text-muted-foreground">Buy Me Coffee</span>
+                  </div>
+                </Link>
+
                 <div className="px-2 py-3 flex items-center justify-between">
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Workspaces
