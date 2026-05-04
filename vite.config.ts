@@ -47,6 +47,11 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         // Include .mjs so the PDF.js worker (pdf.worker.min.mjs) is precached and works offline.
         globPatterns: ["**/*.{js,mjs,css,html,ico,png,svg,woff2,wasm}"],
+        // Activate new service worker immediately and take control so users always
+        // see the latest version without waiting for all tabs to close.
+        clientsClaim: true,
+        skipWaiting: true,
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
