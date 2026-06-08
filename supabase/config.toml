@@ -8,3 +8,12 @@ verify_jwt = false
 
 [functions.polar-verify]
 verify_jwt = false
+
+[functions.cloud-backup]
+verify_jwt = false
+
+[functions.cloud-restore]
+verify_jwt = false
+
+[functions.cloud-delete]
+verify_jwt = false
