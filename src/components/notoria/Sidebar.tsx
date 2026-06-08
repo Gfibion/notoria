@@ -33,6 +33,7 @@ import {
   FileText,
   CheckSquare,
   Coffee,
+  Cloud,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
@@ -398,6 +399,25 @@ export function Sidebar({
                 </div>
               )}
             </Link>
+
+            {/* Cloud Backup */}
+            <Link
+              to="/cloud-backup"
+              className={cn(
+                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'text-sidebar-foreground hover:bg-sidebar-accent/50'
+              )}
+              title="Cloud Backup"
+            >
+              <Cloud className="w-4 h-4 flex-shrink-0 text-sky-500" />
+              {!collapsed && (
+                <div className="flex flex-col leading-tight">
+                  <span>Cloud Backup</span>
+                  <span className="text-[10px] text-muted-foreground">Encrypted sync</span>
+                </div>
+              )}
+            </Link>
+
 
             {workspaces.map((workspace) => {
               const Icon = iconMap[workspace.icon] || iconMap.default;
