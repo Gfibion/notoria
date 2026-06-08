@@ -36,11 +36,12 @@ function toB64(buf: ArrayBuffer | Uint8Array): string {
   return btoa(s);
 }
 
-function fromB64(s: string): Uint8Array {
+function fromB64(s: string): Uint8Array<ArrayBuffer> {
   const bin = atob(s);
-  const u = new Uint8Array(bin.length);
+  const buf = new ArrayBuffer(bin.length);
+  const u = new Uint8Array(buf);
   for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
-  return u;
+  return u as Uint8Array<ArrayBuffer>;
 }
 
 /** Generate a fresh user secret key. ~160 bits of entropy, human-readable, grouped. */
