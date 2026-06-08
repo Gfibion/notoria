@@ -84,7 +84,7 @@ export async function encryptPayload(secret: string, payload: unknown): Promise<
   const key = await deriveAesKey(secret);
   const nonce = crypto.getRandomValues(new Uint8Array(12));
   const plaintext = enc.encode(JSON.stringify(payload));
-  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, key, plaintext);
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce as BufferSource }, key, plaintext);
   return { ciphertext: toB64(ct), nonce: toB64(nonce) };
 }
 
@@ -92,7 +92,7 @@ export async function encryptPayload(secret: string, payload: unknown): Promise<
 export async function decryptPayload<T = unknown>(secret: string, ciphertext: string, nonce: string): Promise<T> {
   const key = await deriveAesKey(secret);
   const pt = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: fromB64(nonce) },
+    { name: "AES-GCM", iv: fromB64(nonce) as BufferSource },
     key,
     fromB64(ciphertext),
   );
@@ -116,7 +116,7 @@ async function deriveKeyFromPin(pin: string, salt: Uint8Array, iterations: numbe
     "raw", enc.encode(pin), { name: "PBKDF2" }, false, ["deriveKey"],
   );
   return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
+    { name: "PBKDF2", salt: salt as BufferSource, iterations, hash: "SHA-256" },
     baseKey,
     { name: "AES-GCM", length: 256 },
     false,
@@ -129,7 +129,7 @@ export async function wrapSecretWithPin(secret: string, pin: string): Promise<Wr
   const nonce = crypto.getRandomValues(new Uint8Array(12));
   const iterations = 250_000;
   const key = await deriveKeyFromPin(pin, salt, iterations);
-  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, key, enc.encode(secret));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce as BufferSource }, key, enc.encode(secret));
   return {
     version: 1, method: "pin", iterations,
     salt: toB64(salt), nonce: toB64(nonce), ciphertext: toB64(ct),
@@ -140,7 +140,7 @@ export async function unwrapSecretWithPin(wrapped: WrappedSecret, pin: string): 
   if (wrapped.method !== "pin") throw new Error("Not a PIN-wrapped secret");
   const key = await deriveKeyFromPin(pin, fromB64(wrapped.salt), wrapped.iterations ?? 250_000);
   const pt = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: fromB64(wrapped.nonce) }, key, fromB64(wrapped.ciphertext),
+    { name: "AES-GCM", iv: fromB64(wrapped.nonce) as BufferSource }, key, fromB64(wrapped.ciphertext),
   );
   return dec.decode(pt);
 }
@@ -220,7 +220,7 @@ export async function wrapSecretWithBiometric(secret: string): Promise<WrappedSe
 
   const key = await deriveAesFromPrf(prfBytes);
   const nonce = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, key, enc.encode(secret));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce as BufferSource }, key, enc.encode(secret));
 
   return {
     version: 1,
@@ -253,7 +253,7 @@ export async function unwrapSecretWithBiometric(wrapped: WrappedSecret): Promise
 
   const key = await deriveAesFromPrf(prfBytes);
   const pt = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: fromB64(wrapped.nonce) }, key, fromB64(wrapped.ciphertext),
+    { name: "AES-GCM", iv: fromB64(wrapped.nonce) as BufferSource }, key, fromB64(wrapped.ciphertext),
   );
   return dec.decode(pt);
 }
