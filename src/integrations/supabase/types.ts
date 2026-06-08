@@ -14,7 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cloud_backups: {
+        Row: {
+          ciphertext: string
+          client_updated_at: string
+          created_at: string
+          id: string
+          nonce: string
+          note_id: string
+          updated_at: string
+          user_hash: string
+        }
+        Insert: {
+          ciphertext: string
+          client_updated_at: string
+          created_at?: string
+          id?: string
+          nonce: string
+          note_id: string
+          updated_at?: string
+          user_hash: string
+        }
+        Update: {
+          ciphertext?: string
+          client_updated_at?: string
+          created_at?: string
+          id?: string
+          nonce?: string
+          note_id?: string
+          updated_at?: string
+          user_hash?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
