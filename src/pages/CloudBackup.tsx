@@ -152,7 +152,7 @@ export default function CloudBackupPage() {
     toast({ title: "Key accepted", description: "Loaded into memory for this session." });
   };
 
-  // ─── Backup / Restore actions ────────────────────────────────────
+  // ─── Backup / Restore / Sync actions ───────────────────────────
   const doBackup = async () => {
     if (!secret) return;
     const notes = localNotes.filter(n => selectedLocal.has(n.id));
@@ -169,6 +169,29 @@ export default function CloudBackupPage() {
       setSelectedLocal(new Set());
     } catch (e: any) {
       toast({ title: "Backup failed", description: e.message, variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doSyncNow = async () => {
+    if (!secret) return;
+    const notes = localNotes.filter(n => selectedLocal.has(n.id));
+    if (notes.length === 0) {
+      toast({ title: "Select notes to sync", variant: "destructive" });
+      return;
+    }
+    setBusy(true);
+    try {
+      const count = await backupNotes(secret, notes);
+      const all = await getAllNotes();
+      setLocalNotes(all);
+      const meta = await listCloudNotes(secret);
+      setCloudMeta(meta);
+      setSelectedLocal(new Set());
+      toast({ title: "Sync complete", description: `${count} note${count === 1 ? "" : "s"} uploaded and state refreshed.` });
+    } catch (e: any) {
+      toast({ title: "Sync failed", description: e.message, variant: "destructive" });
     } finally {
       setBusy(false);
     }
