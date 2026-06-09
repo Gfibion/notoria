@@ -433,10 +433,16 @@ export default function CloudBackupPage() {
                 </ul>
               </ScrollArea>
 
-              <Button onClick={doBackup} disabled={busy || selectedLocal.size === 0} className="w-full">
-                <Upload className="w-4 h-4 mr-1" />
-                Back up {selectedLocal.size || ""} selected
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={doSyncNow} disabled={busy || selectedLocal.size === 0} className="flex-1">
+                  <RefreshCw className="w-4 h-4 mr-1" />
+                  Sync now
+                </Button>
+                <Button variant="outline" onClick={doBackup} disabled={busy || selectedLocal.size === 0}>
+                  <Upload className="w-4 h-4 mr-1" />
+                  Back up
+                </Button>
+              </div>
             </section>
 
             {/* Cloud → local */}
