@@ -10,6 +10,7 @@ import Install from "./pages/Install";
 import Tasks from "./pages/Tasks";
 import CoffeePage from "./pages/Coffee";
 import CloudBackupPage from "./pages/CloudBackup";
+import AdminPage from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import { TasksErrorBoundary } from "./components/tasks/TasksErrorBoundary";
 import SplashLoader from "./components/notoria/SplashLoader";
@@ -38,6 +39,7 @@ const App = () => {
               <Route path="/tasks" element={<TasksErrorBoundary><Tasks /></TasksErrorBoundary>} />
               <Route path="/coffee" element={<CoffeePage />} />
               <Route path="/cloud-backup" element={<CloudBackupPage />} />
+              <Route path="/admin" element={<AdminPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
