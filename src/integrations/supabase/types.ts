@@ -14,11 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_escrow: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: number
+          public_key_jwk: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: number
+          public_key_jwk: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: number
+          public_key_jwk?: Json
+        }
+        Relationships: []
+      }
+      admin_invites: {
+        Row: {
+          created_at: string
+          created_by: string
+          email: string
+          expires_at: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          email: string
+          expires_at?: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          email?: string
+          expires_at?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
+      admin_seeds: {
+        Row: {
+          created_at: string
+          email: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          role: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          role?: string
+        }
+        Relationships: []
+      }
+      admins: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cloud_backups: {
         Row: {
           ciphertext: string
           client_updated_at: string
           created_at: string
+          escrow_wrapped_key: string | null
           id: string
           nonce: string
           note_id: string
@@ -29,6 +120,7 @@ export type Database = {
           ciphertext: string
           client_updated_at: string
           created_at?: string
+          escrow_wrapped_key?: string | null
           id?: string
           nonce: string
           note_id: string
@@ -39,6 +131,7 @@ export type Database = {
           ciphertext?: string
           client_updated_at?: string
           created_at?: string
+          escrow_wrapped_key?: string | null
           id?: string
           nonce?: string
           note_id?: string
@@ -52,7 +145,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: { Args: { _uid: string }; Returns: boolean }
+      is_master_admin: { Args: { _uid: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
