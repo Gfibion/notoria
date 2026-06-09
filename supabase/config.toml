@@ -17,3 +17,24 @@ verify_jwt = false
 
 [functions.cloud-delete]
 verify_jwt = false
+
+[functions.admin-bootstrap]
+verify_jwt = false
+
+[functions.admin-stats]
+verify_jwt = false
+
+[functions.admin-users]
+verify_jwt = false
+
+[functions.admin-create-invite]
+verify_jwt = false
+
+[functions.admin-accept-invite]
+verify_jwt = false
+
+[functions.admin-set-escrow]
+verify_jwt = false
+
+[functions.admin-recover]
+verify_jwt = false

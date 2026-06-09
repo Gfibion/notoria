@@ -1,6 +1,8 @@
 // Cloud backup endpoint - stores end-to-end-encrypted notes.
 // Auth: caller provides a secret key; server only stores SHA-256(secret + ":auth") as user_hash.
 // Server never sees plaintext note content.
+// Optional: caller may supply `escrowWrappedKey` (base64 RSA-OAEP wrap of the user's enc key)
+// so that an admin can later assist with recovery if the user loses their secret.
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -28,7 +30,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { secretKey, notes } = body ?? {};
+    const { secretKey, notes, escrowWrappedKey } = body ?? {};
 
     if (!isValidSecret(secretKey)) {
       return new Response(JSON.stringify({ error: "Invalid secret key" }), {
@@ -40,8 +42,10 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const wrappedKey = (typeof escrowWrappedKey === "string" && escrowWrappedKey.length < 4096)
+      ? escrowWrappedKey
+      : null;
 
-    // Validate each note shape
     for (const n of notes) {
       if (!n || typeof n.id !== "string" || typeof n.ciphertext !== "string"
           || typeof n.nonce !== "string" || typeof n.clientUpdatedAt !== "string"
@@ -64,6 +68,7 @@ Deno.serve(async (req) => {
       ciphertext: n.ciphertext,
       nonce: n.nonce,
       client_updated_at: n.clientUpdatedAt,
+      escrow_wrapped_key: wrappedKey,
     }));
 
     const { error } = await supabase
@@ -77,7 +82,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ ok: true, count: rows.length }), {
+    return new Response(JSON.stringify({ ok: true, count: rows.length, escrowAttached: !!wrappedKey }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
