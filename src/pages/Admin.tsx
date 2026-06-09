@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin, adminApi } from "@/lib/admin-client";
 import {
@@ -15,7 +15,6 @@ import {
   downloadEscrowPrivate,
   importEscrowPublic,
   wrapUserKey,
-  escrowToB64,
 } from "@/lib/admin-escrow";
 import { encryptPayload, generateSecretKey, normalizeSecretKey, deriveUserHash } from "@/lib/cloud-crypto";
 import { Button } from "@/components/ui/button";
@@ -435,7 +434,6 @@ function RecoverTab({ initialHash }: { initialHash: string }) {
 }
 
 export default function AdminPage() {
-  const navigate = useNavigate();
   const { loading, session, info, error, refresh } = useAdmin();
   const [activeTab, setActiveTab] = useState("stats");
   const [recoverHash, setRecoverHash] = useState("");
