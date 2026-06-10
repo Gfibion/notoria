@@ -143,7 +143,13 @@ export default function CloudBackupPage() {
   const submitManualKey = async () => {
     const norm = normalizeSecretKey(manualKeyInput);
     if (!norm) {
-      toast({ title: "Invalid key format", description: "Use the NT-XXXX-… format you copied.", variant: "destructive" });
+      const stripped = manualKeyInput.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const core = stripped.startsWith("NT") ? stripped.slice(2) : stripped;
+      toast({
+        title: "Invalid key format",
+        description: `Expected 32 letters/digits after the NT prefix; got ${core.length}. Re-copy the full key (it looks like NT-XXXX-XXXX-…-XXXX).`,
+        variant: "destructive",
+      });
       return;
     }
     setSecret(norm);
