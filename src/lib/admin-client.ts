@@ -46,26 +46,31 @@ function devicePayload() {
 }
 
 async function call<T>(fn: string, body: Record<string, unknown> = {}): Promise<T> {
-  const { data, error } = await supabase.functions.invoke<T>(fn, {
+  const { data, error } = await supabase.functions.invoke<any>(fn, {
     body: { ...body, ...devicePayload() },
   });
   if (error) {
-    // Try to surface error.code for device_not_authorized
+    // FunctionsHttpError exposes the response on .context
     const ctx = (error as any).context;
-    if (ctx?.body) {
+    if (ctx && typeof ctx.json === "function") {
       try {
-        const parsed = JSON.parse(await ctx.body.text?.() ?? ctx.body);
-        const e = new Error(parsed.error || error.message);
-        (e as any).code = parsed.code;
-        throw e;
-      } catch (parseErr) {
-        if (parseErr instanceof Error && (parseErr as any).code) throw parseErr;
+        const parsed = await ctx.json();
+        const err = new Error(parsed?.error || error.message);
+        (err as any).code = parsed?.code;
+        throw err;
+      } catch (e) {
+        if (e instanceof Error && (e as any).code !== undefined) throw e;
       }
     }
     throw new Error(error.message || `${fn} failed`);
   }
+  if (data && data.error) {
+    const err = new Error(data.error);
+    (err as any).code = data.code;
+    throw err;
+  }
   if (!data) throw new Error(`${fn} returned empty`);
-  return data;
+  return data as T;
 }
 
 export function useAdmin() {
