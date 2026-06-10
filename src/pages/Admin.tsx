@@ -594,7 +594,11 @@ export default function AdminPage() {
           <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
         )}
 
-        {!loading && info?.admin && (
+        {!loading && info?.admin && info.device && !info.device.authorized && (
+          <UnauthorizedDeviceView info={info} onRedeemed={refresh} onSignOut={signOut} />
+        )}
+
+        {!loading && info?.admin && info.device?.authorized && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="flex-wrap">
               <TabsTrigger value="stats">Stats</TabsTrigger>
@@ -602,6 +606,7 @@ export default function AdminPage() {
               <TabsTrigger value="recover">Recover</TabsTrigger>
               <TabsTrigger value="escrow">Escrow</TabsTrigger>
               <TabsTrigger value="invites">Invites</TabsTrigger>
+              <TabsTrigger value="devices">Device</TabsTrigger>
             </TabsList>
             <Separator className="my-4" />
             <TabsContent value="stats"><StatsTab /></TabsContent>
@@ -609,6 +614,7 @@ export default function AdminPage() {
             <TabsContent value="recover"><RecoverTab initialHash={recoverHash} /></TabsContent>
             <TabsContent value="escrow"><EscrowTab info={info} onChange={refresh} /></TabsContent>
             <TabsContent value="invites"><InvitesTab info={info} onChange={refresh} /></TabsContent>
+            <TabsContent value="devices"><DevicesTab info={info} onChange={refresh} /></TabsContent>
           </Tabs>
         )}
       </main>
