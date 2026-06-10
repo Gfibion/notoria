@@ -80,6 +80,7 @@ export function MobileHeader({
   const [workspaceSubcategories, setWorkspaceSubcategories] = useState<Record<string, Subcategory[]>>({});
   const [workspaceDialogOpen, setWorkspaceDialogOpen] = useState(false);
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
+  const { isAdmin } = useIsAdmin();
 
   // Load subcategories for all workspaces
   useEffect(() => {
