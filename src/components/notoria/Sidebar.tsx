@@ -121,6 +121,8 @@ export function Sidebar({
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const dragNodeRef = useRef<HTMLDivElement | null>(null);
 
+  const { isAdmin } = useIsAdmin();
+
   // Load subcategories for all workspaces
   useEffect(() => {
     const loadAllSubcategories = async () => {
