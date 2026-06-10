@@ -121,7 +121,7 @@ export function Sidebar({
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const dragNodeRef = useRef<HTMLDivElement | null>(null);
 
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin, deviceAuthorized } = useIsAdmin();
 
   // Load subcategories for all workspaces
   useEffect(() => {
@@ -423,7 +423,7 @@ export function Sidebar({
             </Link>
 
             {/* Admin panel */}
-            {isAdmin && (
+            {isAdmin && deviceAuthorized && (
               <Link
                 to="/admin"
                 className={cn(

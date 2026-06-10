@@ -38,3 +38,9 @@ verify_jwt = false
 
 [functions.admin-recover]
 verify_jwt = false
+
+[functions.admin-create-device-link]
+verify_jwt = false
+
+[functions.admin-redeem-device-link]
+verify_jwt = false

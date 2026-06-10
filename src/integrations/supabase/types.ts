@@ -14,6 +14,76 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_device_links: {
+        Row: {
+          admin_id: string
+          created_at: string
+          created_by_device: string
+          expires_at: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          created_by_device: string
+          expires_at?: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          created_by_device?: string
+          expires_at?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_device_links_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_devices: {
+        Row: {
+          admin_id: string
+          claimed_at: string
+          device_id: string
+          ip: string | null
+          last_seen_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          admin_id: string
+          claimed_at?: string
+          device_id: string
+          ip?: string | null
+          last_seen_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          admin_id?: string
+          claimed_at?: string
+          device_id?: string
+          ip?: string | null
+          last_seen_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_devices_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: true
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_escrow: {
         Row: {
           created_at: string

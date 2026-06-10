@@ -26,7 +26,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, Shield, Users, Database, KeyRound, UserPlus, RotateCcw, Download, LogOut, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Shield, Users, Database, KeyRound, UserPlus, RotateCcw, Download, LogOut, AlertTriangle, Smartphone, Link2, Copy } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -433,6 +434,131 @@ function RecoverTab({ initialHash }: { initialHash: string }) {
   );
 }
 
+function UnauthorizedDeviceView({ info, onRedeemed, onSignOut }: { info: any; onRedeemed: () => void; onSignOut: () => void }) {
+  const [search] = useSearchParams();
+  const [token, setToken] = useState(search.get("device_token") ?? "");
+  const [busy, setBusy] = useState(false);
+
+  const redeem = async () => {
+    if (!token.trim()) return;
+    setBusy(true);
+    try {
+      await adminApi.redeemDeviceLink(token.trim());
+      toast.success("Device authorized. The previous device has been signed out of admin.");
+      onRedeemed();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to redeem link");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Card className="max-w-lg mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><Smartphone className="w-5 h-5" /> Authorize this device</CardTitle>
+        <CardDescription>
+          Signed in as <strong>{info.user.email}</strong>. For security, each admin can only be active on one device at a time.
+          Generate a one-time link from your currently authorized device and paste it here.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {info.device?.current && (
+          <Alert>
+            <AlertDescription className="text-xs">
+              <p className="font-medium mb-1">Currently authorized device:</p>
+              <p className="text-muted-foreground break-words">{info.device.current.user_agent || "unknown agent"}</p>
+              <p className="text-muted-foreground">IP {info.device.current.ip ?? "unknown"} • last seen {new Date(info.device.current.last_seen_at).toLocaleString()}</p>
+            </AlertDescription>
+          </Alert>
+        )}
+        <div>
+          <Label htmlFor="dtoken">One-time device link / token</Label>
+          <Input id="dtoken" value={token} onChange={e => setToken(e.target.value)} placeholder="Paste token from authorized device" className="font-mono text-xs" />
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={redeem} disabled={busy || !token.trim()}>
+            <Link2 className="w-4 h-4 mr-1" /> Authorize this device
+          </Button>
+          <Button variant="outline" onClick={onSignOut}><LogOut className="w-4 h-4 mr-1" /> Sign out</Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DevicesTab({ info, onChange }: { info: any; onChange: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [link, setLink] = useState<{ token: string; url: string } | null>(null);
+
+  const generate = async () => {
+    setBusy(true);
+    try {
+      const r = await adminApi.createDeviceLink();
+      const url = `${window.location.origin}/admin?device_token=${r.token}`;
+      setLink({ token: r.token, url });
+      toast.success(`Link created — valid for ${r.expiresInMinutes} minutes.`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to create link");
+    } finally { setBusy(false); }
+  };
+
+  const cur = info.device?.current;
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Smartphone className="w-5 h-5" /> This device</CardTitle>
+          <CardDescription>Admin access is bound to one device at a time. The other admin's device is independent.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-1 text-sm">
+          <p><span className="text-muted-foreground">Device ID:</span> <code className="text-xs break-all">{cur?.device_id ?? "—"}</code></p>
+          <p><span className="text-muted-foreground">IP:</span> {cur?.ip ?? "unknown"}</p>
+          <p><span className="text-muted-foreground">Browser:</span> <span className="break-words">{cur?.user_agent ?? "unknown"}</span></p>
+          <p><span className="text-muted-foreground">Bound since:</span> {cur ? new Date(cur.claimed_at).toLocaleString() : "—"}</p>
+          <p><span className="text-muted-foreground">Last activity:</span> {cur ? new Date(cur.last_seen_at).toLocaleString() : "—"}</p>
+          <Button variant="ghost" size="sm" onClick={onChange} className="mt-2"><RotateCcw className="w-3 h-3 mr-1" /> Refresh</Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Link2 className="w-5 h-5" /> Move admin to a new device</CardTitle>
+          <CardDescription>
+            Generates a one-time link (valid 15 minutes). Sign in with the same admin email on the new device, paste this token, and your admin
+            binding moves there. This device will immediately lose admin access.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Button onClick={generate} disabled={busy}>
+            <Link2 className="w-4 h-4 mr-1" /> Generate device link
+          </Button>
+          {link && (
+            <Alert>
+              <AlertDescription className="space-y-2">
+                <div>
+                  <p className="font-medium text-xs mb-1">Token (paste on new device):</p>
+                  <code className="block break-all bg-muted p-2 rounded text-xs">{link.token}</code>
+                </div>
+                <div>
+                  <p className="font-medium text-xs mb-1">Or share this URL:</p>
+                  <code className="block break-all bg-muted p-2 rounded text-xs">{link.url}</code>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(link.token); toast.success("Token copied"); }}>
+                    <Copy className="w-3 h-3 mr-1" /> Copy token
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(link.url); toast.success("URL copied"); }}>
+                    <Copy className="w-3 h-3 mr-1" /> Copy URL
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const { loading, session, info, error, refresh } = useAdmin();
   const [activeTab, setActiveTab] = useState("stats");
@@ -468,7 +594,11 @@ export default function AdminPage() {
           <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
         )}
 
-        {!loading && info?.admin && (
+        {!loading && info?.admin && info.device && !info.device.authorized && (
+          <UnauthorizedDeviceView info={info} onRedeemed={refresh} onSignOut={signOut} />
+        )}
+
+        {!loading && info?.admin && info.device?.authorized && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="flex-wrap">
               <TabsTrigger value="stats">Stats</TabsTrigger>
@@ -476,6 +606,7 @@ export default function AdminPage() {
               <TabsTrigger value="recover">Recover</TabsTrigger>
               <TabsTrigger value="escrow">Escrow</TabsTrigger>
               <TabsTrigger value="invites">Invites</TabsTrigger>
+              <TabsTrigger value="devices">Device</TabsTrigger>
             </TabsList>
             <Separator className="my-4" />
             <TabsContent value="stats"><StatsTab /></TabsContent>
@@ -483,6 +614,7 @@ export default function AdminPage() {
             <TabsContent value="recover"><RecoverTab initialHash={recoverHash} /></TabsContent>
             <TabsContent value="escrow"><EscrowTab info={info} onChange={refresh} /></TabsContent>
             <TabsContent value="invites"><InvitesTab info={info} onChange={refresh} /></TabsContent>
+            <TabsContent value="devices"><DevicesTab info={info} onChange={refresh} /></TabsContent>
           </Tabs>
         )}
       </main>

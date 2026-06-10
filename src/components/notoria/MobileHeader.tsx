@@ -80,7 +80,7 @@ export function MobileHeader({
   const [workspaceSubcategories, setWorkspaceSubcategories] = useState<Record<string, Subcategory[]>>({});
   const [workspaceDialogOpen, setWorkspaceDialogOpen] = useState(false);
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin, deviceAuthorized } = useIsAdmin();
 
   // Load subcategories for all workspaces
   useEffect(() => {
@@ -221,7 +221,7 @@ export function MobileHeader({
                 </Link>
 
                 {/* Admin panel */}
-                {isAdmin && (
+                {isAdmin && deviceAuthorized && (
                   <Link
                     to="/admin"
                     onClick={() => setIsSheetOpen(false)}
