@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useIsAdmin } from '@/lib/useIsAdmin';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Workspace, Subcategory, getSubcategoriesByWorkspace } from '@/lib/db';
@@ -119,6 +120,8 @@ export function Sidebar({
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const dragNodeRef = useRef<HTMLDivElement | null>(null);
+
+  const { isAdmin } = useIsAdmin();
 
   // Load subcategories for all workspaces
   useEffect(() => {
@@ -420,22 +423,24 @@ export function Sidebar({
             </Link>
 
             {/* Admin panel */}
-            <Link
-              to="/admin"
-              className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                'text-sidebar-foreground hover:bg-sidebar-accent/50'
-              )}
-              title="Admin panel"
-            >
-              <Shield className="w-4 h-4 flex-shrink-0 text-violet-500" />
-              {!collapsed && (
-                <div className="flex flex-col leading-tight">
-                  <span>Admin</span>
-                  <span className="text-[10px] text-muted-foreground">Restricted area</span>
-                </div>
-              )}
-            </Link>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                  'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                )}
+                title="Admin panel"
+              >
+                <Shield className="w-4 h-4 flex-shrink-0 text-violet-500" />
+                {!collapsed && (
+                  <div className="flex flex-col leading-tight">
+                    <span>Admin</span>
+                    <span className="text-[10px] text-muted-foreground">Restricted area</span>
+                  </div>
+                )}
+              </Link>
+            )}
 
 
 

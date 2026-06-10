@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useIsAdmin } from '@/lib/useIsAdmin';
 import { Link } from 'react-router-dom';
 import { Menu, Search, Plus, Trash2, Settings, Star, ChevronDown, ChevronRight, Hash, MoreHorizontal, Pencil, GripVertical, FileText, CheckSquare, Coffee, Cloud, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -79,6 +80,7 @@ export function MobileHeader({
   const [workspaceSubcategories, setWorkspaceSubcategories] = useState<Record<string, Subcategory[]>>({});
   const [workspaceDialogOpen, setWorkspaceDialogOpen] = useState(false);
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
+  const { isAdmin } = useIsAdmin();
 
   // Load subcategories for all workspaces
   useEffect(() => {
@@ -219,17 +221,19 @@ export function MobileHeader({
                 </Link>
 
                 {/* Admin panel */}
-                <Link
-                  to="/admin"
-                  onClick={() => setIsSheetOpen(false)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-secondary/50 transition-colors"
-                >
-                  <Shield className="w-4 h-4 flex-shrink-0 text-violet-500" />
-                  <div className="flex flex-col leading-tight">
-                    <span>Admin</span>
-                    <span className="text-[10px] text-muted-foreground">Restricted area</span>
-                  </div>
-                </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setIsSheetOpen(false)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-secondary/50 transition-colors"
+                  >
+                    <Shield className="w-4 h-4 flex-shrink-0 text-violet-500" />
+                    <div className="flex flex-col leading-tight">
+                      <span>Admin</span>
+                      <span className="text-[10px] text-muted-foreground">Restricted area</span>
+                    </div>
+                  </Link>
+                )}
 
 
 
