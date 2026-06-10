@@ -53,15 +53,22 @@ export function generateSecretKey(): string {
   return `NT-${groups}`;
 }
 
-/** Strip formatting and validate basic shape. Returns canonical form or null. */
+/** Strip formatting and validate basic shape. Returns canonical form or null.
+ *  Tolerant of pasted whitespace (incl. NBSP / zero-width), any dash variant
+ *  (-, –, —, ‑), underscores, lowercase, and stray punctuation — we keep only
+ *  letters/digits and then validate the canonical alphabet. */
 export function normalizeSecretKey(input: string): string | null {
   if (!input) return null;
-  const cleaned = input.trim().toUpperCase().replace(/[\s_]/g, "");
-  // Accept with or without NT- prefix and dashes
-  const noDash = cleaned.replace(/-/g, "");
-  if (!/^NT[A-Z0-9]{32}$/.test(noDash) && !/^[A-Z0-9]{32}$/.test(noDash)) return null;
-  const core = noDash.startsWith("NT") ? noDash.slice(2) : noDash;
+  // Keep only ASCII letters and digits; uppercase. This automatically removes
+  // NBSP, zero-width chars, en/em dashes, smart quotes, spaces, underscores, etc.
+  const raw = input.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!raw) return null;
+  // Accept with or without an NT prefix.
+  const core = raw.startsWith("NT") ? raw.slice(2) : raw;
   if (!/^[A-Z0-9]{32}$/.test(core)) return null;
+  // The generator's alphabet excludes I, L, O, U, 0, 1 — but we accept those
+  // characters too in case the user wrote a confusable by hand. We do NOT map
+  // them, because the server hashes the exact string.
   return `NT-${core.match(/.{1,4}/g)!.join("-")}`;
 }
 
