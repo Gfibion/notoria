@@ -221,7 +221,7 @@ export function MobileHeader({
                 </Link>
 
                 {/* Admin panel */}
-                {isAdmin && (
+                {isAdmin && deviceAuthorized && (
                   <Link
                     to="/admin"
                     onClick={() => setIsSheetOpen(false)}
