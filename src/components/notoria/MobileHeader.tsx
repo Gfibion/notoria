@@ -221,17 +221,19 @@ export function MobileHeader({
                 </Link>
 
                 {/* Admin panel */}
-                <Link
-                  to="/admin"
-                  onClick={() => setIsSheetOpen(false)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-secondary/50 transition-colors"
-                >
-                  <Shield className="w-4 h-4 flex-shrink-0 text-violet-500" />
-                  <div className="flex flex-col leading-tight">
-                    <span>Admin</span>
-                    <span className="text-[10px] text-muted-foreground">Restricted area</span>
-                  </div>
-                </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setIsSheetOpen(false)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-secondary/50 transition-colors"
+                  >
+                    <Shield className="w-4 h-4 flex-shrink-0 text-violet-500" />
+                    <div className="flex flex-col leading-tight">
+                      <span>Admin</span>
+                      <span className="text-[10px] text-muted-foreground">Restricted area</span>
+                    </div>
+                  </Link>
+                )}
 
 
 
