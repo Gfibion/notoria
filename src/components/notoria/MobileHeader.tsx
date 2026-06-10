@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useIsAdmin } from '@/lib/useIsAdmin';
 import { Link } from 'react-router-dom';
 import { Menu, Search, Plus, Trash2, Settings, Star, ChevronDown, ChevronRight, Hash, MoreHorizontal, Pencil, GripVertical, FileText, CheckSquare, Coffee, Cloud, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';

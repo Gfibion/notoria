@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useIsAdmin } from '@/lib/useIsAdmin';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Workspace, Subcategory, getSubcategoriesByWorkspace } from '@/lib/db';
