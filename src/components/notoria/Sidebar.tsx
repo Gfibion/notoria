@@ -423,7 +423,7 @@ export function Sidebar({
             </Link>
 
             {/* Admin panel */}
-            {isAdmin && (
+            {isAdmin && deviceAuthorized && (
               <Link
                 to="/admin"
                 className={cn(
