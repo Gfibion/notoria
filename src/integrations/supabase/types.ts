@@ -210,6 +210,42 @@ export type Database = {
         }
         Relationships: []
       }
+      coffee_supports: {
+        Row: {
+          amount: number | null
+          checkout_id: string
+          created_at: string
+          currency: string | null
+          customer_email: string | null
+          id: string
+          product_id: string | null
+          product_name: string | null
+          status: string
+        }
+        Insert: {
+          amount?: number | null
+          checkout_id: string
+          created_at?: string
+          currency?: string | null
+          customer_email?: string | null
+          id?: string
+          product_id?: string | null
+          product_name?: string | null
+          status: string
+        }
+        Update: {
+          amount?: number | null
+          checkout_id?: string
+          created_at?: string
+          currency?: string | null
+          customer_email?: string | null
+          id?: string
+          product_id?: string | null
+          product_name?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
