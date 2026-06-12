@@ -716,6 +716,7 @@ export default function AdminPage() {
             <TabsList className="flex-wrap">
               <TabsTrigger value="stats">Stats</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
+              <TabsTrigger value="coffee">Coffee</TabsTrigger>
               <TabsTrigger value="recover">Recover</TabsTrigger>
               <TabsTrigger value="escrow">Escrow</TabsTrigger>
               <TabsTrigger value="invites">Invites</TabsTrigger>
@@ -724,6 +725,7 @@ export default function AdminPage() {
             <Separator className="my-4" />
             <TabsContent value="stats"><StatsTab /></TabsContent>
             <TabsContent value="users"><UsersTab onRecover={(h) => { setRecoverHash(h); setActiveTab("recover"); }} /></TabsContent>
+            <TabsContent value="coffee"><CoffeeTab /></TabsContent>
             <TabsContent value="recover"><RecoverTab initialHash={recoverHash} /></TabsContent>
             <TabsContent value="escrow"><EscrowTab info={info} onChange={refresh} /></TabsContent>
             <TabsContent value="invites"><InvitesTab info={info} onChange={refresh} /></TabsContent>
