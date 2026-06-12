@@ -2,6 +2,8 @@
 
 **Your beautiful, private space for notes and tasks — works fully offline, lives on your device.**
 
+*Version 2.1*
+
 Visit: [notoria.lovable.app](https://notoria.lovable.app)
 
 ---
@@ -10,7 +12,7 @@ Visit: [notoria.lovable.app](https://notoria.lovable.app)
 
 Notoria is a calm, distraction-free productivity companion built for thinkers, writers, students, and doers. It blends a rich notes app with a powerful task board, all wrapped in an elegant interface that respects your time and your privacy.
 
-No accounts. No syncing. No data leaving your device — unless you choose otherwise.
+No accounts required to get started. Your data lives on your device by default — and only leaves if you explicitly choose to back it up.
 
 ---
 
@@ -41,20 +43,32 @@ No accounts. No syncing. No data leaving your device — unless you choose other
 - Save PDFs offline (up to 100MB) for reading anywhere
 - Extract text from PDFs into editable notes
 
+### ☁️ Encrypted Cloud Backup
+- Optional end-to-end encrypted cloud backup using your own secret key
+- Restore your notes on any device — just bring your key
+- No account registration required for backup
+- Secure escrow recovery available if you lose your device
+
 ### 🎨 Themes that match your mood
 - **Light** — clean and bright
 - **Dark** — charcoal with warm gold accents
 - **Purple Gradient** — a softer, more playful look
 - Choose your font (Cambria, Times, Calibri, Georgia) and font size
+- Force desktop or mobile layout independently of screen size
 
 ### ☕ Notoria Coffee
 If Notoria makes your life a little easier, you can support its development with a coffee — directly from the sidebar.
+
+### 🛡️ Admin Panel
+Secure admin interface for managing backups, viewing support statistics, and handling encrypted recovery requests.
 
 ---
 
 ## 🔒 Private by design
 
-Everything you write stays on your device using your browser's secure local storage. There's no cloud, no tracking, and no account required. Your notes are yours — period.
+Everything you write stays on your device using your browser's secure local storage. There's no tracking and no account required to use the core features. Your notes are yours — period.
+
+When you choose cloud backup, everything is encrypted on your device with a key only you hold before it ever reaches the server.
 
 ---
 
