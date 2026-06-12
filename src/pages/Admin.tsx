@@ -26,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, Shield, Users, Database, KeyRound, UserPlus, RotateCcw, Download, LogOut, AlertTriangle, Smartphone, Link2, Copy } from "lucide-react";
+import { ArrowLeft, Shield, Users, Database, KeyRound, UserPlus, RotateCcw, Download, LogOut, AlertTriangle, Smartphone, Link2, Copy, Coffee as CoffeeIcon, Heart } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 function formatBytes(n: number): string {
@@ -553,6 +553,119 @@ function DevicesTab({ info, onChange }: { info: any; onChange: () => void }) {
               </AlertDescription>
             </Alert>
           )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function formatMoney(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency.toUpperCase(),
+    }).format(amount / 100);
+  } catch {
+    return `${(amount / 100).toFixed(2)} ${currency.toUpperCase()}`;
+  }
+}
+
+function CoffeeTab() {
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<any>(null);
+  const [recent, setRecent] = useState<any[]>([]);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const r = await adminApi.coffeeStats();
+      setStats(r.stats);
+      setRecent(r.recent);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to load coffee stats");
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { load(); }, []);
+
+  if (loading) return <p className="text-muted-foreground">Loading coffee stats…</p>;
+  if (!stats) return null;
+
+  const currencies = Object.entries(stats.byCurrency ?? {}) as Array<[string, { count: number; amount: number }]>;
+  const cards = [
+    { label: "Total supports", value: stats.totalSupports, icon: Heart },
+    { label: "Unique supporters", value: stats.uniqueSupporters, icon: Users },
+    { label: "Last 30 days", value: stats.last30DaysCount, icon: CoffeeIcon },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {cards.map(c => {
+          const Icon = c.icon;
+          return (
+            <Card key={c.label}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase text-muted-foreground tracking-wide">{c.label}</span>
+                  <Icon className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <p className="text-2xl font-semibold mt-1">{c.value}</p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {currencies.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Totals raised</CardTitle>
+            <CardDescription>Successful checkouts grouped by currency.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm">
+            {currencies.map(([cur, v]) => (
+              <div key={cur} className="flex items-center justify-between border-b last:border-0 py-1">
+                <span className="font-medium">{formatMoney(v.amount, cur)}</span>
+                <span className="text-muted-foreground text-xs">{v.count} support{v.count === 1 ? "" : "s"}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Recent supports</CardTitle>
+          <CardDescription>Last 50 verified checkouts.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {recent.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No supports recorded yet. Stats are captured when a buyer is redirected back to the Coffee page after a successful purchase.</p>
+          ) : (
+            <div className="space-y-2">
+              {recent.map(r => (
+                <div key={r.id} className="flex items-start justify-between gap-3 border-b last:border-0 py-2 text-sm">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{r.product_name ?? "Coffee"}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {r.customer_email ?? "anonymous"} • {new Date(r.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-semibold">
+                      {r.amount != null && r.currency ? formatMoney(r.amount, r.currency) : "—"}
+                    </p>
+                    <Badge variant={r.status === "succeeded" ? "secondary" : "outline"} className="text-[10px]">{r.status}</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <Button variant="outline" size="sm" onClick={load} className="mt-3">
+            <RotateCcw className="w-3 h-3 mr-1" /> Refresh
+          </Button>
         </CardContent>
       </Card>
     </div>
