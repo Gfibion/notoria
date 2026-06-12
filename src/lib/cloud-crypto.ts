@@ -7,8 +7,11 @@
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-// Crockford-ish base32 alphabet (no I, L, O, U)
-const ALPHABET = "ABCDEFGHJKMNPQRSTVWXYZ23456789";
+// Crockford base32 alphabet — exactly 32 characters (no I, L, O, U).
+// MUST be 32 chars; otherwise (value >> bits) & 31 can index past the end
+// and yield `undefined`, which would be concatenated as the literal string
+// "undefined" into generated keys. Do not shorten.
+const ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
 function bytesToBase32(bytes: Uint8Array): string {
   let bits = 0, value = 0, out = "";
