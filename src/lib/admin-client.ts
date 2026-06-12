@@ -113,4 +113,23 @@ export const adminApi = {
   recover: (userHash: string) => call<{ ok: true; userHash: string; wrappedKey: string | null; notes: any[]; recoverable: boolean }>("admin-recover", { userHash }),
   createDeviceLink: () => call<{ ok: true; token: string; expiresInMinutes: number }>("admin-create-device-link"),
   redeemDeviceLink: (token: string) => call<{ ok: true }>("admin-redeem-device-link", { token }),
+  coffeeStats: () => call<{
+    ok: true;
+    stats: {
+      totalSupports: number;
+      uniqueSupporters: number;
+      last30DaysCount: number;
+      byCurrency: Record<string, { count: number; amount: number }>;
+    };
+    recent: Array<{
+      id: string;
+      checkout_id: string;
+      product_name: string | null;
+      amount: number | null;
+      currency: string | null;
+      status: string;
+      customer_email: string | null;
+      created_at: string;
+    }>;
+  }>("admin-coffee-stats"),
 };

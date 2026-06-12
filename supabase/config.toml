@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.admin-redeem-device-link]
 verify_jwt = false
+
+[functions.admin-coffee-stats]
+verify_jwt = false

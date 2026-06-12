@@ -1,4 +1,5 @@
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -31,6 +32,28 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Record successful supports for admin analytics (idempotent on checkout_id)
+    if (data?.status === "succeeded") {
+      try {
+        const service = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        );
+        await service.from("coffee_supports").upsert({
+          checkout_id: checkoutId,
+          product_id: data.product?.id ?? data.product_id ?? null,
+          product_name: data.product?.name ?? null,
+          amount: typeof data.amount === "number" ? data.amount : null,
+          currency: data.currency ?? null,
+          status: data.status,
+          customer_email: data.customer_email ?? data.customer?.email ?? null,
+        }, { onConflict: "checkout_id" });
+      } catch (e) {
+        console.error("coffee_supports insert failed", e);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         status: data.status,
