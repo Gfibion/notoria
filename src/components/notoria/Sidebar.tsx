@@ -36,6 +36,7 @@ import {
   Coffee,
   Cloud,
   Shield,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
@@ -418,6 +419,24 @@ export function Sidebar({
                 <div className="flex flex-col leading-tight">
                   <span>Cloud Backup</span>
                   <span className="text-[10px] text-muted-foreground">Encrypted sync</span>
+                </div>
+              )}
+            </Link>
+
+            {/* Contact & support */}
+            <Link
+              to="/contact"
+              className={cn(
+                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'text-sidebar-foreground hover:bg-sidebar-accent/50'
+              )}
+              title="Contact & support"
+            >
+              <MessageSquare className="w-4 h-4 flex-shrink-0 text-primary" />
+              {!collapsed && (
+                <div className="flex flex-col leading-tight">
+                  <span>Contact</span>
+                  <span className="text-[10px] text-muted-foreground">FAQs & support tickets</span>
                 </div>
               )}
             </Link>

@@ -246,6 +246,110 @@ export type Database = {
         }
         Relationships: []
       }
+      faqs: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          published: boolean
+          question: string
+          sort_order: number
+          source_ticket_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          published?: boolean
+          question: string
+          sort_order?: number
+          source_ticket_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          published?: boolean
+          question?: string
+          sort_order?: number
+          source_ticket_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ticket_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender: string
+          ticket_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender: string
+          ticket_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tickets: {
+        Row: {
+          access_token: string
+          contact_email: string | null
+          created_at: string
+          id: string
+          reason: string
+          status: string
+          subject: string
+          ticket_number: string
+          updated_at: string
+          user_hash: string | null
+        }
+        Insert: {
+          access_token: string
+          contact_email?: string | null
+          created_at?: string
+          id?: string
+          reason: string
+          status?: string
+          subject: string
+          ticket_number: string
+          updated_at?: string
+          user_hash?: string | null
+        }
+        Update: {
+          access_token?: string
+          contact_email?: string | null
+          created_at?: string
+          id?: string
+          reason?: string
+          status?: string
+          subject?: string
+          ticket_number?: string
+          updated_at?: string
+          user_hash?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
