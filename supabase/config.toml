@@ -47,3 +47,36 @@ verify_jwt = false
 
 [functions.admin-coffee-stats]
 verify_jwt = false
+
+[functions.contact-create-ticket]
+verify_jwt = false
+
+[functions.contact-get-ticket]
+verify_jwt = false
+
+[functions.contact-add-message]
+verify_jwt = false
+
+[functions.contact-list-faqs]
+verify_jwt = false
+
+[functions.admin-tickets-list]
+verify_jwt = false
+
+[functions.admin-ticket-get]
+verify_jwt = false
+
+[functions.admin-ticket-reply]
+verify_jwt = false
+
+[functions.admin-ticket-status]
+verify_jwt = false
+
+[functions.admin-faqs-list]
+verify_jwt = false
+
+[functions.admin-faq-upsert]
+verify_jwt = false
+
+[functions.admin-faq-delete]
+verify_jwt = false
