@@ -26,8 +26,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, Shield, Users, Database, KeyRound, UserPlus, RotateCcw, Download, LogOut, AlertTriangle, Smartphone, Link2, Copy, Coffee as CoffeeIcon, Heart } from "lucide-react";
+import { ArrowLeft, Shield, Users, Database, KeyRound, UserPlus, RotateCcw, Download, LogOut, AlertTriangle, Smartphone, Link2, Copy, Coffee as CoffeeIcon, Heart, MessageSquare, HelpCircle } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import { SupportTab, FaqsTab, type FaqEditorState } from "@/components/admin/SupportTabs";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -676,6 +677,7 @@ export default function AdminPage() {
   const { loading, session, info, error, refresh } = useAdmin();
   const [activeTab, setActiveTab] = useState("stats");
   const [recoverHash, setRecoverHash] = useState("");
+  const [faqEditor, setFaqEditor] = useState<FaqEditorState>({ open: false, question: "", answer: "", published: true, sortOrder: 0 });
 
   const signOut = async () => { await supabase.auth.signOut(); refresh(); };
 
@@ -716,6 +718,8 @@ export default function AdminPage() {
             <TabsList className="flex-wrap">
               <TabsTrigger value="stats">Stats</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
+              <TabsTrigger value="support"><MessageSquare className="w-3.5 h-3.5 mr-1" />Support</TabsTrigger>
+              <TabsTrigger value="faqs"><HelpCircle className="w-3.5 h-3.5 mr-1" />FAQs</TabsTrigger>
               <TabsTrigger value="coffee">Coffee</TabsTrigger>
               <TabsTrigger value="recover">Recover</TabsTrigger>
               <TabsTrigger value="escrow">Escrow</TabsTrigger>
@@ -725,6 +729,13 @@ export default function AdminPage() {
             <Separator className="my-4" />
             <TabsContent value="stats"><StatsTab /></TabsContent>
             <TabsContent value="users"><UsersTab onRecover={(h) => { setRecoverHash(h); setActiveTab("recover"); }} /></TabsContent>
+            <TabsContent value="support">
+              <SupportTab openFaqEditor={(seed) => {
+                setFaqEditor({ open: true, question: seed.question, answer: seed.answer, published: true, sortOrder: 0, sourceTicketId: seed.sourceTicketId });
+                setActiveTab("faqs");
+              }} />
+            </TabsContent>
+            <TabsContent value="faqs"><FaqsTab editor={faqEditor} setEditor={setFaqEditor} /></TabsContent>
             <TabsContent value="coffee"><CoffeeTab /></TabsContent>
             <TabsContent value="recover"><RecoverTab initialHash={recoverHash} /></TabsContent>
             <TabsContent value="escrow"><EscrowTab info={info} onChange={refresh} /></TabsContent>
