@@ -132,4 +132,14 @@ export const adminApi = {
       created_at: string;
     }>;
   }>("admin-coffee-stats"),
+  ticketsList: () => call<{ ok: true; tickets: any[] }>("admin-tickets-list"),
+  ticketGet: (ticketId: string) => call<{ ok: true; ticket: any; messages: any[] }>("admin-ticket-get", { ticketId }),
+  ticketReply: (ticketId: string, body: string, setStatus?: string) =>
+    call<{ ok: true }>("admin-ticket-reply", { ticketId, body, setStatus }),
+  ticketStatus: (ticketId: string, status: string) =>
+    call<{ ok: true }>("admin-ticket-status", { ticketId, status }),
+  faqsList: () => call<{ ok: true; faqs: any[] }>("admin-faqs-list"),
+  faqUpsert: (p: { id?: string; question: string; answer: string; published?: boolean; sortOrder?: number; sourceTicketId?: string }) =>
+    call<{ ok: true; id: string }>("admin-faq-upsert", p),
+  faqDelete: (id: string) => call<{ ok: true }>("admin-faq-delete", { id }),
 };
