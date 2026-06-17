@@ -142,32 +142,44 @@ function StatsTab() {
   if (loading) return <p className="text-muted-foreground">Loading stats…</p>;
   if (!stats) return null;
   const cards = [
-    { label: "Total backups", value: stats.totalBackups, icon: Database },
-    { label: "Unique users", value: stats.uniqueUsers, icon: Users },
-    { label: "Recoverable backups", value: stats.recoverableBackups, icon: Shield },
-    { label: "Storage used", value: formatBytes(stats.approxBytes ?? 0), icon: Database },
-    { label: "Admins", value: `${stats.adminCount} / 2`, icon: Shield },
-    { label: "Pending invites", value: stats.pendingInvites, icon: UserPlus },
+    { label: "Total backups", value: stats.totalBackups, icon: Database, hint: "Encrypted bundles in cloud" },
+    { label: "Unique users", value: stats.uniqueUsers, icon: Users, hint: "Distinct anonymous identities" },
+    { label: "Recoverable", value: stats.recoverableBackups, icon: Shield, hint: "Escrow-wrapped backups" },
+    { label: "Storage used", value: formatBytes(stats.approxBytes ?? 0), icon: Database, hint: "Approximate cloud footprint" },
+    { label: "Admins", value: `${stats.adminCount} / 2`, icon: Shield, hint: "Master + secondary" },
+    { label: "Pending invites", value: stats.pendingInvites, icon: UserPlus, hint: "Outstanding admin tokens" },
   ];
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-      {cards.map(c => {
-        const Icon = c.icon;
-        return (
-          <Card key={c.label}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs uppercase text-muted-foreground tracking-wide">{c.label}</span>
-                <Icon className="w-4 h-4 text-muted-foreground" />
-              </div>
-              <p className="text-2xl font-semibold mt-1">{c.value}</p>
-            </CardContent>
-          </Card>
-        );
-      })}
-      <Button variant="outline" onClick={load} className="col-span-full justify-self-start">
-        <RotateCcw className="w-4 h-4 mr-1" /> Refresh
-      </Button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Overview</h2>
+          <p className="text-xs text-muted-foreground">Live snapshot of cloud backup activity.</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={load}>
+          <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Refresh
+        </Button>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {cards.map(c => {
+          const Icon = c.icon;
+          return (
+            <Card key={c.label} className="relative overflow-hidden border-border/60 hover:border-accent/50 hover:shadow-md transition-all group">
+              <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-accent to-transparent opacity-60" />
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase text-muted-foreground tracking-[0.12em] font-medium">{c.label}</span>
+                  <div className="w-7 h-7 rounded-md bg-accent/10 text-accent flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <p className="text-2xl font-bold mt-2 tracking-tight">{c.value}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{c.hint}</p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
