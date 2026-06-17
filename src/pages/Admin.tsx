@@ -614,32 +614,34 @@ function CoffeeTab() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Coffee & support</h2>
+          <p className="text-xs text-muted-foreground">Donations and one-time supports captured after a successful checkout.</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={load}>
+          <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Refresh
+        </Button>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {cards.map(c => {
           const Icon = c.icon;
           return (
-            <Card key={c.label}>
+            <Card key={c.label} className="relative overflow-hidden border-border/60 hover:border-accent/50 hover:shadow-md transition-all group">
+              <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-accent to-transparent opacity-60" />
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase text-muted-foreground tracking-wide">{c.label}</span>
-                  <Icon className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-[10px] uppercase text-muted-foreground tracking-[0.12em] font-medium">{c.label}</span>
+                  <div className="w-7 h-7 rounded-md bg-accent/10 text-accent flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
                 </div>
-                <p className="text-2xl font-semibold mt-1">{c.value}</p>
+                <p className="text-2xl font-bold mt-2 tracking-tight">{c.value}</p>
               </CardContent>
             </Card>
           );
         })}
       </div>
-
-      {currencies.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Totals raised</CardTitle>
-            <CardDescription>Successful checkouts grouped by currency.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-1 text-sm">
-            {currencies.map(([cur, v]) => (
-              <div key={cur} className="flex items-center justify-between border-b last:border-0 py-1">
                 <span className="font-medium">{formatMoney(v.amount, cur)}</span>
                 <span className="text-muted-foreground text-xs">{v.count} support{v.count === 1 ? "" : "s"}</span>
               </div>
