@@ -826,10 +826,12 @@ export default function AdminPage() {
                 </TabsContent>
                 <TabsContent value="faqs" className="mt-4 md:mt-0"><FaqsTab editor={faqEditor} setEditor={setFaqEditor} /></TabsContent>
                 <TabsContent value="coffee" className="mt-4 md:mt-0"><CoffeeTab /></TabsContent>
-            <TabsContent value="recover"><RecoverTab initialHash={recoverHash} /></TabsContent>
-            <TabsContent value="escrow"><EscrowTab info={info} onChange={refresh} /></TabsContent>
-            <TabsContent value="invites"><InvitesTab info={info} onChange={refresh} /></TabsContent>
-            <TabsContent value="devices"><DevicesTab info={info} onChange={refresh} /></TabsContent>
+                <TabsContent value="recover" className="mt-4 md:mt-0"><RecoverTab initialHash={recoverHash} /></TabsContent>
+                <TabsContent value="escrow" className="mt-4 md:mt-0"><EscrowTab info={info} onChange={refresh} /></TabsContent>
+                <TabsContent value="invites" className="mt-4 md:mt-0"><InvitesTab info={info} onChange={refresh} /></TabsContent>
+                <TabsContent value="devices" className="mt-4 md:mt-0"><DevicesTab info={info} onChange={refresh} /></TabsContent>
+              </div>
+            </div>
           </Tabs>
         )}
       </main>
