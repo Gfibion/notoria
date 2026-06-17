@@ -142,32 +142,44 @@ function StatsTab() {
   if (loading) return <p className="text-muted-foreground">Loading stats…</p>;
   if (!stats) return null;
   const cards = [
-    { label: "Total backups", value: stats.totalBackups, icon: Database },
-    { label: "Unique users", value: stats.uniqueUsers, icon: Users },
-    { label: "Recoverable backups", value: stats.recoverableBackups, icon: Shield },
-    { label: "Storage used", value: formatBytes(stats.approxBytes ?? 0), icon: Database },
-    { label: "Admins", value: `${stats.adminCount} / 2`, icon: Shield },
-    { label: "Pending invites", value: stats.pendingInvites, icon: UserPlus },
+    { label: "Total backups", value: stats.totalBackups, icon: Database, hint: "Encrypted bundles in cloud" },
+    { label: "Unique users", value: stats.uniqueUsers, icon: Users, hint: "Distinct anonymous identities" },
+    { label: "Recoverable", value: stats.recoverableBackups, icon: Shield, hint: "Escrow-wrapped backups" },
+    { label: "Storage used", value: formatBytes(stats.approxBytes ?? 0), icon: Database, hint: "Approximate cloud footprint" },
+    { label: "Admins", value: `${stats.adminCount} / 2`, icon: Shield, hint: "Master + secondary" },
+    { label: "Pending invites", value: stats.pendingInvites, icon: UserPlus, hint: "Outstanding admin tokens" },
   ];
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-      {cards.map(c => {
-        const Icon = c.icon;
-        return (
-          <Card key={c.label}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs uppercase text-muted-foreground tracking-wide">{c.label}</span>
-                <Icon className="w-4 h-4 text-muted-foreground" />
-              </div>
-              <p className="text-2xl font-semibold mt-1">{c.value}</p>
-            </CardContent>
-          </Card>
-        );
-      })}
-      <Button variant="outline" onClick={load} className="col-span-full justify-self-start">
-        <RotateCcw className="w-4 h-4 mr-1" /> Refresh
-      </Button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Overview</h2>
+          <p className="text-xs text-muted-foreground">Live snapshot of cloud backup activity.</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={load}>
+          <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Refresh
+        </Button>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {cards.map(c => {
+          const Icon = c.icon;
+          return (
+            <Card key={c.label} className="relative overflow-hidden border-border/60 hover:border-accent/50 hover:shadow-md transition-all group">
+              <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-accent to-transparent opacity-60" />
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase text-muted-foreground tracking-[0.12em] font-medium">{c.label}</span>
+                  <div className="w-7 h-7 rounded-md bg-accent/10 text-accent flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <p className="text-2xl font-bold mt-2 tracking-tight">{c.value}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{c.hint}</p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -602,17 +614,29 @@ function CoffeeTab() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Coffee & support</h2>
+          <p className="text-xs text-muted-foreground">Donations and one-time supports captured after a successful checkout.</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={load}>
+          <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Refresh
+        </Button>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {cards.map(c => {
           const Icon = c.icon;
           return (
-            <Card key={c.label}>
+            <Card key={c.label} className="relative overflow-hidden border-border/60 hover:border-accent/50 hover:shadow-md transition-all group">
+              <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-accent to-transparent opacity-60" />
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase text-muted-foreground tracking-wide">{c.label}</span>
-                  <Icon className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-[10px] uppercase text-muted-foreground tracking-[0.12em] font-medium">{c.label}</span>
+                  <div className="w-7 h-7 rounded-md bg-accent/10 text-accent flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
                 </div>
-                <p className="text-2xl font-semibold mt-1">{c.value}</p>
+                <p className="text-2xl font-bold mt-2 tracking-tight">{c.value}</p>
               </CardContent>
             </Card>
           );
@@ -627,7 +651,7 @@ function CoffeeTab() {
           </CardHeader>
           <CardContent className="space-y-1 text-sm">
             {currencies.map(([cur, v]) => (
-              <div key={cur} className="flex items-center justify-between border-b last:border-0 py-1">
+              <div key={cur} className="flex items-center justify-between border-b last:border-0 py-1.5">
                 <span className="font-medium">{formatMoney(v.amount, cur)}</span>
                 <span className="text-muted-foreground text-xs">{v.count} support{v.count === 1 ? "" : "s"}</span>
               </div>
@@ -681,22 +705,56 @@ export default function AdminPage() {
 
   const signOut = async () => { await supabase.auth.signOut(); refresh(); };
 
+  const NAV = [
+    { value: "stats", label: "Overview", icon: Database },
+    { value: "users", label: "Users", icon: Users },
+    { value: "support", label: "Support", icon: MessageSquare },
+    { value: "faqs", label: "FAQs", icon: HelpCircle },
+    { value: "coffee", label: "Coffee", icon: CoffeeIcon },
+    { value: "recover", label: "Recover", icon: KeyRound },
+    { value: "escrow", label: "Escrow", icon: Shield },
+    { value: "invites", label: "Invites", icon: UserPlus },
+    { value: "devices", label: "Device", icon: Smartphone },
+  ];
+  const activeMeta = NAV.find(n => n.value === activeTab) ?? NAV[0];
+
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b sticky top-0 bg-background/80 backdrop-blur z-10">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="w-4 h-4" /> Back to app
-          </Link>
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
+      <header className="border-b sticky top-0 bg-background/85 backdrop-blur-md z-20">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <Link to="/" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+              <ArrowLeft className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Back</span>
+            </Link>
+            <Separator orientation="vertical" className="h-5 hidden sm:block" />
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-md bg-gradient-to-br from-accent to-accent/60 text-accent-foreground flex items-center justify-center shadow-sm">
+                <Shield className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="font-semibold text-sm leading-none">Admin panel</h1>
+                <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                  {info?.user?.email ?? "Notoria control center"}
+                </p>
+              </div>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
-            <h1 className="font-semibold flex items-center gap-2"><Shield className="w-4 h-4" /> Admin panel</h1>
-            {info?.admin && <Badge variant={info.admin.role === "master" ? "default" : "secondary"}>{info.admin.role}</Badge>}
-            {session && <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4" /></Button>}
+            {info?.admin && (
+              <Badge variant={info.admin.role === "master" ? "default" : "secondary"} className="text-[10px] uppercase tracking-wider">
+                {info.admin.role}
+              </Badge>
+            )}
+            {session && (
+              <Button variant="ghost" size="sm" onClick={signOut} title="Sign out">
+                <LogOut className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-6">
+      <main className="max-w-6xl mx-auto px-4 py-6">
         {loading && <p className="text-muted-foreground">Loading…</p>}
 
         {!loading && !session && <AuthForm onAuthed={refresh} />}
@@ -715,32 +773,65 @@ export default function AdminPage() {
 
         {!loading && info?.admin && info.device?.authorized && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="flex-wrap">
-              <TabsTrigger value="stats">Stats</TabsTrigger>
-              <TabsTrigger value="users">Users</TabsTrigger>
-              <TabsTrigger value="support"><MessageSquare className="w-3.5 h-3.5 mr-1" />Support</TabsTrigger>
-              <TabsTrigger value="faqs"><HelpCircle className="w-3.5 h-3.5 mr-1" />FAQs</TabsTrigger>
-              <TabsTrigger value="coffee">Coffee</TabsTrigger>
-              <TabsTrigger value="recover">Recover</TabsTrigger>
-              <TabsTrigger value="escrow">Escrow</TabsTrigger>
-              <TabsTrigger value="invites">Invites</TabsTrigger>
-              <TabsTrigger value="devices">Device</TabsTrigger>
+            {/* Mobile horizontal nav */}
+            <TabsList className="md:hidden flex w-full overflow-x-auto justify-start h-auto p-1 gap-0.5">
+              {NAV.map(n => {
+                const Icon = n.icon;
+                return (
+                  <TabsTrigger key={n.value} value={n.value} className="flex-shrink-0 gap-1.5 text-xs">
+                    <Icon className="w-3.5 h-3.5" /> {n.label}
+                  </TabsTrigger>
+                );
+              })}
             </TabsList>
-            <Separator className="my-4" />
-            <TabsContent value="stats"><StatsTab /></TabsContent>
-            <TabsContent value="users"><UsersTab onRecover={(h) => { setRecoverHash(h); setActiveTab("recover"); }} /></TabsContent>
-            <TabsContent value="support">
-              <SupportTab openFaqEditor={(seed) => {
-                setFaqEditor({ open: true, question: seed.question, answer: seed.answer, published: true, sortOrder: 0, sourceTicketId: seed.sourceTicketId });
-                setActiveTab("faqs");
-              }} />
-            </TabsContent>
-            <TabsContent value="faqs"><FaqsTab editor={faqEditor} setEditor={setFaqEditor} /></TabsContent>
-            <TabsContent value="coffee"><CoffeeTab /></TabsContent>
-            <TabsContent value="recover"><RecoverTab initialHash={recoverHash} /></TabsContent>
-            <TabsContent value="escrow"><EscrowTab info={info} onChange={refresh} /></TabsContent>
-            <TabsContent value="invites"><InvitesTab info={info} onChange={refresh} /></TabsContent>
-            <TabsContent value="devices"><DevicesTab info={info} onChange={refresh} /></TabsContent>
+
+            <div className="md:grid md:grid-cols-[200px_1fr] md:gap-6 mt-4 md:mt-0">
+              {/* Desktop sidebar nav */}
+              <aside className="hidden md:block">
+                <div className="sticky top-20 space-y-0.5 bg-card border border-border/60 rounded-lg p-2 shadow-sm">
+                  {NAV.map(n => {
+                    const Icon = n.icon;
+                    const active = n.value === activeTab;
+                    return (
+                      <button
+                        key={n.value}
+                        onClick={() => setActiveTab(n.value)}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-all ${
+                          active
+                            ? "bg-accent/15 text-foreground font-medium shadow-sm border border-accent/30"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        }`}
+                      >
+                        <Icon className={`w-4 h-4 ${active ? "text-accent" : ""}`} />
+                        <span>{n.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </aside>
+
+              <div className="min-w-0">
+                <div className="hidden md:flex items-center gap-2 mb-4 pb-3 border-b border-border/60">
+                  <activeMeta.icon className="w-4 h-4 text-accent" />
+                  <h2 className="text-sm font-semibold tracking-tight">{activeMeta.label}</h2>
+                </div>
+
+                <TabsContent value="stats" className="mt-4 md:mt-0"><StatsTab /></TabsContent>
+                <TabsContent value="users" className="mt-4 md:mt-0"><UsersTab onRecover={(h) => { setRecoverHash(h); setActiveTab("recover"); }} /></TabsContent>
+                <TabsContent value="support" className="mt-4 md:mt-0">
+                  <SupportTab openFaqEditor={(seed) => {
+                    setFaqEditor({ open: true, question: seed.question, answer: seed.answer, published: true, sortOrder: 0, sourceTicketId: seed.sourceTicketId });
+                    setActiveTab("faqs");
+                  }} />
+                </TabsContent>
+                <TabsContent value="faqs" className="mt-4 md:mt-0"><FaqsTab editor={faqEditor} setEditor={setFaqEditor} /></TabsContent>
+                <TabsContent value="coffee" className="mt-4 md:mt-0"><CoffeeTab /></TabsContent>
+                <TabsContent value="recover" className="mt-4 md:mt-0"><RecoverTab initialHash={recoverHash} /></TabsContent>
+                <TabsContent value="escrow" className="mt-4 md:mt-0"><EscrowTab info={info} onChange={refresh} /></TabsContent>
+                <TabsContent value="invites" className="mt-4 md:mt-0"><InvitesTab info={info} onChange={refresh} /></TabsContent>
+                <TabsContent value="devices" className="mt-4 md:mt-0"><DevicesTab info={info} onChange={refresh} /></TabsContent>
+              </div>
+            </div>
           </Tabs>
         )}
       </main>
