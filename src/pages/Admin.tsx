@@ -642,6 +642,16 @@ function CoffeeTab() {
           );
         })}
       </div>
+
+      {currencies.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Totals raised</CardTitle>
+            <CardDescription>Successful checkouts grouped by currency.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm">
+            {currencies.map(([cur, v]) => (
+              <div key={cur} className="flex items-center justify-between border-b last:border-0 py-1.5">
                 <span className="font-medium">{formatMoney(v.amount, cur)}</span>
                 <span className="text-muted-foreground text-xs">{v.count} support{v.count === 1 ? "" : "s"}</span>
               </div>
