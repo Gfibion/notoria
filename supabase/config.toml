@@ -1,12 +1,9 @@
 project_id = "timqmjawukvkfvkhiygo"
 
-[functions.polar-products]
+[functions.paystack-initialize]
 verify_jwt = false
 
-[functions.polar-checkout]
-verify_jwt = false
-
-[functions.polar-verify]
+[functions.paystack-verify]
 verify_jwt = false
 
 [functions.cloud-backup]
