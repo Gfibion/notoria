@@ -47,6 +47,9 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         // Include .mjs so the PDF.js worker (pdf.worker.min.mjs) is precached and works offline.
         globPatterns: ["**/*.{js,mjs,css,html,ico,png,svg,woff2,wasm}"],
+        // WatermelonDB + LokiJS + PDF.js push the main chunk past the default 2 MiB.
+        // Raise the ceiling so the app-shell is still fully precached for offline use.
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

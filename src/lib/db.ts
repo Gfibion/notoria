@@ -1,16 +1,34 @@
-import { openDB, DBSchema, IDBPDatabase } from 'idb';
+/**
+ * Notoria main data layer — WatermelonDB-backed.
+ *
+ * The exported interfaces and function signatures are unchanged from the
+ * previous raw-IndexedDB implementation so no component or hook needs to
+ * change. Under the hood we now use `@nozbe/watermelondb` which, on web,
+ * still persists to IndexedDB via the LokiJS adapter but gives us a schema
+ * system and a clear path to SQLite when the app is packaged with
+ * Capacitor for native.
+ */
+
+import { Q } from '@nozbe/watermelondb';
+import {
+  database,
+  notesCollection,
+  workspacesCollection,
+  subcategoriesCollection,
+  settingsCollection,
+} from './watermelon';
 
 export interface Note {
   id: string;
   title: string;
   content: string;
-  workspace: string; // Can be empty for uncategorized notes
-  subcategory: string; // Subcategory within the workspace
-  color: string; // Note card background color
+  workspace: string;
+  subcategory: string;
+  color: string;
   isPinned: boolean;
   isStarred: boolean;
-  isDeleted: boolean; // Soft delete flag
-  deletedAt?: Date; // When the note was deleted
+  isDeleted: boolean;
+  deletedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
   tags: string[];
@@ -40,178 +58,182 @@ export interface AppSettings {
   uiLayout: 'auto' | 'desktop' | 'mobile';
 }
 
-interface NotoriaDB extends DBSchema {
-  notes: {
-    key: string;
-    value: Note;
-    indexes: {
-      'by-workspace': string;
-      'by-updated': Date;
-      'by-pinned': number;
-      'by-deleted': number;
-    };
-  };
-  workspaces: {
-    key: string;
-    value: Workspace;
-  };
-  subcategories: {
-    key: string;
-    value: Subcategory;
-    indexes: {
-      'by-workspace': string;
-    };
-  };
-  settings: {
-    key: string;
-    value: AppSettings;
+// ---------- row <-> interface mappers ----------
+
+function rowToNote(rec: any): Note {
+  const r = rec._raw;
+  let tags: string[] = [];
+  try {
+    tags = r.tags_json ? JSON.parse(r.tags_json) : [];
+    if (!Array.isArray(tags)) tags = [];
+  } catch {
+    tags = [];
+  }
+  return {
+    id: r.id,
+    title: r.title ?? '',
+    content: r.content ?? '',
+    workspace: r.workspace ?? '',
+    subcategory: r.subcategory ?? '',
+    color: r.color ?? '',
+    isPinned: !!r.is_pinned,
+    isStarred: !!r.is_starred,
+    isDeleted: !!r.is_deleted,
+    deletedAt: r.deleted_at ? new Date(r.deleted_at) : undefined,
+    createdAt: new Date(r.created_at ?? Date.now()),
+    updatedAt: new Date(r.updated_at ?? Date.now()),
+    tags,
   };
 }
 
-const DB_NAME = 'notoria-db';
-const DB_VERSION = 3;
-
-let dbInstance: IDBPDatabase<NotoriaDB> | null = null;
-
-export async function getDB(): Promise<IDBPDatabase<NotoriaDB>> {
-  if (dbInstance) return dbInstance;
-
-  dbInstance = await openDB<NotoriaDB>(DB_NAME, DB_VERSION, {
-    upgrade(db, oldVersion) {
-      // Notes store
-      if (!db.objectStoreNames.contains('notes')) {
-        const notesStore = db.createObjectStore('notes', { keyPath: 'id' });
-        notesStore.createIndex('by-workspace', 'workspace');
-        notesStore.createIndex('by-updated', 'updatedAt');
-        notesStore.createIndex('by-pinned', 'isPinned');
-        notesStore.createIndex('by-deleted', 'isDeleted');
-      }
-
-      // Workspaces store
-      if (!db.objectStoreNames.contains('workspaces')) {
-        db.createObjectStore('workspaces', { keyPath: 'id' });
-      }
-
-      // Subcategories store
-      if (!db.objectStoreNames.contains('subcategories')) {
-        const subcatStore = db.createObjectStore('subcategories', { keyPath: 'id' });
-        subcatStore.createIndex('by-workspace', 'workspaceId');
-      }
-
-      // Settings store (new in version 3)
-      if (!db.objectStoreNames.contains('settings')) {
-        db.createObjectStore('settings', { keyPath: 'id' });
-      }
-    },
-  });
-
-  return dbInstance;
+function writeNoteFields(rec: any, note: Note): void {
+  rec._setRaw('title', note.title ?? '');
+  rec._setRaw('content', note.content ?? '');
+  rec._setRaw('workspace', note.workspace ?? '');
+  rec._setRaw('subcategory', note.subcategory ?? '');
+  rec._setRaw('color', note.color ?? '');
+  rec._setRaw('is_pinned', note.isPinned ? 1 : 0);
+  rec._setRaw('is_starred', note.isStarred ? 1 : 0);
+  rec._setRaw('is_deleted', note.isDeleted ? 1 : 0);
+  rec._setRaw('deleted_at', note.deletedAt ? note.deletedAt.getTime() : null);
+  rec._setRaw('tags_json', JSON.stringify(Array.isArray(note.tags) ? note.tags : []));
+  rec._setRaw('created_at', note.createdAt ? new Date(note.createdAt).getTime() : Date.now());
+  rec._setRaw('updated_at', note.updatedAt ? new Date(note.updatedAt).getTime() : Date.now());
 }
 
-// Notes operations
+function rowToWorkspace(rec: any): Workspace {
+  const r = rec._raw;
+  return {
+    id: r.id,
+    name: r.name ?? '',
+    color: r.color ?? '',
+    icon: r.icon ?? '',
+    order: Number(r.order_index ?? 0),
+    createdAt: new Date(r.created_at ?? Date.now()),
+  };
+}
+
+function rowToSubcategory(rec: any): Subcategory {
+  const r = rec._raw;
+  return {
+    id: r.id,
+    name: r.name ?? '',
+    workspaceId: r.workspace_id ?? '',
+    createdAt: new Date(r.created_at ?? Date.now()),
+  };
+}
+
+// ---------- notes ----------
+
+function sortNotes(a: Note, b: Note): number {
+  if (a.isPinned !== b.isPinned) return b.isPinned ? 1 : -1;
+  return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+}
+
 export async function getAllNotes(): Promise<Note[]> {
-  const db = await getDB();
-  const notes = await db.getAll('notes');
-  return notes
-    .filter(note => !note.isDeleted)
-    .sort((a, b) => {
-      if (a.isPinned !== b.isPinned) return b.isPinned ? 1 : -1;
-      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-    });
+  const rows = await notesCollection().query().fetch();
+  return rows.map(rowToNote).filter((n) => !n.isDeleted).sort(sortNotes);
 }
 
 export async function getNotesByWorkspace(workspaceId: string): Promise<Note[]> {
-  const db = await getDB();
-  const notes = await db.getAllFromIndex('notes', 'by-workspace', workspaceId);
-  return notes
-    .filter(note => !note.isDeleted)
-    .sort((a, b) => {
-      if (a.isPinned !== b.isPinned) return b.isPinned ? 1 : -1;
-      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-    });
+  const rows = await notesCollection().query(Q.where('workspace', workspaceId)).fetch();
+  return rows.map(rowToNote).filter((n) => !n.isDeleted).sort(sortNotes);
 }
 
 export async function getStarredNotes(): Promise<Note[]> {
-  const db = await getDB();
-  const notes = await db.getAll('notes');
-  return notes
-    .filter(note => note.isStarred && !note.isDeleted)
-    .sort((a, b) => {
-      if (a.isPinned !== b.isPinned) return b.isPinned ? 1 : -1;
-      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-    });
+  const rows = await notesCollection().query().fetch();
+  return rows.map(rowToNote).filter((n) => n.isStarred && !n.isDeleted).sort(sortNotes);
 }
 
 export async function getDeletedNotes(): Promise<Note[]> {
-  const db = await getDB();
-  const notes = await db.getAll('notes');
-  return notes
-    .filter(note => note.isDeleted)
-    .sort((a, b) => {
-      const aDeletedAt = a.deletedAt ? new Date(a.deletedAt).getTime() : 0;
-      const bDeletedAt = b.deletedAt ? new Date(b.deletedAt).getTime() : 0;
-      return bDeletedAt - aDeletedAt;
-    });
+  const rows = await notesCollection().query().fetch();
+  return rows
+    .map(rowToNote)
+    .filter((n) => n.isDeleted)
+    .sort(
+      (a, b) =>
+        (b.deletedAt ? b.deletedAt.getTime() : 0) - (a.deletedAt ? a.deletedAt.getTime() : 0),
+    );
 }
 
 export async function getNote(id: string): Promise<Note | undefined> {
-  const db = await getDB();
-  return db.get('notes', id);
+  try {
+    const rec = await notesCollection().find(id);
+    return rowToNote(rec);
+  } catch {
+    return undefined;
+  }
 }
 
 export async function saveNote(note: Note): Promise<void> {
-  const db = await getDB();
-  // Ensure new fields have defaults for backwards compatibility
-  const noteWithDefaults: Note = {
+  const normalized: Note = {
     ...note,
     subcategory: note.subcategory || '',
     color: note.color || '',
     isDeleted: note.isDeleted ?? false,
     isStarred: note.isStarred ?? false,
   };
-  await db.put('notes', noteWithDefaults);
-}
-
-// Soft delete - move to trash
-export async function softDeleteNote(id: string): Promise<void> {
-  const db = await getDB();
-  const note = await db.get('notes', id);
-  if (note) {
-    note.isDeleted = true;
-    note.deletedAt = new Date();
-    await db.put('notes', note);
-  }
-}
-
-// Restore from trash
-export async function restoreNote(id: string): Promise<void> {
-  const db = await getDB();
-  const note = await db.get('notes', id);
-  if (note) {
-    note.isDeleted = false;
-    note.deletedAt = undefined;
-    await db.put('notes', note);
-  }
-}
-
-// Permanent delete
-export async function deleteNote(id: string): Promise<void> {
-  const db = await getDB();
-  await db.delete('notes', id);
-}
-
-// Auto-delete notes older than 30 days
-export async function cleanupOldDeletedNotes(): Promise<void> {
-  const db = await getDB();
-  const notes = await db.getAll('notes');
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  for (const note of notes) {
-    if (note.isDeleted && note.deletedAt && new Date(note.deletedAt) < thirtyDaysAgo) {
-      await db.delete('notes', note.id);
+  await database.write(async () => {
+    try {
+      const rec = await notesCollection().find(note.id);
+      await rec.update((r: any) => writeNoteFields(r, normalized));
+    } catch {
+      await notesCollection().create((r: any) => {
+        r._raw.id = note.id;
+        writeNoteFields(r, normalized);
+      });
     }
-  }
+  });
+}
+
+export async function softDeleteNote(id: string): Promise<void> {
+  await database.write(async () => {
+    try {
+      const rec = await notesCollection().find(id);
+      await rec.update((r: any) => {
+        r._setRaw('is_deleted', 1);
+        r._setRaw('deleted_at', Date.now());
+      });
+    } catch {
+      /* not found */
+    }
+  });
+}
+
+export async function restoreNote(id: string): Promise<void> {
+  await database.write(async () => {
+    try {
+      const rec = await notesCollection().find(id);
+      await rec.update((r: any) => {
+        r._setRaw('is_deleted', 0);
+        r._setRaw('deleted_at', null);
+      });
+    } catch {
+      /* not found */
+    }
+  });
+}
+
+export async function deleteNote(id: string): Promise<void> {
+  await database.write(async () => {
+    try {
+      const rec = await notesCollection().find(id);
+      await rec.destroyPermanently();
+    } catch {
+      /* not found */
+    }
+  });
+}
+
+export async function cleanupOldDeletedNotes(): Promise<void> {
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const rows = await notesCollection()
+    .query(Q.where('is_deleted', true), Q.where('deleted_at', Q.lt(thirtyDaysAgo)))
+    .fetch();
+  if (rows.length === 0) return;
+  await database.write(async () => {
+    for (const rec of rows) await rec.destroyPermanently();
+  });
 }
 
 export async function searchNotes(query: string): Promise<Note[]> {
@@ -221,72 +243,147 @@ export async function searchNotes(query: string): Promise<Note[]> {
     (note) =>
       note.title.toLowerCase().includes(lowerQuery) ||
       note.content.toLowerCase().includes(lowerQuery) ||
-      note.tags.some((tag) => tag.toLowerCase().includes(lowerQuery))
+      note.tags.some((tag) => tag.toLowerCase().includes(lowerQuery)),
   );
 }
 
-// Workspaces operations
+// ---------- workspaces ----------
+
 export async function getAllWorkspaces(): Promise<Workspace[]> {
-  const db = await getDB();
-  const workspaces = await db.getAll('workspaces');
-  return workspaces.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const rows = await workspacesCollection().query().fetch();
+  return rows.map(rowToWorkspace).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
 export async function getWorkspace(id: string): Promise<Workspace | undefined> {
-  const db = await getDB();
-  return db.get('workspaces', id);
+  try {
+    const rec = await workspacesCollection().find(id);
+    return rowToWorkspace(rec);
+  } catch {
+    return undefined;
+  }
 }
 
 export async function saveWorkspace(workspace: Workspace): Promise<void> {
-  const db = await getDB();
-  await db.put('workspaces', workspace);
+  await database.write(async () => {
+    try {
+      const rec = await workspacesCollection().find(workspace.id);
+      await rec.update((r: any) => {
+        r._setRaw('name', workspace.name ?? '');
+        r._setRaw('color', workspace.color ?? '');
+        r._setRaw('icon', workspace.icon ?? '');
+        r._setRaw('order_index', Number(workspace.order ?? 0));
+        r._setRaw('created_at', workspace.createdAt ? new Date(workspace.createdAt).getTime() : Date.now());
+      });
+    } catch {
+      await workspacesCollection().create((r: any) => {
+        r._raw.id = workspace.id;
+        r._setRaw('name', workspace.name ?? '');
+        r._setRaw('color', workspace.color ?? '');
+        r._setRaw('icon', workspace.icon ?? '');
+        r._setRaw('order_index', Number(workspace.order ?? 0));
+        r._setRaw('created_at', workspace.createdAt ? new Date(workspace.createdAt).getTime() : Date.now());
+      });
+    }
+  });
 }
 
 export async function deleteWorkspace(id: string): Promise<void> {
-  const db = await getDB();
-  await db.delete('workspaces', id);
+  await database.write(async () => {
+    try {
+      const rec = await workspacesCollection().find(id);
+      await rec.destroyPermanently();
+    } catch {
+      /* not found */
+    }
+  });
 }
 
-// Subcategories operations
+// ---------- subcategories ----------
+
 export async function getAllSubcategories(): Promise<Subcategory[]> {
-  const db = await getDB();
-  return db.getAll('subcategories');
+  const rows = await subcategoriesCollection().query().fetch();
+  return rows.map(rowToSubcategory);
 }
 
 export async function getSubcategoriesByWorkspace(workspaceId: string): Promise<Subcategory[]> {
-  const db = await getDB();
-  return db.getAllFromIndex('subcategories', 'by-workspace', workspaceId);
+  const rows = await subcategoriesCollection()
+    .query(Q.where('workspace_id', workspaceId))
+    .fetch();
+  return rows.map(rowToSubcategory);
 }
 
 export async function saveSubcategory(subcategory: Subcategory): Promise<void> {
-  const db = await getDB();
-  await db.put('subcategories', subcategory);
+  await database.write(async () => {
+    try {
+      const rec = await subcategoriesCollection().find(subcategory.id);
+      await rec.update((r: any) => {
+        r._setRaw('name', subcategory.name ?? '');
+        r._setRaw('workspace_id', subcategory.workspaceId ?? '');
+        r._setRaw('created_at', subcategory.createdAt ? new Date(subcategory.createdAt).getTime() : Date.now());
+      });
+    } catch {
+      await subcategoriesCollection().create((r: any) => {
+        r._raw.id = subcategory.id;
+        r._setRaw('name', subcategory.name ?? '');
+        r._setRaw('workspace_id', subcategory.workspaceId ?? '');
+        r._setRaw('created_at', subcategory.createdAt ? new Date(subcategory.createdAt).getTime() : Date.now());
+      });
+    }
+  });
 }
 
 export async function deleteSubcategory(id: string): Promise<void> {
-  const db = await getDB();
-  await db.delete('subcategories', id);
+  await database.write(async () => {
+    try {
+      const rec = await subcategoriesCollection().find(id);
+      await rec.destroyPermanently();
+    } catch {
+      /* not found */
+    }
+  });
 }
 
-// Settings operations
+// ---------- settings ----------
+
+const DEFAULT_SETTINGS: AppSettings = {
+  id: 'app-settings',
+  theme: 'default',
+  fontFamily: 'cambria',
+  fontSize: 'medium',
+  uiLayout: 'auto',
+};
+
 export async function getSettings(): Promise<AppSettings> {
-  const db = await getDB();
-  const settings = await db.get('settings', 'app-settings');
-  return settings || {
-    id: 'app-settings',
-    theme: 'default',
-    fontFamily: 'cambria',
-    fontSize: 'medium',
-    uiLayout: 'auto',
-  };
+  try {
+    const rec = await settingsCollection().find('app-settings');
+    const raw = (rec as any)._raw.payload_json;
+    if (!raw) return DEFAULT_SETTINGS;
+    const parsed = JSON.parse(raw) as AppSettings;
+    return { ...DEFAULT_SETTINGS, ...parsed, id: 'app-settings' };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
 }
 
 export async function saveSettings(settings: AppSettings): Promise<void> {
-  const db = await getDB();
-  await db.put('settings', { ...settings, id: 'app-settings' });
+  const payload = { ...settings, id: 'app-settings' };
+  await database.write(async () => {
+    try {
+      const rec = await settingsCollection().find('app-settings');
+      await rec.update((r: any) => {
+        r._setRaw('payload_json', JSON.stringify(payload));
+      });
+    } catch {
+      await settingsCollection().create((r: any) => {
+        r._raw.id = 'app-settings';
+        r._setRaw('payload_json', JSON.stringify(payload));
+      });
+    }
+  });
 }
 
-// Initialize default workspaces
+// ---------- bootstrap ----------
+
 export async function initializeDefaultWorkspaces(): Promise<void> {
   const workspaces = await getAllWorkspaces();
   if (workspaces.length === 0) {
@@ -296,31 +393,30 @@ export async function initializeDefaultWorkspaces(): Promise<void> {
       { id: 'ideas', name: 'Ideas', color: '#8B5CF6', icon: 'lightbulb', order: 2, createdAt: new Date() },
       { id: 'projects', name: 'Projects', color: '#059669', icon: 'folder', order: 3, createdAt: new Date() },
     ];
-    for (const ws of defaults) {
-      await saveWorkspace(ws);
-    }
+    for (const ws of defaults) await saveWorkspace(ws);
   }
 }
 
-// Reorder workspaces
 export async function reorderWorkspaces(orderedIds: string[]): Promise<void> {
-  const db = await getDB();
-  const workspaces = await db.getAll('workspaces');
-  for (const ws of workspaces) {
-    const newOrder = orderedIds.indexOf(ws.id);
-    if (newOrder !== -1 && ws.order !== newOrder) {
-      ws.order = newOrder;
-      await db.put('workspaces', ws);
+  const rows = await workspacesCollection().query().fetch();
+  await database.write(async () => {
+    for (const rec of rows) {
+      const newOrder = orderedIds.indexOf((rec as any)._raw.id);
+      if (newOrder !== -1 && (rec as any)._raw.order_index !== newOrder) {
+        await rec.update((r: any) => {
+          r._setRaw('order_index', newOrder);
+        });
+      }
     }
-  }
+  });
 }
 
-// Generate unique ID
+// ---------- helpers (unchanged public surface) ----------
+
 export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// Note color presets
 export const NOTE_COLORS = [
   { name: 'None', value: '' },
   { name: 'Rose', value: '#fecdd3' },
@@ -332,7 +428,6 @@ export const NOTE_COLORS = [
   { name: 'Slate', value: '#cbd5e1' },
 ];
 
-// Export note as TXT
 export function exportNoteAsTxt(note: Note): void {
   const content = note.content.replace(/<[^>]*>/g, '\n').replace(/\n+/g, '\n').trim();
   const text = `${note.title || 'Untitled'}\n\n${content}`;
@@ -345,7 +440,6 @@ export function exportNoteAsTxt(note: Note): void {
   URL.revokeObjectURL(url);
 }
 
-// Import from TXT
 export async function importFromTxt(file: File): Promise<{ title: string; content: string }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -359,4 +453,9 @@ export async function importFromTxt(file: File): Promise<{ title: string; conten
     reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsText(file);
   });
+}
+
+/** Kept for backwards compatibility with any caller that used to reach for a raw DB. */
+export async function getDB(): Promise<never> {
+  throw new Error('getDB() is no longer supported — use the exported helpers instead.');
 }
