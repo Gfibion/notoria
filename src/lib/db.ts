@@ -131,7 +131,9 @@ function sortNotes(a: Note, b: Note): number {
 }
 
 export async function getAllNotes(): Promise<Note[]> {
-  const rows = await notesCollection().query(Q.where('is_deleted', false)).fetch();
+  const rows = await notesCollection().query().fetch();
+  const filtered = rows.map(rowToNote).filter((n) => !n.isDeleted);
+  return filtered.sort(sortNotes);
   return rows.map(rowToNote).sort(sortNotes);
 }
 
