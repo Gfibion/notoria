@@ -1,118 +1,158 @@
-import { openDB, DBSchema, IDBPDatabase } from 'idb';
+/**
+ * Notoria PDF offline cache — WatermelonDB-backed.
+ *
+ * Public interface identical to the previous `idb`-based implementation.
+ * Binary PDFs are stored as base64 strings inside the `pdf_cache` table.
+ * LRU eviction runs against `cached_at` to keep the cache under
+ * MAX_CACHE_SIZE_MB.
+ */
+
+import { Q } from '@nozbe/watermelondb';
+import { database, pdfCacheCollection } from './watermelon';
 
 export interface CachedPDF {
-  id: string; // Unique identifier based on filename + size
+  id: string;
   fileName: string;
   data: ArrayBuffer;
   size: number;
   cachedAt: Date;
 }
 
-interface PDFCacheDB extends DBSchema {
-  pdfs: {
-    key: string;
-    value: CachedPDF;
-    indexes: {
-      'by-cached-at': Date;
-    };
-  };
+const MAX_CACHE_SIZE_MB = 100;
+
+// ---------- base64 <-> ArrayBuffer ----------
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const CHUNK = 0x8000;
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
 }
 
-const DB_NAME = 'notoria-pdf-cache';
-const DB_VERSION = 1;
-const MAX_CACHE_SIZE_MB = 100; // Maximum cache size in MB
-
-let dbInstance: IDBPDatabase<PDFCacheDB> | null = null;
-
-async function getDB(): Promise<IDBPDatabase<PDFCacheDB>> {
-  if (dbInstance) return dbInstance;
-
-  dbInstance = await openDB<PDFCacheDB>(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains('pdfs')) {
-        const store = db.createObjectStore('pdfs', { keyPath: 'id' });
-        store.createIndex('by-cached-at', 'cachedAt');
-      }
-    },
-  });
-
-  return dbInstance;
+function base64ToArrayBuffer(b64: string): ArrayBuffer {
+  const binary = atob(b64);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
 }
 
-// Generate a unique ID for a PDF based on filename and size
+// ---------- id helper ----------
+
 export function generatePDFId(fileName: string, size: number): string {
   return `${fileName}-${size}`;
 }
 
-// Get a cached PDF
+// ---------- reads ----------
+
 export async function getCachedPDF(id: string): Promise<CachedPDF | undefined> {
-  const db = await getDB();
-  return db.get('pdfs', id);
-}
-
-// Check if a PDF is cached
-export async function isPDFCached(id: string): Promise<boolean> {
-  const db = await getDB();
-  const pdf = await db.get('pdfs', id);
-  return !!pdf;
-}
-
-// Save a PDF to cache
-export async function cachePDF(pdf: CachedPDF): Promise<void> {
-  const db = await getDB();
-  
-  // Check total cache size and clean up if needed
-  await enforceMaxCacheSize(pdf.size);
-  
-  await db.put('pdfs', pdf);
-}
-
-// Remove a PDF from cache
-export async function removeCachedPDF(id: string): Promise<void> {
-  const db = await getDB();
-  await db.delete('pdfs', id);
-}
-
-// Get all cached PDFs (metadata only, without data)
-export async function getAllCachedPDFs(): Promise<Omit<CachedPDF, 'data'>[]> {
-  const db = await getDB();
-  const pdfs = await db.getAll('pdfs');
-  return pdfs.map(({ data, ...rest }) => rest);
-}
-
-// Get total cache size in bytes
-export async function getTotalCacheSize(): Promise<number> {
-  const db = await getDB();
-  const pdfs = await db.getAll('pdfs');
-  return pdfs.reduce((total, pdf) => total + pdf.size, 0);
-}
-
-// Enforce maximum cache size by removing oldest entries
-async function enforceMaxCacheSize(newFileSize: number): Promise<void> {
-  const db = await getDB();
-  const maxBytes = MAX_CACHE_SIZE_MB * 1024 * 1024;
-  
-  let totalSize = await getTotalCacheSize();
-  
-  // If adding new file would exceed limit, remove oldest entries
-  if (totalSize + newFileSize > maxBytes) {
-    const pdfs = await db.getAllFromIndex('pdfs', 'by-cached-at');
-    
-    for (const pdf of pdfs) {
-      if (totalSize + newFileSize <= maxBytes) break;
-      await db.delete('pdfs', pdf.id);
-      totalSize -= pdf.size;
-    }
+  try {
+    const rec = await pdfCacheCollection().find(id);
+    const r = (rec as any)._raw;
+    return {
+      id: r.id,
+      fileName: r.file_name ?? '',
+      data: base64ToArrayBuffer(r.data_b64 ?? ''),
+      size: Number(r.size ?? 0),
+      cachedAt: new Date(r.cached_at ?? Date.now()),
+    };
+  } catch {
+    return undefined;
   }
 }
 
-// Clear all cached PDFs
-export async function clearPDFCache(): Promise<void> {
-  const db = await getDB();
-  await db.clear('pdfs');
+export async function isPDFCached(id: string): Promise<boolean> {
+  try {
+    await pdfCacheCollection().find(id);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-// Format bytes to human readable string
+export async function getAllCachedPDFs(): Promise<Omit<CachedPDF, 'data'>[]> {
+  const rows = await pdfCacheCollection().query().fetch();
+  return rows.map((rec: any) => ({
+    id: rec._raw.id,
+    fileName: rec._raw.file_name ?? '',
+    size: Number(rec._raw.size ?? 0),
+    cachedAt: new Date(rec._raw.cached_at ?? Date.now()),
+  }));
+}
+
+export async function getTotalCacheSize(): Promise<number> {
+  const rows = await pdfCacheCollection().query().fetch();
+  return rows.reduce((total: number, r: any) => total + Number(r._raw.size ?? 0), 0);
+}
+
+// ---------- writes ----------
+
+async function enforceMaxCacheSize(newFileSize: number): Promise<void> {
+  const maxBytes = MAX_CACHE_SIZE_MB * 1024 * 1024;
+  let totalSize = await getTotalCacheSize();
+  if (totalSize + newFileSize <= maxBytes) return;
+
+  const rows = await pdfCacheCollection().query().fetch();
+  rows.sort((a: any, b: any) => Number(a._raw.cached_at ?? 0) - Number(b._raw.cached_at ?? 0));
+
+  await database.write(async () => {
+    for (const rec of rows) {
+      if (totalSize + newFileSize <= maxBytes) break;
+      const size = Number((rec as any)._raw.size ?? 0);
+      await rec.destroyPermanently();
+      totalSize -= size;
+    }
+  });
+}
+
+export async function cachePDF(pdf: CachedPDF): Promise<void> {
+  await enforceMaxCacheSize(pdf.size);
+  const b64 = arrayBufferToBase64(pdf.data);
+  await database.write(async () => {
+    try {
+      const rec = await pdfCacheCollection().find(pdf.id);
+      await rec.update((r: any) => {
+        r._raw.file_name = pdf.fileName;
+        r._raw.data_b64 = b64;
+        r._raw.size = pdf.size;
+        r._raw.cached_at = pdf.cachedAt ? pdf.cachedAt.getTime() : Date.now();
+      });
+    } catch {
+      await pdfCacheCollection().create((r: any) => {
+        r._raw.id = pdf.id;
+        r._raw.file_name = pdf.fileName;
+        r._raw.data_b64 = b64;
+        r._raw.size = pdf.size;
+        r._raw.cached_at = pdf.cachedAt ? pdf.cachedAt.getTime() : Date.now();
+      });
+    }
+  });
+}
+
+export async function removeCachedPDF(id: string): Promise<void> {
+  await database.write(async () => {
+    try {
+      const rec = await pdfCacheCollection().find(id);
+      await rec.destroyPermanently();
+    } catch {
+      /* not found */
+    }
+  });
+}
+
+export async function clearPDFCache(): Promise<void> {
+  const rows = await pdfCacheCollection().query().fetch();
+  if (rows.length === 0) return;
+  await database.write(async () => {
+    for (const rec of rows) await rec.destroyPermanently();
+  });
+}
+
+// ---------- formatting helper (unchanged) ----------
+
 export function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
