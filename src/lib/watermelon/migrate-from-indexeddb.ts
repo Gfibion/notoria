@@ -179,100 +179,100 @@ export async function runMigrationIfNeeded(
       for (const n of legacyNotes) {
         await database.get('notes').create((rec: any) => {
           rec._raw.id = String(n.id);
-          rec._raw.title = String(n.title ?? '');
-          rec._raw.content = String(n.content ?? '');
-          rec._raw.workspace = String(n.workspace ?? '');
-          rec._raw.subcategory = String(n.subcategory ?? '');
-          rec._raw.color = String(n.color ?? '');
-          rec._raw.is_pinned = n.isPinned ? 1 : 0;
-          rec._raw.is_starred = n.isStarred ? 1 : 0;
-          rec._raw.is_deleted = n.isDeleted ? 1 : 0;
-          rec._raw.deleted_at = n.deletedAt ? toMs(n.deletedAt) : null;
-          rec._raw.tags_json = JSON.stringify(Array.isArray(n.tags) ? n.tags : []);
-          rec._raw.created_at = toMs(n.createdAt);
-          rec._raw.updated_at = toMs(n.updatedAt);
+          rec._setRaw('title', String(n.title ?? ''));
+          rec._setRaw('content', String(n.content ?? ''));
+          rec._setRaw('workspace', String(n.workspace ?? ''));
+          rec._setRaw('subcategory', String(n.subcategory ?? ''));
+          rec._setRaw('color', String(n.color ?? ''));
+          rec._setRaw('is_pinned', n.isPinned ? 1 : 0);
+          rec._setRaw('is_starred', n.isStarred ? 1 : 0);
+          rec._setRaw('is_deleted', n.isDeleted ? 1 : 0);
+          rec._setRaw('deleted_at', n.deletedAt ? toMs(n.deletedAt) : null);
+          rec._setRaw('tags_json', JSON.stringify(Array.isArray(n.tags) ? n.tags : []));
+          rec._setRaw('created_at', toMs(n.createdAt));
+          rec._setRaw('updated_at', toMs(n.updatedAt));
         });
       }
       // Workspaces
       for (const w of legacyWorkspaces) {
         await database.get('workspaces').create((rec: any) => {
           rec._raw.id = String(w.id);
-          rec._raw.name = String(w.name ?? '');
-          rec._raw.color = String(w.color ?? '');
-          rec._raw.icon = String(w.icon ?? '');
-          rec._raw.order_index = Number(w.order ?? 0);
-          rec._raw.created_at = toMs(w.createdAt);
+          rec._setRaw('name', String(w.name ?? ''));
+          rec._setRaw('color', String(w.color ?? ''));
+          rec._setRaw('icon', String(w.icon ?? ''));
+          rec._setRaw('order_index', Number(w.order ?? 0));
+          rec._setRaw('created_at', toMs(w.createdAt));
         });
       }
       // Subcategories
       for (const s of legacySubcats) {
         await database.get('subcategories').create((rec: any) => {
           rec._raw.id = String(s.id);
-          rec._raw.name = String(s.name ?? '');
-          rec._raw.workspace_id = String(s.workspaceId ?? '');
-          rec._raw.created_at = toMs(s.createdAt);
+          rec._setRaw('name', String(s.name ?? ''));
+          rec._setRaw('workspace_id', String(s.workspaceId ?? ''));
+          rec._setRaw('created_at', toMs(s.createdAt));
         });
       }
       // Settings
       for (const st of legacySettings) {
         await database.get('settings').create((rec: any) => {
           rec._raw.id = String(st.id ?? 'app-settings');
-          rec._raw.payload_json = JSON.stringify(st);
+          rec._setRaw('payload_json', JSON.stringify(st));
         });
       }
       // Tasks
       for (const t of legacyTasks) {
         await database.get('tasks').create((rec: any) => {
           rec._raw.id = String(t.id);
-          rec._raw.title = String(t.title ?? '');
-          rec._raw.description = t.description ?? null;
-          rec._raw.status = String(t.status ?? 'todo');
-          rec._raw.priority = String(t.priority ?? 'medium');
-          rec._raw.due_date = t.dueDate ?? null;
-          rec._raw.reminder = t.reminder ?? null;
-          rec._raw.project_id = t.projectId ?? null;
-          rec._raw.subtasks_json = t.subtasks ? JSON.stringify(t.subtasks) : null;
-          rec._raw.is_recurring = t.isRecurring == null ? null : (t.isRecurring ? 1 : 0);
-          rec._raw.recurring_frequency = t.recurringFrequency ?? null;
-          rec._raw.completed_cycles = t.completedCycles ?? null;
-          rec._raw.is_completed = t.isCompleted == null ? null : (t.isCompleted ? 1 : 0);
-          rec._raw.is_trail_record = t.isTrailRecord == null ? null : (t.isTrailRecord ? 1 : 0);
-          rec._raw.trail_cycle_number = t.trailCycleNumber ?? null;
-          rec._raw.parent_recurring_task_id = t.parentRecurringTaskId ?? null;
-          rec._raw.trail_completed_at = t.trailCompletedAt ?? null;
-          rec._raw.order_index = Number(t.order ?? 0);
-          rec._raw.created_at_iso = String(t.createdAt ?? new Date().toISOString());
-          rec._raw.updated_at_iso = String(t.updatedAt ?? new Date().toISOString());
+          rec._setRaw('title', String(t.title ?? ''));
+          rec._setRaw('description', t.description ?? null);
+          rec._setRaw('status', String(t.status ?? 'todo'));
+          rec._setRaw('priority', String(t.priority ?? 'medium'));
+          rec._setRaw('due_date', t.dueDate ?? null);
+          rec._setRaw('reminder', t.reminder ?? null);
+          rec._setRaw('project_id', t.projectId ?? null);
+          rec._setRaw('subtasks_json', t.subtasks ? JSON.stringify(t.subtasks) : null);
+          rec._setRaw('is_recurring', t.isRecurring == null ? null : (t.isRecurring ? 1 : 0));
+          rec._setRaw('recurring_frequency', t.recurringFrequency ?? null);
+          rec._setRaw('completed_cycles', t.completedCycles ?? null);
+          rec._setRaw('is_completed', t.isCompleted == null ? null : (t.isCompleted ? 1 : 0));
+          rec._setRaw('is_trail_record', t.isTrailRecord == null ? null : (t.isTrailRecord ? 1 : 0));
+          rec._setRaw('trail_cycle_number', t.trailCycleNumber ?? null);
+          rec._setRaw('parent_recurring_task_id', t.parentRecurringTaskId ?? null);
+          rec._setRaw('trail_completed_at', t.trailCompletedAt ?? null);
+          rec._setRaw('order_index', Number(t.order ?? 0));
+          rec._setRaw('created_at_iso', String(t.createdAt ?? new Date().toISOString()));
+          rec._setRaw('updated_at_iso', String(t.updatedAt ?? new Date().toISOString()));
         });
       }
       // Projects
       for (const p of legacyProjects) {
         await database.get('projects').create((rec: any) => {
           rec._raw.id = String(p.id);
-          rec._raw.name = String(p.name ?? '');
-          rec._raw.description = p.description ?? null;
-          rec._raw.color = String(p.color ?? '#6366f1');
-          rec._raw.icon = String(p.icon ?? 'folder');
-          rec._raw.start_date = p.startDate ?? null;
-          rec._raw.end_date = p.endDate ?? null;
-          rec._raw.modules_json = p.modules ? JSON.stringify(p.modules) : null;
-          rec._raw.created_at_iso = String(p.createdAt ?? new Date().toISOString());
+          rec._setRaw('name', String(p.name ?? ''));
+          rec._setRaw('description', p.description ?? null);
+          rec._setRaw('color', String(p.color ?? '#6366f1'));
+          rec._setRaw('icon', String(p.icon ?? 'folder'));
+          rec._setRaw('start_date', p.startDate ?? null);
+          rec._setRaw('end_date', p.endDate ?? null);
+          rec._setRaw('modules_json', p.modules ? JSON.stringify(p.modules) : null);
+          rec._setRaw('created_at_iso', String(p.createdAt ?? new Date().toISOString()));
         });
       }
       // PDF cache
       for (const p of preparedPdfs) {
         await database.get('pdf_cache').create((rec: any) => {
           rec._raw.id = p.id;
-          rec._raw.file_name = p.file_name;
-          rec._raw.data_b64 = p.data_b64;
-          rec._raw.size = p.size;
-          rec._raw.cached_at = p.cached_at;
+          rec._setRaw('file_name', p.file_name);
+          rec._setRaw('data_b64', p.data_b64);
+          rec._setRaw('size', p.size);
+          rec._setRaw('cached_at', p.cached_at);
         });
       }
       // Safety-net backup row
       await legacyBackupsCollection().create((rec: any) => {
-        rec._raw.payload_json = backupPayload;
-        rec._raw.created_at = Date.now();
+        rec._setRaw('payload_json', backupPayload);
+        rec._setRaw('created_at', Date.now());
       });
     });
 

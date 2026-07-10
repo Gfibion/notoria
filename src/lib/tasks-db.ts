@@ -93,25 +93,25 @@ function rowToTask(rec: any): Task {
 }
 
 function writeTaskFields(rec: any, task: Task): void {
-  rec._raw.title = task.title ?? '';
-  rec._raw.description = task.description ?? null;
-  rec._raw.status = task.status ?? 'todo';
-  rec._raw.priority = task.priority ?? 'medium';
-  rec._raw.due_date = task.dueDate ?? null;
-  rec._raw.reminder = task.reminder ?? null;
-  rec._raw.project_id = task.projectId ?? null;
-  rec._raw.subtasks_json = task.subtasks ? JSON.stringify(task.subtasks) : null;
-  rec._raw.is_recurring = task.isRecurring == null ? null : (task.isRecurring ? 1 : 0);
-  rec._raw.recurring_frequency = task.recurringFrequency ?? null;
-  rec._raw.completed_cycles = task.completedCycles ?? null;
-  rec._raw.is_completed = task.isCompleted == null ? null : (task.isCompleted ? 1 : 0);
-  rec._raw.is_trail_record = task.isTrailRecord == null ? null : (task.isTrailRecord ? 1 : 0);
-  rec._raw.trail_cycle_number = task.trailCycleNumber ?? null;
-  rec._raw.parent_recurring_task_id = task.parentRecurringTaskId ?? null;
-  rec._raw.trail_completed_at = task.trailCompletedAt ?? null;
-  rec._raw.order_index = Number(task.order ?? 0);
-  rec._raw.created_at_iso = task.createdAt ?? new Date().toISOString();
-  rec._raw.updated_at_iso = task.updatedAt ?? new Date().toISOString();
+  rec._setRaw('title', task.title ?? '');
+  rec._setRaw('description', task.description ?? null);
+  rec._setRaw('status', task.status ?? 'todo');
+  rec._setRaw('priority', task.priority ?? 'medium');
+  rec._setRaw('due_date', task.dueDate ?? null);
+  rec._setRaw('reminder', task.reminder ?? null);
+  rec._setRaw('project_id', task.projectId ?? null);
+  rec._setRaw('subtasks_json', task.subtasks ? JSON.stringify(task.subtasks) : null);
+  rec._setRaw('is_recurring', task.isRecurring == null ? null : (task.isRecurring ? 1 : 0));
+  rec._setRaw('recurring_frequency', task.recurringFrequency ?? null);
+  rec._setRaw('completed_cycles', task.completedCycles ?? null);
+  rec._setRaw('is_completed', task.isCompleted == null ? null : (task.isCompleted ? 1 : 0));
+  rec._setRaw('is_trail_record', task.isTrailRecord == null ? null : (task.isTrailRecord ? 1 : 0));
+  rec._setRaw('trail_cycle_number', task.trailCycleNumber ?? null);
+  rec._setRaw('parent_recurring_task_id', task.parentRecurringTaskId ?? null);
+  rec._setRaw('trail_completed_at', task.trailCompletedAt ?? null);
+  rec._setRaw('order_index', Number(task.order ?? 0));
+  rec._setRaw('created_at_iso', task.createdAt ?? new Date().toISOString());
+  rec._setRaw('updated_at_iso', task.updatedAt ?? new Date().toISOString());
 }
 
 function rowToProject(rec: any): Project {
@@ -136,14 +136,14 @@ function rowToProject(rec: any): Project {
 }
 
 function writeProjectFields(rec: any, project: Project): void {
-  rec._raw.name = project.name ?? '';
-  rec._raw.description = project.description ?? null;
-  rec._raw.color = project.color ?? '#6366f1';
-  rec._raw.icon = project.icon ?? 'folder';
-  rec._raw.start_date = project.startDate ?? null;
-  rec._raw.end_date = project.endDate ?? null;
-  rec._raw.modules_json = project.modules ? JSON.stringify(project.modules) : null;
-  rec._raw.created_at_iso = project.createdAt ?? new Date().toISOString();
+  rec._setRaw('name', project.name ?? '');
+  rec._setRaw('description', project.description ?? null);
+  rec._setRaw('color', project.color ?? '#6366f1');
+  rec._setRaw('icon', project.icon ?? 'folder');
+  rec._setRaw('start_date', project.startDate ?? null);
+  rec._setRaw('end_date', project.endDate ?? null);
+  rec._setRaw('modules_json', project.modules ? JSON.stringify(project.modules) : null);
+  rec._setRaw('created_at_iso', project.createdAt ?? new Date().toISOString());
 }
 
 // ---------- id helper (unchanged surface) ----------

@@ -115,18 +115,18 @@ export async function cachePDF(pdf: CachedPDF): Promise<void> {
     try {
       const rec = await pdfCacheCollection().find(pdf.id);
       await rec.update((r: any) => {
-        r._raw.file_name = pdf.fileName;
-        r._raw.data_b64 = b64;
-        r._raw.size = pdf.size;
-        r._raw.cached_at = pdf.cachedAt ? pdf.cachedAt.getTime() : Date.now();
+        r._setRaw('file_name', pdf.fileName);
+        r._setRaw('data_b64', b64);
+        r._setRaw('size', pdf.size);
+        r._setRaw('cached_at', pdf.cachedAt ? pdf.cachedAt.getTime() : Date.now());
       });
     } catch {
       await pdfCacheCollection().create((r: any) => {
         r._raw.id = pdf.id;
-        r._raw.file_name = pdf.fileName;
-        r._raw.data_b64 = b64;
-        r._raw.size = pdf.size;
-        r._raw.cached_at = pdf.cachedAt ? pdf.cachedAt.getTime() : Date.now();
+        r._setRaw('file_name', pdf.fileName);
+        r._setRaw('data_b64', b64);
+        r._setRaw('size', pdf.size);
+        r._setRaw('cached_at', pdf.cachedAt ? pdf.cachedAt.getTime() : Date.now());
       });
     }
   });

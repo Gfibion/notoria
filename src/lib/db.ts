@@ -87,18 +87,18 @@ function rowToNote(rec: any): Note {
 }
 
 function writeNoteFields(rec: any, note: Note): void {
-  rec._raw.title = note.title ?? '';
-  rec._raw.content = note.content ?? '';
-  rec._raw.workspace = note.workspace ?? '';
-  rec._raw.subcategory = note.subcategory ?? '';
-  rec._raw.color = note.color ?? '';
-  rec._raw.is_pinned = note.isPinned ? 1 : 0;
-  rec._raw.is_starred = note.isStarred ? 1 : 0;
-  rec._raw.is_deleted = note.isDeleted ? 1 : 0;
-  rec._raw.deleted_at = note.deletedAt ? note.deletedAt.getTime() : null;
-  rec._raw.tags_json = JSON.stringify(Array.isArray(note.tags) ? note.tags : []);
-  rec._raw.created_at = note.createdAt ? new Date(note.createdAt).getTime() : Date.now();
-  rec._raw.updated_at = note.updatedAt ? new Date(note.updatedAt).getTime() : Date.now();
+  rec._setRaw('title', note.title ?? '');
+  rec._setRaw('content', note.content ?? '');
+  rec._setRaw('workspace', note.workspace ?? '');
+  rec._setRaw('subcategory', note.subcategory ?? '');
+  rec._setRaw('color', note.color ?? '');
+  rec._setRaw('is_pinned', note.isPinned ? 1 : 0);
+  rec._setRaw('is_starred', note.isStarred ? 1 : 0);
+  rec._setRaw('is_deleted', note.isDeleted ? 1 : 0);
+  rec._setRaw('deleted_at', note.deletedAt ? note.deletedAt.getTime() : null);
+  rec._setRaw('tags_json', JSON.stringify(Array.isArray(note.tags) ? note.tags : []));
+  rec._setRaw('created_at', note.createdAt ? new Date(note.createdAt).getTime() : Date.now());
+  rec._setRaw('updated_at', note.updatedAt ? new Date(note.updatedAt).getTime() : Date.now());
 }
 
 function rowToWorkspace(rec: any): Workspace {
@@ -194,8 +194,8 @@ export async function softDeleteNote(id: string): Promise<void> {
     try {
       const rec = await notesCollection().find(id);
       await rec.update((r: any) => {
-        r._raw.is_deleted = 1;
-        r._raw.deleted_at = Date.now();
+        r._setRaw('is_deleted', 1);
+        r._setRaw('deleted_at', Date.now());
       });
     } catch {
       /* not found */
@@ -208,8 +208,8 @@ export async function restoreNote(id: string): Promise<void> {
     try {
       const rec = await notesCollection().find(id);
       await rec.update((r: any) => {
-        r._raw.is_deleted = 0;
-        r._raw.deleted_at = null;
+        r._setRaw('is_deleted', 0);
+        r._setRaw('deleted_at', null);
       });
     } catch {
       /* not found */
@@ -271,10 +271,10 @@ export async function saveWorkspace(workspace: Workspace): Promise<void> {
     try {
       const rec = await workspacesCollection().find(workspace.id);
       await rec.update((r: any) => {
-        r._raw.name = workspace.name ?? '';
-        r._raw.color = workspace.color ?? '';
-        r._raw.icon = workspace.icon ?? '';
-        r._raw.order_index = Number(workspace.order ?? 0);
+        r._setRaw('name', workspace.name ?? '');
+        r._setRaw('color', workspace.color ?? '');
+        r._setRaw('icon', workspace.icon ?? '');
+        r._setRaw('order_index', Number(workspace.order ?? 0));
         r._raw.created_at = workspace.createdAt
           ? new Date(workspace.createdAt).getTime()
           : Date.now();
@@ -282,10 +282,10 @@ export async function saveWorkspace(workspace: Workspace): Promise<void> {
     } catch {
       await workspacesCollection().create((r: any) => {
         r._raw.id = workspace.id;
-        r._raw.name = workspace.name ?? '';
-        r._raw.color = workspace.color ?? '';
-        r._raw.icon = workspace.icon ?? '';
-        r._raw.order_index = Number(workspace.order ?? 0);
+        r._setRaw('name', workspace.name ?? '');
+        r._setRaw('color', workspace.color ?? '');
+        r._setRaw('icon', workspace.icon ?? '');
+        r._setRaw('order_index', Number(workspace.order ?? 0));
         r._raw.created_at = workspace.createdAt
           ? new Date(workspace.createdAt).getTime()
           : Date.now();
@@ -324,8 +324,8 @@ export async function saveSubcategory(subcategory: Subcategory): Promise<void> {
     try {
       const rec = await subcategoriesCollection().find(subcategory.id);
       await rec.update((r: any) => {
-        r._raw.name = subcategory.name ?? '';
-        r._raw.workspace_id = subcategory.workspaceId ?? '';
+        r._setRaw('name', subcategory.name ?? '');
+        r._setRaw('workspace_id', subcategory.workspaceId ?? '');
         r._raw.created_at = subcategory.createdAt
           ? new Date(subcategory.createdAt).getTime()
           : Date.now();
@@ -333,8 +333,8 @@ export async function saveSubcategory(subcategory: Subcategory): Promise<void> {
     } catch {
       await subcategoriesCollection().create((r: any) => {
         r._raw.id = subcategory.id;
-        r._raw.name = subcategory.name ?? '';
-        r._raw.workspace_id = subcategory.workspaceId ?? '';
+        r._setRaw('name', subcategory.name ?? '');
+        r._setRaw('workspace_id', subcategory.workspaceId ?? '');
         r._raw.created_at = subcategory.createdAt
           ? new Date(subcategory.createdAt).getTime()
           : Date.now();
@@ -382,12 +382,12 @@ export async function saveSettings(settings: AppSettings): Promise<void> {
     try {
       const rec = await settingsCollection().find('app-settings');
       await rec.update((r: any) => {
-        r._raw.payload_json = JSON.stringify(payload);
+        r._setRaw('payload_json', JSON.stringify(payload));
       });
     } catch {
       await settingsCollection().create((r: any) => {
         r._raw.id = 'app-settings';
-        r._raw.payload_json = JSON.stringify(payload);
+        r._setRaw('payload_json', JSON.stringify(payload));
       });
     }
   });
@@ -415,7 +415,7 @@ export async function reorderWorkspaces(orderedIds: string[]): Promise<void> {
       const newOrder = orderedIds.indexOf((rec as any)._raw.id);
       if (newOrder !== -1 && (rec as any)._raw.order_index !== newOrder) {
         await rec.update((r: any) => {
-          r._raw.order_index = newOrder;
+          r._setRaw('order_index', newOrder);
         });
       }
     }
