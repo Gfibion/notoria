@@ -275,9 +275,7 @@ export async function saveWorkspace(workspace: Workspace): Promise<void> {
         r._setRaw('color', workspace.color ?? '');
         r._setRaw('icon', workspace.icon ?? '');
         r._setRaw('order_index', Number(workspace.order ?? 0));
-        r._raw.created_at = workspace.createdAt
-          ? new Date(workspace.createdAt).getTime()
-          : Date.now();
+        r._setRaw('created_at', workspace.createdAt ? new Date(workspace.createdAt).getTime() : Date.now());
       });
     } catch {
       await workspacesCollection().create((r: any) => {
@@ -286,9 +284,7 @@ export async function saveWorkspace(workspace: Workspace): Promise<void> {
         r._setRaw('color', workspace.color ?? '');
         r._setRaw('icon', workspace.icon ?? '');
         r._setRaw('order_index', Number(workspace.order ?? 0));
-        r._raw.created_at = workspace.createdAt
-          ? new Date(workspace.createdAt).getTime()
-          : Date.now();
+        r._setRaw('created_at', workspace.createdAt ? new Date(workspace.createdAt).getTime() : Date.now());
       });
     }
   });
@@ -326,18 +322,14 @@ export async function saveSubcategory(subcategory: Subcategory): Promise<void> {
       await rec.update((r: any) => {
         r._setRaw('name', subcategory.name ?? '');
         r._setRaw('workspace_id', subcategory.workspaceId ?? '');
-        r._raw.created_at = subcategory.createdAt
-          ? new Date(subcategory.createdAt).getTime()
-          : Date.now();
+        r._setRaw('created_at', subcategory.createdAt ? new Date(subcategory.createdAt).getTime() : Date.now());
       });
     } catch {
       await subcategoriesCollection().create((r: any) => {
         r._raw.id = subcategory.id;
         r._setRaw('name', subcategory.name ?? '');
         r._setRaw('workspace_id', subcategory.workspaceId ?? '');
-        r._raw.created_at = subcategory.createdAt
-          ? new Date(subcategory.createdAt).getTime()
-          : Date.now();
+        r._setRaw('created_at', subcategory.createdAt ? new Date(subcategory.createdAt).getTime() : Date.now());
       });
     }
   });
