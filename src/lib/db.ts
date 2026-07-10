@@ -132,29 +132,24 @@ function sortNotes(a: Note, b: Note): number {
 
 export async function getAllNotes(): Promise<Note[]> {
   const rows = await notesCollection().query().fetch();
-  const filtered = rows.map(rowToNote).filter((n) => !n.isDeleted);
-  return filtered.sort(sortNotes);
-  return rows.map(rowToNote).sort(sortNotes);
+  return rows.map(rowToNote).filter((n) => !n.isDeleted).sort(sortNotes);
 }
 
 export async function getNotesByWorkspace(workspaceId: string): Promise<Note[]> {
-  const rows = await notesCollection()
-    .query(Q.where('workspace', workspaceId), Q.where('is_deleted', false))
-    .fetch();
-  return rows.map(rowToNote).sort(sortNotes);
+  const rows = await notesCollection().query(Q.where('workspace', workspaceId)).fetch();
+  return rows.map(rowToNote).filter((n) => !n.isDeleted).sort(sortNotes);
 }
 
 export async function getStarredNotes(): Promise<Note[]> {
-  const rows = await notesCollection()
-    .query(Q.where('is_starred', true), Q.where('is_deleted', false))
-    .fetch();
-  return rows.map(rowToNote).sort(sortNotes);
+  const rows = await notesCollection().query().fetch();
+  return rows.map(rowToNote).filter((n) => n.isStarred && !n.isDeleted).sort(sortNotes);
 }
 
 export async function getDeletedNotes(): Promise<Note[]> {
-  const rows = await notesCollection().query(Q.where('is_deleted', true)).fetch();
+  const rows = await notesCollection().query().fetch();
   return rows
     .map(rowToNote)
+    .filter((n) => n.isDeleted)
     .sort(
       (a, b) =>
         (b.deletedAt ? b.deletedAt.getTime() : 0) - (a.deletedAt ? a.deletedAt.getTime() : 0),
