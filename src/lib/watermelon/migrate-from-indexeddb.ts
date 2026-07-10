@@ -184,9 +184,9 @@ export async function runMigrationIfNeeded(
           rec._raw.workspace = String(n.workspace ?? '');
           rec._raw.subcategory = String(n.subcategory ?? '');
           rec._raw.color = String(n.color ?? '');
-          rec._raw.is_pinned = !!n.isPinned;
-          rec._raw.is_starred = !!n.isStarred;
-          rec._raw.is_deleted = !!n.isDeleted;
+          rec._raw.is_pinned = n.isPinned ? 1 : 0;
+          rec._raw.is_starred = n.isStarred ? 1 : 0;
+          rec._raw.is_deleted = n.isDeleted ? 1 : 0;
           rec._raw.deleted_at = n.deletedAt ? toMs(n.deletedAt) : null;
           rec._raw.tags_json = JSON.stringify(Array.isArray(n.tags) ? n.tags : []);
           rec._raw.created_at = toMs(n.createdAt);
@@ -232,11 +232,11 @@ export async function runMigrationIfNeeded(
           rec._raw.reminder = t.reminder ?? null;
           rec._raw.project_id = t.projectId ?? null;
           rec._raw.subtasks_json = t.subtasks ? JSON.stringify(t.subtasks) : null;
-          rec._raw.is_recurring = t.isRecurring ?? null;
+          rec._raw.is_recurring = t.isRecurring == null ? null : (t.isRecurring ? 1 : 0);
           rec._raw.recurring_frequency = t.recurringFrequency ?? null;
           rec._raw.completed_cycles = t.completedCycles ?? null;
-          rec._raw.is_completed = t.isCompleted ?? null;
-          rec._raw.is_trail_record = t.isTrailRecord ?? null;
+          rec._raw.is_completed = t.isCompleted == null ? null : (t.isCompleted ? 1 : 0);
+          rec._raw.is_trail_record = t.isTrailRecord == null ? null : (t.isTrailRecord ? 1 : 0);
           rec._raw.trail_cycle_number = t.trailCycleNumber ?? null;
           rec._raw.parent_recurring_task_id = t.parentRecurringTaskId ?? null;
           rec._raw.trail_completed_at = t.trailCompletedAt ?? null;

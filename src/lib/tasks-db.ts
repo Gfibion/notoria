@@ -101,11 +101,11 @@ function writeTaskFields(rec: any, task: Task): void {
   rec._raw.reminder = task.reminder ?? null;
   rec._raw.project_id = task.projectId ?? null;
   rec._raw.subtasks_json = task.subtasks ? JSON.stringify(task.subtasks) : null;
-  rec._raw.is_recurring = task.isRecurring ?? null;
+  rec._raw.is_recurring = task.isRecurring == null ? null : (task.isRecurring ? 1 : 0);
   rec._raw.recurring_frequency = task.recurringFrequency ?? null;
   rec._raw.completed_cycles = task.completedCycles ?? null;
-  rec._raw.is_completed = task.isCompleted ?? null;
-  rec._raw.is_trail_record = task.isTrailRecord ?? null;
+  rec._raw.is_completed = task.isCompleted == null ? null : (task.isCompleted ? 1 : 0);
+  rec._raw.is_trail_record = task.isTrailRecord == null ? null : (task.isTrailRecord ? 1 : 0);
   rec._raw.trail_cycle_number = task.trailCycleNumber ?? null;
   rec._raw.parent_recurring_task_id = task.parentRecurringTaskId ?? null;
   rec._raw.trail_completed_at = task.trailCompletedAt ?? null;

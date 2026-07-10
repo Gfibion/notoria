@@ -92,9 +92,9 @@ function writeNoteFields(rec: any, note: Note): void {
   rec._raw.workspace = note.workspace ?? '';
   rec._raw.subcategory = note.subcategory ?? '';
   rec._raw.color = note.color ?? '';
-  rec._raw.is_pinned = !!note.isPinned;
-  rec._raw.is_starred = !!note.isStarred;
-  rec._raw.is_deleted = !!note.isDeleted;
+  rec._raw.is_pinned = note.isPinned ? 1 : 0;
+  rec._raw.is_starred = note.isStarred ? 1 : 0;
+  rec._raw.is_deleted = note.isDeleted ? 1 : 0;
   rec._raw.deleted_at = note.deletedAt ? note.deletedAt.getTime() : null;
   rec._raw.tags_json = JSON.stringify(Array.isArray(note.tags) ? note.tags : []);
   rec._raw.created_at = note.createdAt ? new Date(note.createdAt).getTime() : Date.now();
@@ -194,7 +194,7 @@ export async function softDeleteNote(id: string): Promise<void> {
     try {
       const rec = await notesCollection().find(id);
       await rec.update((r: any) => {
-        r._raw.is_deleted = true;
+        r._raw.is_deleted = 1;
         r._raw.deleted_at = Date.now();
       });
     } catch {
@@ -208,7 +208,7 @@ export async function restoreNote(id: string): Promise<void> {
     try {
       const rec = await notesCollection().find(id);
       await rec.update((r: any) => {
-        r._raw.is_deleted = false;
+        r._raw.is_deleted = 0;
         r._raw.deleted_at = null;
       });
     } catch {
