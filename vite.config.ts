@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => ({
         background_color: "#faf8f5",
         display: "standalone",
         orientation: "portrait-primary",
-        start_url: "/",
+        start_url: "/app",
         icons: [
           {
             src: "/pwa-192x192.png",
