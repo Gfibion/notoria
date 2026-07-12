@@ -118,7 +118,7 @@ const SplashLoader = ({ isLoading }: SplashLoaderProps) => {
               transition={{ duration: 0.6, delay: 0.5 }}
             >
               <h1 className="font-display text-3xl font-semibold tracking-wide text-foreground">Novaryn</h1>
-              <p className="text-sm text-muted-foreground tracking-[0.2em] uppercase">Business Class Notebook</p>
+              <p className="text-sm text-muted-foreground tracking-[0.2em] uppercase">Organize Thoughts · Shape Decisions</p>
             </motion.div>
 
             <motion.div

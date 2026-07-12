@@ -17,9 +17,9 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
       manifest: {
-        name: "Novaryn - Business Class Notebook",
+        name: "Novaryn — Organize Thoughts. Shape Decisions.",
         short_name: "Novaryn",
-        description: "A modern classic productivity instrument for executive use",
+        description: "A professional, timeless thinking instrument for executives, researchers, consultants, and entrepreneurs.",
         theme_color: "#1a1611",
         background_color: "#faf8f5",
         display: "standalone",
