@@ -70,8 +70,8 @@ const Install = () => {
       {/* Header */}
       <header className="p-4 md:p-6 border-b border-border flex items-center justify-between">
         <a href="/" className="flex items-center gap-2 w-fit">
-          <img src={logoImage} alt="Notoria" className="w-7 h-7 object-contain" />
-          <span className="font-display text-xl font-semibold">Notoria</span>
+          <img src={logoImage} alt="Novaryn" className="w-7 h-7 object-contain" />
+          <span className="font-display text-xl font-semibold">Novaryn</span>
         </a>
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -89,13 +89,13 @@ const Install = () => {
           {/* Hero */}
           <div className="text-center space-y-4">
             <div className="w-20 h-20 mx-auto rounded-2xl overflow-hidden shadow-card">
-              <img src={logoImage} alt="Notoria" className="w-full h-full object-cover" />
+              <img src={logoImage} alt="Novaryn" className="w-full h-full object-cover" />
             </div>
             <h1 className="font-display text-2xl md:text-3xl font-semibold text-foreground">
-              Install Notoria
+              Install Novaryn
             </h1>
             <p className="text-muted-foreground text-sm md:text-base">
-              Add Notoria to your home screen for instant access, offline support, and a native app experience.
+              Add Novaryn to your home screen for instant access, offline support, and a native app experience.
             </p>
           </div>
 
@@ -109,7 +109,7 @@ const Install = () => {
                 <div>
                   <h3 className="font-semibold text-foreground">Already Installed</h3>
                   <p className="text-sm text-muted-foreground">
-                    Notoria is ready to use from your home screen.
+                    Novaryn is ready to use from your home screen.
                   </p>
                 </div>
               </CardContent>
@@ -147,7 +147,7 @@ const Install = () => {
                     <div>
                       <p className="text-foreground font-medium">Tap "Add" to confirm</p>
                       <p className="text-muted-foreground mt-0.5">
-                        Notoria will appear on your home screen
+                        Novaryn will appear on your home screen
                       </p>
                     </div>
                   </li>
@@ -163,7 +163,7 @@ const Install = () => {
                 disabled={installing}
               >
                 <Download className="w-5 h-5" />
-                {installing ? 'Installing...' : 'Install Notoria'}
+                {installing ? 'Installing...' : 'Install Novaryn'}
               </Button>
               <p className="text-center text-xs text-muted-foreground">
                 Free • No app store required • Works offline
@@ -238,7 +238,7 @@ const Install = () => {
           {/* Back Link */}
           <div className="text-center pt-2">
             <a href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
-              ← Back to Notoria
+              ← Back to Novaryn
             </a>
           </div>
         </div>

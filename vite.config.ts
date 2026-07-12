@@ -17,14 +17,14 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
       manifest: {
-        name: "Notoria - Business Class Notebook",
-        short_name: "Notoria",
-        description: "A modern classic productivity instrument for executive use",
+        name: "Novaryn — Organize Thoughts. Shape Decisions.",
+        short_name: "Novaryn",
+        description: "A professional, timeless thinking instrument for executives, researchers, consultants, and entrepreneurs.",
         theme_color: "#1a1611",
         background_color: "#faf8f5",
         display: "standalone",
         orientation: "portrait-primary",
-        start_url: "/",
+        start_url: "/app",
         icons: [
           {
             src: "/pwa-192x192.png",

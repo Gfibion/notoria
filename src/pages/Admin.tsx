@@ -71,7 +71,7 @@ function AuthForm({ onAuthed }: { onAuthed: () => void }) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Shield className="w-5 h-5" /> Admin access</CardTitle>
         <CardDescription>
-          {mode === "signin" ? "Sign in to the Notoria admin panel." : "Create an admin account. Only pre-authorized or invited emails will get admin rights."}
+          {mode === "signin" ? "Sign in to the Novaryn admin panel." : "Create an admin account. Only pre-authorized or invited emails will get admin rights."}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -734,7 +734,7 @@ export default function AdminPage() {
               <div className="min-w-0">
                 <h1 className="font-semibold text-sm leading-none">Admin panel</h1>
                 <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                  {info?.user?.email ?? "Notoria control center"}
+                  {info?.user?.email ?? "Novaryn control center"}
                 </p>
               </div>
             </div>

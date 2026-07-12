@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 /**
- * Watermelon schema v1 for Notoria.
+ * Watermelon schema v1 for Novaryn.
  *
  * Field names use snake_case per Watermelon convention. The adapter layer
  * (`src/lib/db.ts`, `src/lib/tasks-db.ts`, `src/lib/pdf-cache-db.ts`) maps

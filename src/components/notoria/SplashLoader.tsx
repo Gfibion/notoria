@@ -36,7 +36,7 @@ const SplashLoader = ({ isLoading }: SplashLoaderProps) => {
           >
             <img
               src={logo}
-              alt="Notoria"
+              alt="Novaryn"
               className="w-32 h-32 object-contain"
             />
           </motion.div>
@@ -108,7 +108,7 @@ const SplashLoader = ({ isLoading }: SplashLoaderProps) => {
                 animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
               />
-              <img src={logo} alt="Notoria" className="relative w-20 h-20 rounded-full object-contain z-10" />
+              <img src={logo} alt="Novaryn" className="relative w-20 h-20 rounded-full object-contain z-10" />
             </motion.div>
 
             <motion.div
@@ -117,8 +117,8 @@ const SplashLoader = ({ isLoading }: SplashLoaderProps) => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.5 }}
             >
-              <h1 className="font-display text-3xl font-semibold tracking-wide text-foreground">Notoria</h1>
-              <p className="text-sm text-muted-foreground tracking-[0.2em] uppercase">Business Class Notebook</p>
+              <h1 className="font-display text-3xl font-semibold tracking-wide text-foreground">Novaryn</h1>
+              <p className="text-sm text-muted-foreground tracking-[0.2em] uppercase">Organize Thoughts · Shape Decisions</p>
             </motion.div>
 
             <motion.div

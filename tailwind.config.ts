@@ -61,7 +61,7 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        // Notoria Custom Colors
+        // Novaryn Custom Colors
         cream: "hsl(var(--cream))",
         ink: "hsl(var(--ink))",
         gold: "hsl(var(--gold))",

@@ -109,7 +109,7 @@ export function InstallBanner() {
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-display text-lg font-semibold text-foreground mb-1">
-            Install Notoria
+            Install Novaryn
           </h3>
           <p className="text-sm text-muted-foreground mb-3">
             {isIOS
