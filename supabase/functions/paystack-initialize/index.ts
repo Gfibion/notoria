@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
       metadata: {
         source: "notoria_coffee",
         custom_fields: [
-          { display_name: "Purpose", variable_name: "purpose", value: "Support Notoria" },
+          { display_name: "Purpose", variable_name: "purpose", value: "Support Novaryn" },
         ],
       },
     };

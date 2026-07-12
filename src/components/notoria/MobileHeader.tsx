@@ -187,14 +187,14 @@ export function MobileHeader({
               {/* Header */}
               <div className="p-4 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <img src={logoImage} alt="Notoria" className="w-7 h-7 object-contain" />
-                  <span className="font-display text-xl font-semibold">Notoria</span>
+                  <img src={logoImage} alt="Novaryn" className="w-7 h-7 object-contain" />
+                  <span className="font-display text-xl font-semibold">Novaryn</span>
                 </div>
               </div>
 
               {/* Navigation */}
               <nav className="flex-1 overflow-y-auto p-2">
-                {/* Notoria Coffee */}
+                {/* Novaryn Coffee */}
                 <Link
                   to="/coffee"
                   onClick={() => setIsSheetOpen(false)}
@@ -202,7 +202,7 @@ export function MobileHeader({
                 >
                   <Coffee className="w-4 h-4 flex-shrink-0 text-amber-600" />
                   <div className="flex flex-col leading-tight">
-                    <span>Notoria Coffee</span>
+                    <span>Novaryn Coffee</span>
                     <span className="text-[10px] text-muted-foreground">Buy Me Coffee</span>
                   </div>
                 </Link>
@@ -448,7 +448,7 @@ export function MobileHeader({
         </Link>
 
         <div className="flex items-center gap-2 flex-1 justify-center overflow-hidden">
-          {showStarred ? <Star className="w-5 h-5 text-gold flex-shrink-0" /> : <img src={logoImage} alt="Notoria" className="w-6 h-6 object-contain flex-shrink-0" />}
+          {showStarred ? <Star className="w-5 h-5 text-gold flex-shrink-0" /> : <img src={logoImage} alt="Novaryn" className="w-6 h-6 object-contain flex-shrink-0" />}
           <span className="font-display font-semibold truncate">
             {getTitle()}
           </span>

@@ -13,7 +13,7 @@ import {
 } from './models';
 
 /**
- * Notoria WatermelonDB singleton.
+ * Novaryn WatermelonDB singleton.
  *
  * On the web we use LokiJSAdapter (IndexedDB-backed) — this keeps behaviour
  * identical to the previous raw-IndexedDB layer while giving us a schema/

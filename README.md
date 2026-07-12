@@ -1,4 +1,4 @@
-# Notoria
+# Novaryn
 
 **Your beautiful, private space for notes and tasks — works fully offline, lives on your device.**
 
@@ -8,9 +8,9 @@ Visit: [notoria.lovable.app](https://notoria.lovable.app)
 
 ---
 
-## ✨ What is Notoria?
+## ✨ What is Novaryn?
 
-Notoria is a calm, distraction-free productivity companion built for thinkers, writers, students, and doers. It blends a rich notes app with a powerful task board, all wrapped in an elegant interface that respects your time and your privacy.
+Novaryn is a calm, distraction-free productivity companion built for thinkers, writers, students, and doers. It blends a rich notes app with a powerful task board, all wrapped in an elegant interface that respects your time and your privacy.
 
 No accounts required to get started. Your data lives on your device by default — and only leaves if you explicitly choose to back it up.
 
@@ -56,8 +56,8 @@ No accounts required to get started. Your data lives on your device by default �
 - Choose your font (Cambria, Times, Calibri, Georgia) and font size
 - Force desktop or mobile layout independently of screen size
 
-### ☕ Notoria Coffee
-If Notoria makes your life a little easier, you can support its development with a coffee — directly from the sidebar.
+### ☕ Novaryn Coffee
+If Novaryn makes your life a little easier, you can support its development with a coffee — directly from the sidebar.
 
 ### 🛡️ Admin Panel
 Secure admin interface for managing backups, viewing support statistics, and handling encrypted recovery requests.
@@ -74,7 +74,7 @@ When you choose cloud backup, everything is encrypted on your device with a key 
 
 ## 📱 Install it like an app
 
-Notoria is a Progressive Web App. Install it on your phone, tablet, or desktop for a full app-like experience that works completely offline.
+Novaryn is a Progressive Web App. Install it on your phone, tablet, or desktop for a full app-like experience that works completely offline.
 
 - **Mobile**: Tap the share/menu button in your browser → "Add to Home Screen"
 - **Desktop**: Click the install icon in your browser's address bar
@@ -83,6 +83,6 @@ Notoria is a Progressive Web App. Install it on your phone, tablet, or desktop f
 
 ## 💛 Made with care
 
-Notoria is crafted to be quiet, fast, and beautiful. We hope it becomes a small daily refuge for your ideas.
+Novaryn is crafted to be quiet, fast, and beautiful. We hope it becomes a small daily refuge for your ideas.
 
 **Made with ❤️ by Gfibion**

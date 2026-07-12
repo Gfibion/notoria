@@ -1,5 +1,5 @@
 /**
- * Notoria tasks/projects data layer — WatermelonDB-backed.
+ * Novaryn tasks/projects data layer — WatermelonDB-backed.
  *
  * Public interfaces and function signatures are unchanged from the previous
  * `idb`-based implementation.

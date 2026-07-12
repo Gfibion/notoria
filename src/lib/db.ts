@@ -1,5 +1,5 @@
 /**
- * Notoria main data layer — WatermelonDB-backed.
+ * Novaryn main data layer — WatermelonDB-backed.
  *
  * The exported interfaces and function signatures are unchanged from the
  * previous raw-IndexedDB implementation so no component or hook needs to

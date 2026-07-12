@@ -1,5 +1,5 @@
 /**
- * Notoria PDF offline cache — WatermelonDB-backed.
+ * Novaryn PDF offline cache — WatermelonDB-backed.
  *
  * Public interface identical to the previous `idb`-based implementation.
  * Binary PDFs are stored as base64 strings inside the `pdf_cache` table.

@@ -1023,7 +1023,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
         doc.setFontSize(9);
         doc.setTextColor(150, 150, 150);
         doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-        doc.text('Notoria Notes', margin, pageHeight - 10);
+        doc.text('Novaryn Notes', margin, pageHeight - 10);
       }
 
       // Save the PDF

@@ -17,8 +17,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
       manifest: {
-        name: "Notoria - Business Class Notebook",
-        short_name: "Notoria",
+        name: "Novaryn - Business Class Notebook",
+        short_name: "Novaryn",
         description: "A modern classic productivity instrument for executive use",
         theme_color: "#1a1611",
         background_color: "#faf8f5",

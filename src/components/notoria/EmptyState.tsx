@@ -11,7 +11,7 @@ export function EmptyState({ onCreateNote }: EmptyStateProps) {
     <div className="flex flex-col items-center justify-center h-full px-4 py-16 animate-fade-in">
       <div className="relative mb-8">
         <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gradient-to-br from-gold-soft to-secondary flex items-center justify-center">
-          <img src={logoImage} alt="Notoria" className="w-20 h-20 object-contain" />
+          <img src={logoImage} alt="Novaryn" className="w-20 h-20 object-contain" />
         </div>
         <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gold flex items-center justify-center">
           <Sparkles className="w-4 h-4 text-primary-foreground" />

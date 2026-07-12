@@ -277,13 +277,13 @@ export function Sidebar({
         <div className="p-4 flex items-center justify-between border-b border-sidebar-border">
           {!collapsed && (
             <div className="flex items-center gap-2">
-              <img src={logoImage} alt="Notoria" className="w-7 h-7 object-contain" />
+              <img src={logoImage} alt="Novaryn" className="w-7 h-7 object-contain" />
               <span className="font-display text-xl font-semibold tracking-tight text-sidebar-foreground">
-                Notoria
+                Novaryn
               </span>
             </div>
           )}
-          {collapsed && <img src={logoImage} alt="Notoria" className="w-7 h-7 object-contain mx-auto" />}
+          {collapsed && <img src={logoImage} alt="Novaryn" className="w-7 h-7 object-contain mx-auto" />}
           <Button
             variant="ghost"
             size="icon"
@@ -387,7 +387,7 @@ export function Sidebar({
               {!collapsed && <span>Tasks</span>}
             </Link>
 
-            {/* Notoria Coffee - Buy Me Coffee */}
+            {/* Novaryn Coffee - Buy Me Coffee */}
             <Link
               to="/coffee"
               className={cn(
@@ -399,7 +399,7 @@ export function Sidebar({
               <Coffee className="w-4 h-4 flex-shrink-0 text-amber-600" />
               {!collapsed && (
                 <div className="flex flex-col leading-tight">
-                  <span>Notoria Coffee</span>
+                  <span>Novaryn Coffee</span>
                   <span className="text-[10px] text-muted-foreground">Buy Me Coffee</span>
                 </div>
               )}

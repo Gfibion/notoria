@@ -122,7 +122,7 @@ export default function CoffeePage() {
           </Button>
           <div className="flex items-center gap-2">
             <Coffee className="w-5 h-5 text-amber-600" />
-            <h1 className="font-display text-lg font-semibold">Support Notoria</h1>
+            <h1 className="font-display text-lg font-semibold">Support Novaryn</h1>
           </div>
         </div>
       </header>
@@ -142,7 +142,7 @@ export default function CoffeePage() {
                 {verifying
                   ? "Verifying your payment..."
                   : verifyState?.status === "succeeded"
-                    ? "Thank you for supporting Notoria!"
+                    ? "Thank you for supporting Novaryn!"
                     : `Payment status: ${verifyState?.status ?? "unknown"}`}
               </p>
               {verifyState?.amount != null && verifyState?.currency && (
@@ -160,7 +160,7 @@ export default function CoffeePage() {
           </div>
           <h2 className="text-3xl font-display font-bold">Buy Me Coffee</h2>
           <p className="text-muted-foreground max-w-md mx-auto">
-            If Notoria helps you stay organized, a small contribution keeps development going. Every cup matters ☕
+            If Novaryn helps you stay organized, a small contribution keeps development going. Every cup matters ☕
           </p>
         </div>
 
@@ -259,7 +259,7 @@ export default function CoffeePage() {
             </p>
             <p className="mt-1">
               Payments are processed on a PCI-DSS certified, bank-grade encrypted gateway.
-              Notoria never sees or stores your card, bank, or mobile-money credentials.
+              Novaryn never sees or stores your card, bank, or mobile-money credentials.
             </p>
           </div>
         </div>
