@@ -161,8 +161,8 @@ const fadeUp = {
   transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as const },
 };
 
-function Section({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <section className={`relative px-6 md:px-10 py-24 md:py-32 ${className}`}>{children}</section>;
+function Section({ children, className = "", id }: { children: React.ReactNode; className?: string; id?: string }) {
+  return <section id={id} className={`relative px-6 md:px-10 py-24 md:py-32 ${className}`}>{children}</section>;
 }
 
 function Chip({ children }: { children: React.ReactNode }) {
