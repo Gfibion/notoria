@@ -350,5 +350,7 @@ export default function ContactPage() {
         )}
       </main>
     </div>
+    </>
   );
+
 }
