@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
+import SEO from "@/components/SEO";
 import { ArrowLeft, Shield, Users, Database, KeyRound, UserPlus, RotateCcw, Download, LogOut, AlertTriangle, Smartphone, Link2, Copy, Coffee as CoffeeIcon, Heart, MessageSquare, HelpCircle } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { SupportTab, FaqsTab, type FaqEditorState } from "@/components/admin/SupportTabs";
@@ -719,7 +720,10 @@ export default function AdminPage() {
   const activeMeta = NAV.find(n => n.value === activeTab) ?? NAV[0];
 
   return (
+    <>
+      <SEO title="Admin" path="/admin" noindex />
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
+
       <header className="border-b sticky top-0 bg-background/85 backdrop-blur-md z-20">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -836,5 +840,7 @@ export default function AdminPage() {
         )}
       </main>
     </div>
+    </>
   );
+
 }

@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import SEO from "@/components/SEO";
 
 import {
   generateSecretKey, normalizeSecretKey,
