@@ -265,7 +265,10 @@ const Index = () => {
   }
 
   return (
+    <>
+      <SEO title="Notebook" path="/app" description="Your private Novaryn notebook." noindex />
     <div className="flex h-screen bg-background overflow-hidden">
+
       {/* Hidden PDF input */}
       <input
         ref={pdfInputRef}
