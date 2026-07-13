@@ -274,5 +274,7 @@ export default function CoffeePage() {
         </div>
       </main>
     </div>
+    </>
   );
+
 }
