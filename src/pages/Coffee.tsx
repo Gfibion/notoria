@@ -13,6 +13,7 @@ import {
   ShieldCheck, CreditCard, Smartphone, Landmark, Lock,
 } from "lucide-react";
 import { toast } from "sonner";
+import SEO from "@/components/SEO";
 
 type Currency = "NGN" | "USD" | "GHS" | "KES" | "ZAR";
 
@@ -112,7 +113,15 @@ export default function CoffeePage() {
   };
 
   return (
+    <>
+      <SEO
+        path="/coffee"
+        title="Support Novaryn — Buy us a coffee"
+        description="Support Novaryn's independent development. Contribute in NGN, USD, GHS, KES, or ZAR via secure card, bank, USSD, or mobile money."
+        keywords="support Novaryn, buy a coffee, donate, Paystack, indie software support"
+      />
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-amber-500/5">
+
       <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
           <Button variant="ghost" size="sm" asChild>
