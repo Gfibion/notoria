@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import SEO from "@/components/SEO";
 
 import {
   generateSecretKey, normalizeSecretKey,
@@ -277,7 +278,10 @@ export default function CloudBackupPage() {
 
   // ─── Render ──────────────────────────────────────────────────────
   return (
+    <>
+      <SEO title="Cloud Backup" path="/cloud-backup" noindex />
     <div className="min-h-screen bg-background text-foreground">
+
       <header className="border-b border-border sticky top-0 bg-background/95 backdrop-blur z-10">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Back">
@@ -656,5 +660,7 @@ export default function CloudBackupPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
+
 }

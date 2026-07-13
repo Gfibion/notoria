@@ -16,6 +16,7 @@ import {
   Zap,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
+import SEO from "@/components/SEO";
 
 /**
  * Novaryn — Landing page.
@@ -196,15 +197,41 @@ export default function Landing() {
   }, []);
 
   return (
-    <div
-      className="min-h-screen relative overflow-x-hidden"
-      style={{
-        background: palette.bg,
-        color: palette.ink,
-        fontFamily: "'Inter', system-ui, sans-serif",
-      }}
-    >
-      <AmbientBackdrop />
+    <>
+      <SEO
+        path="/"
+        title="Organize Thoughts. Shape Decisions."
+        description="Novaryn is a private, local-first thinking instrument for executives, researchers, consultants, and entrepreneurs. Capture ideas, structure research, and shape decisions with clarity — offline notes, kanban tasks, and PDF workspace."
+        keywords="Novaryn, executive notebook, second brain, decision making, research notes, local-first notes, offline notebook, PWA, private notes, kanban tasks, PDF annotation, knowledge management, consultants, researchers, entrepreneurs"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: "Novaryn",
+          applicationCategory: "ProductivityApplication",
+          operatingSystem: "Web, iOS, Android, Windows, macOS, Linux",
+          offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+          description:
+            "Novaryn is a private, local-first thinking instrument for executives, researchers, consultants, and entrepreneurs.",
+          url: "https://notoria.lovable.app/",
+          featureList: [
+            "Local-first offline notes",
+            "Kanban tasks and projects",
+            "PDF workspace and annotation",
+            "End-to-end encrypted cloud backup",
+            "Installable PWA",
+          ],
+        }}
+      />
+      <div
+        className="min-h-screen relative overflow-x-hidden"
+        style={{
+          background: palette.bg,
+          color: palette.ink,
+          fontFamily: "'Inter', system-ui, sans-serif",
+        }}
+      >
+        <AmbientBackdrop />
+
 
       {/* NAV */}
       <header className="relative z-20 px-6 md:px-10 pt-6 md:pt-8">
@@ -654,6 +681,8 @@ export default function Landing() {
           </div>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   );
 }
+

@@ -22,6 +22,7 @@ import { ProjectDetailDialog } from '@/components/tasks/ProjectDetailDialog';
 import { CheckCircle2, Circle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { MobileTasksNav } from '@/components/tasks/MobileTasksNav';
+import SEO from '@/components/SEO';
 
 const Tasks: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -272,7 +273,10 @@ const Tasks: React.FC = () => {
   };
 
   return (
+    <>
+      <SEO title="Tasks" path="/tasks" noindex />
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
+
       {/* Decorative Elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-accent/10 to-transparent rounded-full blur-3xl" />
@@ -451,7 +455,9 @@ const Tasks: React.FC = () => {
         onCreateProject={handleCreateProject}
       />
     </div>
+    </>
   );
+
 };
 
 export default Tasks;

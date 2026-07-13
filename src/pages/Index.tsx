@@ -18,6 +18,7 @@ import logoImage from '@/assets/logo.png';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import SEO from '@/components/SEO';
 
 const Index = () => {
   const [selectedWorkspace, setSelectedWorkspace] = useState<string | null>(null);
@@ -264,7 +265,10 @@ const Index = () => {
   }
 
   return (
+    <>
+      <SEO title="Notebook" path="/app" description="Your private Novaryn notebook." noindex />
     <div className="flex h-screen bg-background overflow-hidden">
+
       {/* Hidden PDF input */}
       <input
         ref={pdfInputRef}
@@ -445,7 +449,9 @@ const Index = () => {
       {/* Install Banner */}
       <InstallBanner />
     </div>
+    </>
   );
+
 };
 
 export default Index;
