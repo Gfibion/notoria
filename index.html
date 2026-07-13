@@ -3,18 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    
+
     <title>Novaryn — Organize Thoughts. Shape Decisions.</title>
-    <meta name="description" content="Novaryn is a professional, timeless thinking instrument for executives, researchers, consultants, and entrepreneurs. Private, local-first notes and tasks that respect your focus." />
+    <meta
+      name="description"
+      content="Novaryn is a private, local-first thinking instrument for executives, researchers, consultants, and entrepreneurs. Capture ideas, structure research, and shape decisions with clarity — offline-first notes, tasks, and PDFs."
+    />
     <meta name="author" content="Novaryn" />
-    <meta name="keywords" content="Novaryn, notebook, thinking, decisions, executive, research, consulting, productivity, private notes, PWA" />
-    
+    <meta
+      name="keywords"
+      content="Novaryn, thinking tool, executive notebook, decision making, second brain, research notes, private notes, local-first, offline notes, PWA notebook, knowledge management, kanban tasks, PDF annotation, consultants, researchers, entrepreneurs"
+    />
+
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#1a1611" />
+    <meta name="theme-color" content="#0a0a1a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Novaryn" />
-    
+
     <!-- Google Fonts - non-blocking, graceful offline fallback -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,17 +29,52 @@
     <!-- PWA Icons -->
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="mask-icon" href="/favicon.png" color="#2E5C35" />
+    <link rel="mask-icon" href="/favicon.png" color="#4f46e5" />
 
-    <!-- Open Graph -->
+    <!-- Open Graph (sitewide fallback; per-route <Helmet> overrides for crawlers that execute JS) -->
+    <meta property="og:site_name" content="Novaryn" />
     <meta property="og:title" content="Novaryn — Organize Thoughts. Shape Decisions." />
-    <meta property="og:description" content="Professional, timeless thinking instrument for executives, researchers, consultants, and entrepreneurs." />
+    <meta property="og:description" content="A private, local-first thinking instrument for executives, researchers, consultants, and entrepreneurs." />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://notoria.lovable.app/" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Novaryn — Organize Thoughts. Shape Decisions." />
-    <meta name="twitter:description" content="Professional, timeless thinking instrument for executives, researchers, consultants, and entrepreneurs." />
+    <meta name="twitter:description" content="A private, local-first thinking instrument for executives, researchers, consultants, and entrepreneurs." />
+
+    <!-- Organization & SoftwareApplication schema -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Novaryn",
+        "url": "https://notoria.lovable.app",
+        "logo": "https://notoria.lovable.app/pwa-512x512.png",
+        "description": "Novaryn builds a private, local-first thinking instrument for executives, researchers, consultants, and entrepreneurs."
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Novaryn",
+        "url": "https://notoria.lovable.app",
+        "inLanguage": "en"
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Novaryn",
+        "applicationCategory": "ProductivityApplication",
+        "operatingSystem": "Web, iOS, Android, Windows, macOS, Linux",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "description": "Private, local-first notebook and thinking tool with offline notes, kanban tasks, and PDF workspace.",
+        "url": "https://notoria.lovable.app"
+      }
+    </script>
   </head>
 
   <body>
