@@ -449,7 +449,9 @@ const Index = () => {
       {/* Install Banner */}
       <InstallBanner />
     </div>
+    </>
   );
+
 };
 
 export default Index;
