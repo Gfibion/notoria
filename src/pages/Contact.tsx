@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import SEO from "@/components/SEO";
 import {
   contactApi, loadLocalTickets, saveLocalTicket, getLocalTicket, removeLocalTicket,
   REASON_LABELS, REASON_TEMPLATES, STATUS_LABELS,
@@ -275,7 +276,15 @@ export default function ContactPage() {
   const onCreated = (t: LocalTicket) => setActive({ num: t.ticketNumber, tok: t.accessToken });
 
   return (
+    <>
+      <SEO
+        path="/contact"
+        title="Contact & Support"
+        description="Get help with Novaryn. Browse FAQs or open a private support ticket — our team responds to questions from executives, researchers, and everyday thinkers."
+        keywords="Novaryn support, contact, help, FAQ, customer service"
+      />
     <div className="min-h-screen bg-background">
+
       <header className="border-b sticky top-0 bg-background/80 backdrop-blur z-10">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
