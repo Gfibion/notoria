@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ThemeToggle } from '@/components/notoria/ThemeToggle';
 import logoImage from '@/assets/logo.png';
+import SEO from '@/components/SEO';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -66,7 +67,15 @@ const Install = () => {
   };
 
   return (
+    <>
+      <SEO
+        path="/install"
+        title="Install Novaryn on any device"
+        description="Install Novaryn as a Progressive Web App on iOS, Android, Windows, macOS, or Linux. Offline-first notes, tasks, and PDFs with a native app feel."
+        keywords="install Novaryn, PWA install, offline notes app, home screen app, iOS, Android, notebook app"
+      />
     <div className="min-h-screen bg-background flex flex-col">
+
       {/* Header */}
       <header className="p-4 md:p-6 border-b border-border flex items-center justify-between">
         <a href="/" className="flex items-center gap-2 w-fit">
