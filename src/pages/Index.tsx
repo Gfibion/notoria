@@ -18,6 +18,7 @@ import logoImage from '@/assets/logo.png';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import SEO from '@/components/SEO';
 
 const Index = () => {
   const [selectedWorkspace, setSelectedWorkspace] = useState<string | null>(null);
