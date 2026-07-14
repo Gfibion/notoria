@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Workspace } from '@/lib/db';
 import {
   Dialog,
@@ -11,22 +11,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  User,
-  Briefcase,
-  Lightbulb,
-  Folder,
-  Hash,
-  Star,
-  Heart,
-  Home,
-  Book,
-  Music,
-  Camera,
-  Palette,
-  Globe,
-  Zap,
-  Target,
-  Trophy,
+  User, Briefcase, Lightbulb, Folder, Hash, Star, Heart, Home,
+  Book, Music, Camera, Palette, Globe, Zap, Target, Trophy,
+  Rocket, Flame, Cloud, Sun, Moon, Sparkles, Feather, Compass,
+  Map, MapPin, Coffee, Pizza, Utensils, Gift, ShoppingBag, ShoppingCart,
+  CreditCard, Wallet, DollarSign, TrendingUp, BarChart, PieChart, Activity, Calendar,
+  Clock, Bell, Mail, MessageCircle, Phone, Video, Mic, Headphones,
+  Film, Image, Bookmark, Tag, Flag, Award, Medal, Crown,
+  Gem, Anchor, Plane, Car, Bike, Ship, Train, Bus,
+  Trees, Leaf, Flower, Sprout, Fish, Bird, Cat, Dog,
+  Code, Terminal, Cpu, Database, Server, Cloud as CloudIcon, Wifi, Lock,
+  Key, Shield, Eye, Search, Filter, Layers, Grid, List,
+  PenTool, Brush, Scissors, Ruler, Wrench, Hammer, Puzzle, Gamepad,
+  Dumbbell, Bike as BikeIcon, Mountain, Umbrella, Tent, Backpack, Watch, Glasses,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -47,22 +44,107 @@ const WORKSPACE_ICONS = [
   { id: 'zap', icon: Zap, label: 'Energy' },
   { id: 'target', icon: Target, label: 'Goals' },
   { id: 'trophy', icon: Trophy, label: 'Wins' },
+  { id: 'rocket', icon: Rocket, label: 'Launch' },
+  { id: 'flame', icon: Flame, label: 'Hot' },
+  { id: 'cloud', icon: Cloud, label: 'Cloud' },
+  { id: 'sun', icon: Sun, label: 'Sun' },
+  { id: 'moon', icon: Moon, label: 'Moon' },
+  { id: 'sparkles', icon: Sparkles, label: 'Sparkle' },
+  { id: 'feather', icon: Feather, label: 'Write' },
+  { id: 'compass', icon: Compass, label: 'Compass' },
+  { id: 'map', icon: Map, label: 'Map' },
+  { id: 'mappin', icon: MapPin, label: 'Place' },
+  { id: 'coffee', icon: Coffee, label: 'Coffee' },
+  { id: 'pizza', icon: Pizza, label: 'Food' },
+  { id: 'utensils', icon: Utensils, label: 'Dining' },
+  { id: 'gift', icon: Gift, label: 'Gift' },
+  { id: 'shoppingbag', icon: ShoppingBag, label: 'Shop' },
+  { id: 'shoppingcart', icon: ShoppingCart, label: 'Cart' },
+  { id: 'creditcard', icon: CreditCard, label: 'Card' },
+  { id: 'wallet', icon: Wallet, label: 'Wallet' },
+  { id: 'dollar', icon: DollarSign, label: 'Money' },
+  { id: 'trending', icon: TrendingUp, label: 'Growth' },
+  { id: 'barchart', icon: BarChart, label: 'Chart' },
+  { id: 'piechart', icon: PieChart, label: 'Stats' },
+  { id: 'activity', icon: Activity, label: 'Pulse' },
+  { id: 'calendar', icon: Calendar, label: 'Calendar' },
+  { id: 'clock', icon: Clock, label: 'Time' },
+  { id: 'bell', icon: Bell, label: 'Alert' },
+  { id: 'mail', icon: Mail, label: 'Mail' },
+  { id: 'message', icon: MessageCircle, label: 'Chat' },
+  { id: 'phone', icon: Phone, label: 'Phone' },
+  { id: 'video', icon: Video, label: 'Video' },
+  { id: 'mic', icon: Mic, label: 'Voice' },
+  { id: 'headphones', icon: Headphones, label: 'Audio' },
+  { id: 'film', icon: Film, label: 'Film' },
+  { id: 'image', icon: Image, label: 'Photo' },
+  { id: 'bookmark', icon: Bookmark, label: 'Save' },
+  { id: 'tag', icon: Tag, label: 'Tag' },
+  { id: 'flag', icon: Flag, label: 'Flag' },
+  { id: 'award', icon: Award, label: 'Award' },
+  { id: 'medal', icon: Medal, label: 'Medal' },
+  { id: 'crown', icon: Crown, label: 'Crown' },
+  { id: 'gem', icon: Gem, label: 'Gem' },
+  { id: 'anchor', icon: Anchor, label: 'Anchor' },
+  { id: 'plane', icon: Plane, label: 'Flight' },
+  { id: 'car', icon: Car, label: 'Car' },
+  { id: 'bike', icon: Bike, label: 'Bike' },
+  { id: 'ship', icon: Ship, label: 'Ship' },
+  { id: 'train', icon: Train, label: 'Train' },
+  { id: 'bus', icon: Bus, label: 'Bus' },
+  { id: 'tree', icon: Trees, label: 'Tree' },
+  { id: 'leaf', icon: Leaf, label: 'Leaf' },
+  { id: 'flower', icon: Flower, label: 'Flower' },
+  { id: 'sprout', icon: Sprout, label: 'Grow' },
+  { id: 'fish', icon: Fish, label: 'Fish' },
+  { id: 'bird', icon: Bird, label: 'Bird' },
+  { id: 'cat', icon: Cat, label: 'Cat' },
+  { id: 'dog', icon: Dog, label: 'Dog' },
+  { id: 'code', icon: Code, label: 'Code' },
+  { id: 'terminal', icon: Terminal, label: 'Terminal' },
+  { id: 'cpu', icon: Cpu, label: 'CPU' },
+  { id: 'database', icon: Database, label: 'Data' },
+  { id: 'server', icon: Server, label: 'Server' },
+  { id: 'cloudicon', icon: CloudIcon, label: 'Cloud' },
+  { id: 'wifi', icon: Wifi, label: 'Wifi' },
+  { id: 'lock', icon: Lock, label: 'Lock' },
+  { id: 'key', icon: Key, label: 'Key' },
+  { id: 'shield', icon: Shield, label: 'Shield' },
+  { id: 'eye', icon: Eye, label: 'View' },
+  { id: 'search', icon: Search, label: 'Search' },
+  { id: 'filter', icon: Filter, label: 'Filter' },
+  { id: 'layers', icon: Layers, label: 'Layers' },
+  { id: 'grid', icon: Grid, label: 'Grid' },
+  { id: 'list', icon: List, label: 'List' },
+  { id: 'pentool', icon: PenTool, label: 'Design' },
+  { id: 'brush', icon: Brush, label: 'Paint' },
+  { id: 'scissors', icon: Scissors, label: 'Cut' },
+  { id: 'ruler', icon: Ruler, label: 'Measure' },
+  { id: 'wrench', icon: Wrench, label: 'Tools' },
+  { id: 'hammer', icon: Hammer, label: 'Build' },
+  { id: 'puzzle', icon: Puzzle, label: 'Puzzle' },
+  { id: 'gamepad', icon: Gamepad, label: 'Games' },
+  { id: 'dumbbell', icon: Dumbbell, label: 'Fitness' },
+  { id: 'mountain', icon: Mountain, label: 'Peak' },
+  { id: 'umbrella', icon: Umbrella, label: 'Weather' },
+  { id: 'tent', icon: Tent, label: 'Camp' },
+  { id: 'backpack', icon: Backpack, label: 'Pack' },
+  { id: 'watch', icon: Watch, label: 'Watch' },
+  { id: 'glasses', icon: Glasses, label: 'Read' },
 ];
 
-const WORKSPACE_COLORS = [
-  { name: 'Gold', value: '#C4A052' },
-  { name: 'Slate', value: '#64748B' },
-  { name: 'Violet', value: '#8B5CF6' },
-  { name: 'Emerald', value: '#059669' },
-  { name: 'Rose', value: '#F43F5E' },
-  { name: 'Sky', value: '#0EA5E9' },
-  { name: 'Amber', value: '#F59E0B' },
-  { name: 'Indigo', value: '#6366F1' },
-  { name: 'Teal', value: '#14B8A6' },
-  { name: 'Pink', value: '#EC4899' },
-  { name: 'Orange', value: '#F97316' },
-  { name: 'Cyan', value: '#06B6D4' },
-];
+// Convert HSL to hex for storage
+function hslToHex(h: number, s: number, l: number): string {
+  const sN = s / 100;
+  const lN = l / 100;
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = sN * Math.min(lN, 1 - lN);
+  const f = (n: number) => {
+    const v = lN - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return Math.round(v * 255).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
 
 interface WorkspaceDialogProps {
   open: boolean;
@@ -80,9 +162,12 @@ export function WorkspaceDialog({
   onDelete,
 }: WorkspaceDialogProps) {
   const [name, setName] = useState('');
-  const [color, setColor] = useState(WORKSPACE_COLORS[0].value);
+  const [hue, setHue] = useState(45); // gold-ish default
+  const [color, setColor] = useState(hslToHex(45, 55, 55));
   const [icon, setIcon] = useState('folder');
   const [saving, setSaving] = useState(false);
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef(false);
 
   const isEditing = !!workspace;
 
@@ -93,10 +178,36 @@ export function WorkspaceDialog({
       setIcon(workspace.icon);
     } else {
       setName('');
-      setColor(WORKSPACE_COLORS[0].value);
+      setHue(45);
+      setColor(hslToHex(45, 55, 55));
       setIcon('folder');
     }
   }, [workspace, open]);
+
+  const updateFromClientX = useCallback((clientX: number) => {
+    const el = sliderRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+    const h = Math.round((x / rect.width) * 360);
+    setHue(h);
+    setColor(hslToHex(h, 60, 55));
+  }, []);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    draggingRef.current = true;
+    updateFromClientX(e.clientX);
+  };
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!draggingRef.current) return;
+    updateFromClientX(e.clientX);
+  };
+  const handlePointerUp = (e: React.PointerEvent) => {
+    draggingRef.current = false;
+    (e.target as Element).releasePointerCapture?.(e.pointerId);
+  };
 
   const handleSave = async () => {
     if (!name.trim()) return;
@@ -116,9 +227,11 @@ export function WorkspaceDialog({
     }
   };
 
+  const sliderPct = (hue / 360) * 100;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-card">
+      <DialogContent className="sm:max-w-md bg-card max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground">
             {isEditing ? 'Edit Workspace' : 'New Workspace'}
@@ -139,31 +252,46 @@ export function WorkspaceDialog({
             />
           </div>
 
-          {/* Color Picker */}
+          {/* Color Slider */}
           <div className="space-y-2">
-            <Label className="text-foreground">Color</Label>
-            <div className="grid grid-cols-6 gap-2">
-              {WORKSPACE_COLORS.map((c) => (
-                <button
-                  key={c.value}
-                  onClick={() => setColor(c.value)}
-                  className={cn(
-                    'w-8 h-8 rounded-full transition-all',
-                    color === c.value
-                      ? 'ring-2 ring-offset-2 ring-offset-background ring-primary scale-110'
-                      : 'hover:scale-105'
-                  )}
-                  style={{ backgroundColor: c.value }}
-                  title={c.name}
+            <div className="flex items-center justify-between">
+              <Label className="text-foreground">Color</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono text-muted-foreground">{color.toUpperCase()}</span>
+                <div
+                  className="w-6 h-6 rounded-full border border-border"
+                  style={{ backgroundColor: color }}
                 />
-              ))}
+              </div>
             </div>
+            <div
+              ref={sliderRef}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              className="relative h-10 rounded-full cursor-pointer touch-none select-none"
+              style={{
+                background:
+                  'linear-gradient(to right, hsl(0,60%,55%), hsl(30,60%,55%), hsl(60,60%,55%), hsl(90,60%,55%), hsl(120,60%,55%), hsl(150,60%,55%), hsl(180,60%,55%), hsl(210,60%,55%), hsl(240,60%,55%), hsl(270,60%,55%), hsl(300,60%,55%), hsl(330,60%,55%), hsl(360,60%,55%))',
+              }}
+            >
+              <div
+                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-6 h-6 rounded-full border-2 border-white shadow-elevated pointer-events-none"
+                style={{
+                  left: `${sliderPct}%`,
+                  backgroundColor: color,
+                  boxShadow: '0 0 0 1px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.35)',
+                }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">Drag the cursor and release to pick a color.</p>
           </div>
 
           {/* Icon Picker */}
           <div className="space-y-2">
             <Label className="text-foreground">Icon</Label>
-            <div className="grid grid-cols-8 gap-2">
+            <div className="grid grid-cols-8 gap-2 max-h-64 overflow-y-auto pr-1">
               {WORKSPACE_ICONS.map((i) => {
                 const IconComponent = i.icon;
                 return (
