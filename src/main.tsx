@@ -3,6 +3,9 @@ import { HelmetProvider } from "react-helmet-async";
 import App from "./App.tsx";
 import "./index.css";
 import { runMigrationIfNeeded } from "./lib/watermelon/migrate-from-indexeddb";
+import { initInstallSensors } from "./lib/pwa";
+
+initInstallSensors();
 
 
 /**

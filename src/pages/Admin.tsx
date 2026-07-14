@@ -744,6 +744,15 @@ export default function AdminPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <a
+              href="/landing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              title="Preview the public landing page"
+            >
+              Landing
+            </a>
             {info?.admin && (
               <Badge variant={info.admin.role === "master" ? "default" : "secondary"} className="text-[10px] uppercase tracking-wider">
                 {info.admin.role}
