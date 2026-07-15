@@ -81,6 +81,10 @@ export interface RequireAdminOpts {
   enforceDevice?: boolean;
   /** If true, auto-claim the device when no binding exists yet. */
   autoClaim?: boolean;
+  /** If true (default when admin & enforceDevice), require a fresh WebAuthn verification on this device. */
+  requireWebauthn?: boolean;
+  /** Max age (ms) of the WebAuthn verification. Default 12h. */
+  webauthnMaxAgeMs?: number;
 }
 
 /**
