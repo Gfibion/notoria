@@ -1046,6 +1046,7 @@ export default function AdminPage() {
                 <TabsContent value="escrow" className="mt-4 md:mt-0"><EscrowTab info={info} onChange={refresh} /></TabsContent>
                 <TabsContent value="invites" className="mt-4 md:mt-0"><InvitesTab info={info} onChange={refresh} /></TabsContent>
                 <TabsContent value="devices" className="mt-4 md:mt-0"><DevicesTab info={info} onChange={refresh} /></TabsContent>
+                <TabsContent value="passkeys" className="mt-4 md:mt-0"><PasskeysTab info={info} onChange={refresh} /></TabsContent>
               </div>
             </div>
           </Tabs>
