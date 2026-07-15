@@ -175,6 +175,30 @@ export async function requireAdmin(
         code: "device_not_authorized",
       }, 403);
     }
+
+    // Enforce fresh WebAuthn step-up (default ON for admins).
+    const requireWa = opts.requireWebauthn ?? true;
+    if (requireWa) {
+      const maxAge = opts.webauthnMaxAgeMs ?? 12 * 60 * 60 * 1000;
+      const { data: dev } = await service
+        .from("admin_devices")
+        .select("webauthn_verified_at")
+        .eq("admin_id", admin.id)
+        .maybeSingle();
+      const verifiedAt = dev?.webauthn_verified_at ? new Date(dev.webauthn_verified_at).getTime() : 0;
+      if (!verifiedAt || Date.now() - verifiedAt > maxAge) {
+        // Does this admin have any passkey registered?
+        const { count } = await service
+          .from("admin_passkeys")
+          .select("*", { count: "exact", head: true })
+          .eq("admin_id", admin.id);
+        return json({
+          error: "Biometric verification required.",
+          code: "webauthn_required",
+          hasPasskey: (count ?? 0) > 0,
+        }, 401);
+      }
+    }
   }
 
   return ctx;
