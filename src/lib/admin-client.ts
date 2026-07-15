@@ -31,8 +31,13 @@ export interface AdminInfo {
   adminCount: number;
   device: {
     authorized: boolean;
-    current: AdminDeviceInfo | null;
+    current: (AdminDeviceInfo & { webauthn_verified_at?: string | null }) | null;
     mine: AdminDeviceInfo;
+  };
+  webauthn: {
+    verified: boolean;
+    hasPasskey: boolean;
+    maxAgeMs: number;
   };
 }
 
