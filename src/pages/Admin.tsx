@@ -983,7 +983,11 @@ export default function AdminPage() {
           <UnauthorizedDeviceView info={info} onRedeemed={refresh} onSignOut={signOut} />
         )}
 
-        {!loading && info?.admin && info.device?.authorized && (
+        {!loading && info?.admin && info.device?.authorized && !info.webauthn?.verified && (
+          <StepUpView info={info} onVerified={refresh} onSignOut={signOut} />
+        )}
+
+        {!loading && info?.admin && info.device?.authorized && info.webauthn?.verified && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             {/* Mobile horizontal nav */}
             <TabsList className="md:hidden flex w-full overflow-x-auto justify-start h-auto p-1 gap-0.5">
