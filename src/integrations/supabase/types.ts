@@ -57,6 +57,7 @@ export type Database = {
           ip: string | null
           last_seen_at: string
           user_agent: string | null
+          webauthn_verified_at: string | null
         }
         Insert: {
           admin_id: string
@@ -65,6 +66,7 @@ export type Database = {
           ip?: string | null
           last_seen_at?: string
           user_agent?: string | null
+          webauthn_verified_at?: string | null
         }
         Update: {
           admin_id?: string
@@ -73,6 +75,7 @@ export type Database = {
           ip?: string | null
           last_seen_at?: string
           user_agent?: string | null
+          webauthn_verified_at?: string | null
         }
         Relationships: [
           {
@@ -132,6 +135,59 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_passkeys: {
+        Row: {
+          aaguid: string | null
+          admin_id: string
+          backed_up: boolean
+          counter: number
+          created_at: string
+          credential_id: string
+          device_type: string | null
+          id: string
+          last_used_at: string | null
+          nickname: string | null
+          public_key: string
+          transports: string[]
+        }
+        Insert: {
+          aaguid?: string | null
+          admin_id: string
+          backed_up?: boolean
+          counter?: number
+          created_at?: string
+          credential_id: string
+          device_type?: string | null
+          id?: string
+          last_used_at?: string | null
+          nickname?: string | null
+          public_key: string
+          transports?: string[]
+        }
+        Update: {
+          aaguid?: string | null
+          admin_id?: string
+          backed_up?: boolean
+          counter?: number
+          created_at?: string
+          credential_id?: string
+          device_type?: string | null
+          id?: string
+          last_used_at?: string | null
+          nickname?: string | null
+          public_key?: string
+          transports?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_passkeys_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_seeds: {
         Row: {
           created_at: string
@@ -149,6 +205,91 @@ export type Database = {
           role?: string
         }
         Relationships: []
+      }
+      admin_webauthn_challenges: {
+        Row: {
+          admin_id: string | null
+          challenge: string
+          consumed_at: string | null
+          created_at: string
+          device_id: string | null
+          expires_at: string
+          id: string
+          purpose: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_id?: string | null
+          challenge: string
+          consumed_at?: string | null
+          created_at?: string
+          device_id?: string | null
+          expires_at: string
+          id?: string
+          purpose: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_id?: string | null
+          challenge?: string
+          consumed_at?: string | null
+          created_at?: string
+          device_id?: string | null
+          expires_at?: string
+          id?: string
+          purpose?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_webauthn_challenges_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_webauthn_verifications: {
+        Row: {
+          admin_id: string
+          consumed_at: string | null
+          created_at: string
+          device_id: string
+          expires_at: string
+          id: string
+          ip: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          admin_id: string
+          consumed_at?: string | null
+          created_at?: string
+          device_id: string
+          expires_at: string
+          id?: string
+          ip?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          admin_id?: string
+          consumed_at?: string | null
+          created_at?: string
+          device_id?: string
+          expires_at?: string
+          id?: string
+          ip?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_webauthn_verifications_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       admins: {
         Row: {
