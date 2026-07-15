@@ -43,6 +43,8 @@ function AuthForm({ onAuthed }: { onAuthed: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const supportsPasskey = isPasskeySupported();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +70,19 @@ function AuthForm({ onAuthed }: { onAuthed: () => void }) {
     }
   };
 
+  const passkeySignIn = async () => {
+    setPasskeyBusy(true);
+    try {
+      await loginWithPasskey();
+      toast.success("Signed in with passkey");
+      onAuthed();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Passkey sign-in failed");
+    } finally {
+      setPasskeyBusy(false);
+    }
+  };
+
   return (
     <Card className="max-w-md mx-auto">
       <CardHeader>
@@ -76,7 +91,24 @@ function AuthForm({ onAuthed }: { onAuthed: () => void }) {
           {mode === "signin" ? "Sign in to the Novaryn admin panel." : "Create an admin account. Only pre-authorized or invited emails will get admin rights."}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
+        {supportsPasskey && mode === "signin" && (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={passkeyBusy || busy}
+              onClick={passkeySignIn}
+            >
+              <Fingerprint className="w-4 h-4 mr-1" />
+              {passkeyBusy ? "Waiting for passkey…" : "Sign in with passkey"}
+            </Button>
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+              <div className="h-px bg-border flex-1" /> or <div className="h-px bg-border flex-1" />
+            </div>
+          </>
+        )}
         <form onSubmit={submit} className="space-y-3">
           <div><Label htmlFor="email">Email</Label>
             <Input id="email" type="email" required value={email} onChange={e => setEmail(e.target.value)} />
@@ -84,7 +116,7 @@ function AuthForm({ onAuthed }: { onAuthed: () => void }) {
           <div><Label htmlFor="password">Password</Label>
             <Input id="password" type="password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} />
           </div>
-          <Button type="submit" disabled={busy} className="w-full">
+          <Button type="submit" disabled={busy || passkeyBusy} className="w-full">
             {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Sign up"}
           </Button>
           <button type="button" className="text-sm text-muted-foreground hover:underline w-full text-center"
@@ -92,6 +124,11 @@ function AuthForm({ onAuthed }: { onAuthed: () => void }) {
             {mode === "signin" ? "Need an account? Sign up" : "Have an account? Sign in"}
           </button>
         </form>
+        {mode === "signin" && (
+          <p className="text-[11px] text-muted-foreground text-center">
+            After password sign-in you'll be asked to verify with your passkey (biometric).
+          </p>
+        )}
       </CardContent>
     </Card>
   );
