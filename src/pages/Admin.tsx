@@ -27,9 +27,10 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import SEO from "@/components/SEO";
-import { ArrowLeft, Shield, Users, Database, KeyRound, UserPlus, RotateCcw, Download, LogOut, AlertTriangle, Smartphone, Link2, Copy, Coffee as CoffeeIcon, Heart, MessageSquare, HelpCircle } from "lucide-react";
+import { ArrowLeft, Shield, Users, Database, KeyRound, UserPlus, RotateCcw, Download, LogOut, AlertTriangle, Smartphone, Link2, Copy, Coffee as CoffeeIcon, Heart, MessageSquare, HelpCircle, Fingerprint, Trash2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { SupportTab, FaqsTab, type FaqEditorState } from "@/components/admin/SupportTabs";
+import { isPasskeySupported, loginWithPasskey, stepUpPasskey, registerPasskey, passkeysApi, type AdminPasskey } from "@/lib/admin-passkey";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
