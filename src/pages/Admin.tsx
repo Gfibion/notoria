@@ -27,9 +27,10 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import SEO from "@/components/SEO";
-import { ArrowLeft, Shield, Users, Database, KeyRound, UserPlus, RotateCcw, Download, LogOut, AlertTriangle, Smartphone, Link2, Copy, Coffee as CoffeeIcon, Heart, MessageSquare, HelpCircle } from "lucide-react";
+import { ArrowLeft, Shield, Users, Database, KeyRound, UserPlus, RotateCcw, Download, LogOut, AlertTriangle, Smartphone, Link2, Copy, Coffee as CoffeeIcon, Heart, MessageSquare, HelpCircle, Fingerprint, Trash2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { SupportTab, FaqsTab, type FaqEditorState } from "@/components/admin/SupportTabs";
+import { isPasskeySupported, loginWithPasskey, stepUpPasskey, registerPasskey, passkeysApi, type AdminPasskey } from "@/lib/admin-passkey";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -42,6 +43,8 @@ function AuthForm({ onAuthed }: { onAuthed: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const supportsPasskey = isPasskeySupported();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +70,19 @@ function AuthForm({ onAuthed }: { onAuthed: () => void }) {
     }
   };
 
+  const passkeySignIn = async () => {
+    setPasskeyBusy(true);
+    try {
+      await loginWithPasskey();
+      toast.success("Signed in with passkey");
+      onAuthed();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Passkey sign-in failed");
+    } finally {
+      setPasskeyBusy(false);
+    }
+  };
+
   return (
     <Card className="max-w-md mx-auto">
       <CardHeader>
@@ -75,7 +91,24 @@ function AuthForm({ onAuthed }: { onAuthed: () => void }) {
           {mode === "signin" ? "Sign in to the Novaryn admin panel." : "Create an admin account. Only pre-authorized or invited emails will get admin rights."}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
+        {supportsPasskey && mode === "signin" && (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={passkeyBusy || busy}
+              onClick={passkeySignIn}
+            >
+              <Fingerprint className="w-4 h-4 mr-1" />
+              {passkeyBusy ? "Waiting for passkey…" : "Sign in with passkey"}
+            </Button>
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+              <div className="h-px bg-border flex-1" /> or <div className="h-px bg-border flex-1" />
+            </div>
+          </>
+        )}
         <form onSubmit={submit} className="space-y-3">
           <div><Label htmlFor="email">Email</Label>
             <Input id="email" type="email" required value={email} onChange={e => setEmail(e.target.value)} />
@@ -83,7 +116,7 @@ function AuthForm({ onAuthed }: { onAuthed: () => void }) {
           <div><Label htmlFor="password">Password</Label>
             <Input id="password" type="password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} />
           </div>
-          <Button type="submit" disabled={busy} className="w-full">
+          <Button type="submit" disabled={busy || passkeyBusy} className="w-full">
             {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Sign up"}
           </Button>
           <button type="button" className="text-sm text-muted-foreground hover:underline w-full text-center"
@@ -91,6 +124,11 @@ function AuthForm({ onAuthed }: { onAuthed: () => void }) {
             {mode === "signin" ? "Need an account? Sign up" : "Have an account? Sign in"}
           </button>
         </form>
+        {mode === "signin" && (
+          <p className="text-[11px] text-muted-foreground text-center">
+            After password sign-in you'll be asked to verify with your passkey (biometric).
+          </p>
+        )}
       </CardContent>
     </Card>
   );
@@ -698,6 +736,166 @@ function CoffeeTab() {
   );
 }
 
+function StepUpView({ info, onVerified, onSignOut }: { info: any; onVerified: () => void; onSignOut: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [registering, setRegistering] = useState(false);
+  const hasPasskey = !!info?.webauthn?.hasPasskey;
+
+  const verify = async () => {
+    setBusy(true);
+    try {
+      await stepUpPasskey();
+      toast.success("Verified");
+      onVerified();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Verification failed");
+    } finally { setBusy(false); }
+  };
+
+  const register = async () => {
+    setRegistering(true);
+    try {
+      await registerPasskey(navigator.platform || "This device");
+      toast.success("Passkey registered on this device");
+      onVerified();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not register passkey");
+    } finally { setRegistering(false); }
+  };
+
+  return (
+    <Card className="max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><Fingerprint className="w-5 h-5" /> Biometric verification</CardTitle>
+        <CardDescription>
+          Signed in as <strong>{info?.user?.email}</strong>. For your security, admin actions require a fresh passkey (Face ID, Touch ID, Windows Hello, or a security key) every 12 hours.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {hasPasskey ? (
+          <Button onClick={verify} disabled={busy} className="w-full">
+            <Fingerprint className="w-4 h-4 mr-1" />
+            {busy ? "Waiting for passkey…" : "Verify with passkey"}
+          </Button>
+        ) : (
+          <>
+            <Alert>
+              <AlertTriangle className="w-4 h-4" />
+              <AlertDescription>
+                No passkey is registered yet. Set one up on this device to enable biometric sign-in going forward. You'll still be asked to verify with it after every password login.
+              </AlertDescription>
+            </Alert>
+            <Button onClick={register} disabled={registering} className="w-full">
+              <Fingerprint className="w-4 h-4 mr-1" />
+              {registering ? "Waiting for device…" : "Set up passkey on this device"}
+            </Button>
+          </>
+        )}
+        <Button variant="outline" size="sm" onClick={onSignOut} className="w-full">
+          <LogOut className="w-4 h-4 mr-1" /> Cancel & sign out
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PasskeysTab({ info, onChange }: { info: any; onChange: () => void }) {
+  const [list, setList] = useState<AdminPasskey[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [nickname, setNickname] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    try { const r = await passkeysApi.list(); setList(r.passkeys); }
+    catch (e: any) { toast.error(e?.message ?? "Failed to load passkeys"); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
+
+  const add = async () => {
+    setBusy(true);
+    try {
+      await registerPasskey(nickname.trim() || navigator.platform || "Device");
+      toast.success("Passkey added");
+      setNickname("");
+      load();
+      onChange();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not add passkey");
+    } finally { setBusy(false); }
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Remove this passkey?")) return;
+    try { await passkeysApi.remove(id); toast.success("Removed"); load(); onChange(); }
+    catch (e: any) { toast.error(e?.message ?? "Failed"); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <Alert>
+        <Shield className="w-4 h-4" />
+        <AlertDescription className="text-xs">
+          Passkeys let you sign in with Face ID, Touch ID, Windows Hello, or a security key. Every admin action requires a fresh passkey verification every 12 hours. Keep at least one passkey registered per device you use.
+        </AlertDescription>
+      </Alert>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Add a passkey</CardTitle>
+          <CardDescription>Registers a passkey stored on this device (or an attached security key).</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Label htmlFor="pkname">Nickname (optional)</Label>
+          <Input id="pkname" value={nickname} onChange={e => setNickname(e.target.value)} placeholder="e.g. iPhone, MacBook, YubiKey" maxLength={80} />
+          <Button onClick={add} disabled={busy}>
+            <Fingerprint className="w-4 h-4 mr-1" /> {busy ? "Waiting…" : "Add passkey"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-base">Registered passkeys</CardTitle>
+            <CardDescription>{list.length} on file</CardDescription>
+          </div>
+          <Button variant="outline" size="sm" onClick={load}><RotateCcw className="w-3 h-3 mr-1" /> Refresh</Button>
+        </CardHeader>
+        <CardContent>
+          {loading ? <p className="text-muted-foreground text-sm">Loading…</p> : list.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No passkeys yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {list.map(pk => (
+                <div key={pk.id} className="flex items-center justify-between gap-2 border-b last:border-0 py-2 text-sm">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{pk.nickname || "Unnamed passkey"}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {pk.device_type ?? "unknown"} • {pk.backed_up ? "synced" : "device-bound"} • added {new Date(pk.created_at).toLocaleString()}
+                      {pk.last_used_at ? ` • last used ${new Date(pk.last_used_at).toLocaleString()}` : ""}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={list.length <= 1}
+                    title={list.length <= 1 ? "You must keep at least one passkey" : "Remove"}
+                    onClick={() => remove(pk.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const { loading, session, info, error, refresh } = useAdmin();
   const [activeTab, setActiveTab] = useState("stats");
@@ -716,6 +914,7 @@ export default function AdminPage() {
     { value: "escrow", label: "Escrow", icon: Shield },
     { value: "invites", label: "Invites", icon: UserPlus },
     { value: "devices", label: "Device", icon: Smartphone },
+    { value: "passkeys", label: "Passkeys", icon: Fingerprint },
   ];
   const activeMeta = NAV.find(n => n.value === activeTab) ?? NAV[0];
 
@@ -784,7 +983,11 @@ export default function AdminPage() {
           <UnauthorizedDeviceView info={info} onRedeemed={refresh} onSignOut={signOut} />
         )}
 
-        {!loading && info?.admin && info.device?.authorized && (
+        {!loading && info?.admin && info.device?.authorized && !info.webauthn?.verified && (
+          <StepUpView info={info} onVerified={refresh} onSignOut={signOut} />
+        )}
+
+        {!loading && info?.admin && info.device?.authorized && info.webauthn?.verified && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             {/* Mobile horizontal nav */}
             <TabsList className="md:hidden flex w-full overflow-x-auto justify-start h-auto p-1 gap-0.5">
@@ -843,6 +1046,7 @@ export default function AdminPage() {
                 <TabsContent value="escrow" className="mt-4 md:mt-0"><EscrowTab info={info} onChange={refresh} /></TabsContent>
                 <TabsContent value="invites" className="mt-4 md:mt-0"><InvitesTab info={info} onChange={refresh} /></TabsContent>
                 <TabsContent value="devices" className="mt-4 md:mt-0"><DevicesTab info={info} onChange={refresh} /></TabsContent>
+                <TabsContent value="passkeys" className="mt-4 md:mt-0"><PasskeysTab info={info} onChange={refresh} /></TabsContent>
               </div>
             </div>
           </Tabs>

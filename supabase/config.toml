@@ -77,3 +77,18 @@ verify_jwt = false
 
 [functions.admin-faq-delete]
 verify_jwt = false
+
+[functions.admin-passkey-register-begin]
+verify_jwt = false
+
+[functions.admin-passkey-register-finish]
+verify_jwt = false
+
+[functions.admin-passkeys]
+verify_jwt = false
+
+[functions.admin-passkey-auth-begin]
+verify_jwt = false
+
+[functions.admin-passkey-auth-finish]
+verify_jwt = false
