@@ -112,9 +112,9 @@ export default function CloudBackupPage() {
       setNewKeyDialog(null);
       setSetupOpen(false);
       setPinInput(""); setPinConfirm("");
-      toast({ title: "Secret key activated", description: "Your key is locked on this device." });
+      toast({ title: "Cloud ID activated", description: "Protected by this device's keystore." });
     } catch (e: any) {
-      toast({ title: "Could not save key", description: e.message, variant: "destructive" });
+      toast({ title: "Could not save Cloud ID", description: e.message, variant: "destructive" });
     } finally {
       setBusy(false);
     }
@@ -147,8 +147,8 @@ export default function CloudBackupPage() {
       const stripped = manualKeyInput.toUpperCase().replace(/[^A-Z0-9]/g, "");
       const core = stripped.startsWith("NT") ? stripped.slice(2) : stripped;
       toast({
-        title: "Invalid key format",
-        description: `Expected 32 letters/digits after the NT prefix; got ${core.length}. Re-copy the full key (it looks like NT-XXXX-XXXX-…-XXXX).`,
+        title: "Invalid Cloud ID format",
+        description: `Expected 32 letters/digits after the NT prefix; got ${core.length}. Re-copy the full Cloud ID (it looks like NT-XXXX-XXXX-…-XXXX).`,
         variant: "destructive",
       });
       return;
@@ -156,7 +156,7 @@ export default function CloudBackupPage() {
     setSecret(norm);
     setManualKeyInput("");
     setManualKeyOpen(false);
-    toast({ title: "Key accepted", description: "Loaded into memory for this session." });
+    toast({ title: "Cloud ID accepted", description: "Loaded into memory for this session." });
   };
 
   // ─── Backup / Restore / Sync actions ───────────────────────────
@@ -259,12 +259,12 @@ export default function CloudBackupPage() {
   };
 
   const forgetKeyFromDevice = async () => {
-    if (!confirm("Remove the stored key from this device? You'll need to paste it back in (or set up again) to restore notes.")) return;
+    if (!confirm("Remove the stored Cloud ID from this device? You'll need to paste it back in (or set up again) to restore notes.")) return;
     await clearWrappedSecret();
     setSecret(null);
     setHasStoredKey(false);
     setStoredMethod("none");
-    toast({ title: "Key removed from this device" });
+    toast({ title: "Cloud ID removed from this device" });
   };
 
   const copyKey = useCallback(async (key: string) => {
@@ -304,8 +304,9 @@ export default function CloudBackupPage() {
           <Lock className="h-4 w-4" />
           <AlertTitle>End-to-end encrypted</AlertTitle>
           <AlertDescription className="text-sm">
-            Your notes are encrypted on this device before upload. Only your secret key can read them — we can't.
-            Lose the key and the data is unrecoverable.
+            Your Cloud ID is both your identity and your encryption key — there is no second key and no admin escrow.
+            Notes are encrypted on this device before upload and stored chronologically under your Cloud ID.
+            Lose it and the data is unrecoverable, by design.
           </AlertDescription>
         </Alert>
 
@@ -314,7 +315,7 @@ export default function CloudBackupPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <KeyRound className="w-4 h-4 text-primary" />
-              <h2 className="font-medium">Your secret key</h2>
+              <h2 className="font-medium">Your Cloud ID</h2>
             </div>
             {secret && (
               <Button variant="ghost" size="sm" onClick={() => setShowSecret(s => !s)}>
@@ -326,15 +327,15 @@ export default function CloudBackupPage() {
           {!secret && !hasStoredKey && (
             <>
               <p className="text-sm text-muted-foreground">
-                You don't have a key on this device yet. Create a new one, or paste an existing key to access notes
-                you've already backed up.
+                You don't have a Cloud ID on this device yet. Create one — it becomes your identity and your encryption
+                key — or paste an existing Cloud ID to reach notes you've already backed up.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button onClick={beginCreateKey} disabled={busy}>
-                  <Plus className="w-4 h-4 mr-1" /> Create new key
+                  <Plus className="w-4 h-4 mr-1" /> Create Cloud ID
                 </Button>
                 <Button variant="outline" onClick={() => setManualKeyOpen(true)}>
-                  Paste existing key
+                  Paste existing Cloud ID
                 </Button>
               </div>
             </>
@@ -343,16 +344,16 @@ export default function CloudBackupPage() {
           {!secret && hasStoredKey && (
             <>
               <p className="text-sm text-muted-foreground">
-                A key is stored on this device, locked with your {storedMethod === "biometric" ? "biometric (fingerprint/Face)" : "PIN"}.
+                Your Cloud ID is stored on this device, locked with your {storedMethod === "biometric" ? "biometric (fingerprint/Face)" : "PIN"}.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => setUnlockOpen(true)} disabled={busy}>
                   {storedMethod === "biometric" ? <Fingerprint className="w-4 h-4 mr-1" /> : <Lock className="w-4 h-4 mr-1" />}
                   Unlock
                 </Button>
-                <Button variant="outline" onClick={() => setManualKeyOpen(true)}>Paste different key</Button>
+                <Button variant="outline" onClick={() => setManualKeyOpen(true)}>Paste different Cloud ID</Button>
                 <Button variant="ghost" onClick={forgetKeyFromDevice} className="text-destructive hover:text-destructive">
-                  Forget key
+                  Forget Cloud ID
                 </Button>
               </div>
             </>
@@ -367,18 +368,18 @@ export default function CloudBackupPage() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Save this somewhere safe (password manager, encrypted note, printed copy). It's the only way to restore
-                your notes on another device.
+                Save this somewhere safe (password manager, encrypted note, printed copy). It is the only way to reach your
+                cloud data on another device — nobody, including us, can recover it for you.
               </p>
               <div className="flex flex-wrap gap-2">
                 {!hasStoredKey && (
                   <Button variant="outline" size="sm" onClick={() => setSetupOpen(true)}>
-                    Lock on this device
+                    Protect on this device
                   </Button>
                 )}
                 {hasStoredKey && (
                   <Button variant="ghost" size="sm" onClick={forgetKeyFromDevice} className="text-destructive hover:text-destructive">
-                    Forget on this device
+                    Forget Cloud ID
                   </Button>
                 )}
                 <Button variant="ghost" size="sm" onClick={() => setSecret(null)}>Lock now</Button>
@@ -531,7 +532,7 @@ export default function CloudBackupPage() {
         ) : (
           <section className="rounded-lg border border-dashed border-border p-8 text-center space-y-2">
             <CloudOff className="w-10 h-10 mx-auto text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Unlock or paste your key to see cloud backups.</p>
+            <p className="text-sm text-muted-foreground">Unlock or paste your Cloud ID to see cloud backups.</p>
           </section>
         )}
       </main>
@@ -540,9 +541,9 @@ export default function CloudBackupPage() {
       <Dialog open={!!newKeyDialog} onOpenChange={(o) => !o && setNewKeyDialog(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-primary" /> Save your new key</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-primary" /> Save your new Cloud ID</DialogTitle>
             <DialogDescription>
-              This key is the <strong>only way</strong> to restore your notes. Copy it now and store it somewhere safe.
+              This Cloud ID is the <strong>only way</strong> to reach your backups. Copy it now and store it somewhere safe — then protect it with this device's biometrics or a PIN.
             </DialogDescription>
           </DialogHeader>
 
@@ -558,7 +559,7 @@ export default function CloudBackupPage() {
               <Separator />
 
               <div className="space-y-2">
-                <p className="text-sm font-medium">Lock it on this device for quick access:</p>
+                <p className="text-sm font-medium">Protect it with this device (required):</p>
                 <div className="space-y-2">
                   <Label htmlFor="new-pin">PIN (4–8 digits)</Label>
                   <Input id="new-pin" type="password" inputMode="numeric" maxLength={8} value={pinInput}
@@ -571,9 +572,6 @@ export default function CloudBackupPage() {
           )}
 
           <DialogFooter className="gap-2 sm:gap-2 flex-col sm:flex-row">
-            <Button variant="ghost" onClick={() => { if (newKeyDialog) { setSecret(newKeyDialog.key); setNewKeyDialog(null); }}}>
-              Skip — just use this session
-            </Button>
             {isWebAuthnSupported() && newKeyDialog && (
               <Button variant="outline" disabled={busy}
                       onClick={() => finalizeNewKey(newKeyDialog.key, "biometric")}>
@@ -592,7 +590,7 @@ export default function CloudBackupPage() {
       <Dialog open={unlockOpen} onOpenChange={(o) => { setUnlockOpen(o); if (!o) setPinInput(""); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Unlock your key</DialogTitle>
+            <DialogTitle>Unlock your Cloud ID</DialogTitle>
             <DialogDescription>
               {storedMethod === "biometric"
                 ? "Confirm with biometric (fingerprint/Face/Windows Hello)."

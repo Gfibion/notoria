@@ -1,5 +1,9 @@
-// End-to-end encryption helpers for cloud backups.
-// The secret key never leaves the device. The server only sees:
+// End-to-end encryption helpers for the Cloud ID.
+//
+// SINGLE IDENTITY MODEL: one Cloud ID is both the account identity and the
+// encryption key. There is no second profile key and no admin escrow — nobody
+// but the Cloud ID holder can address or decrypt that data.
+// The Cloud ID never leaves the device. The server only sees:
 //   - userHash  = SHA-256(secret + ":auth")  → opaque identifier
 //   - ciphertext (AES-GCM, key derived from SHA-256(secret + ":enc"))
 // Lose the secret = data is unrecoverable. By design.
@@ -268,3 +272,11 @@ export async function unwrapSecretWithBiometric(wrapped: WrappedSecret): Promise
   );
   return dec.decode(pt);
 }
+
+// ─── Naming aliases (single Cloud ID identity) ─────────────────────────────
+/** Generate a fresh Cloud ID — identity + encryption key in one. */
+export const generateCloudId = generateSecretKey;
+/** Normalize a pasted Cloud ID to canonical form (or null if malformed). */
+export const normalizeCloudId = normalizeSecretKey;
+/** Opaque server-side identifier derived from the Cloud ID. */
+export const deriveCloudIdHash = deriveUserHash;
