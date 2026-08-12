@@ -1,7 +1,6 @@
 // Cloud sync API client. Calls Lovable Cloud edge functions, never the table directly.
 import { supabase } from "@/integrations/supabase/client";
 import { encryptPayload, decryptPayload } from "./cloud-crypto";
-import { importEscrowPublic, wrapUserKey, deriveUserKeyBytes } from "./admin-escrow";
 import type { Note } from "./db";
 
 export interface CloudNoteMeta {
@@ -22,26 +21,9 @@ async function invoke<T>(fn: string, body: Record<string, unknown>): Promise<T> 
   return data;
 }
 
-/** Reads the current admin escrow public key (if any) and wraps the user key for recovery. */
-async function buildEscrowWrappedKey(secret: string): Promise<string | undefined> {
-  try {
-    const { data } = await supabase.from("admin_escrow").select("public_key_jwk").maybeSingle();
-    const jwk = (data as any)?.public_key_jwk;
-    if (!jwk) return undefined;
-    const pub = await importEscrowPublic(jwk);
-    const userKey = await deriveUserKeyBytes(secret);
-    return await wrapUserKey(pub, userKey);
-  } catch (e) {
-    console.warn("Escrow key wrap skipped:", e);
-    return undefined;
-  }
-}
-
 /** Encrypts and uploads the given notes. Returns count uploaded. */
 export async function backupNotes(secret: string, notes: Note[]): Promise<number> {
   if (notes.length === 0) return 0;
-
-  const escrowWrappedKey = await buildEscrowWrappedKey(secret);
 
   const payload = await Promise.all(notes.map(async (n) => {
     const { ciphertext, nonce } = await encryptPayload(secret, n);
@@ -59,7 +41,7 @@ export async function backupNotes(secret: string, notes: Note[]): Promise<number
   for (let i = 0; i < payload.length; i += CHUNK) {
     const slice = payload.slice(i, i + CHUNK);
     const res = await invoke<{ ok: boolean; count: number }>("cloud-backup", {
-      secretKey: secret, notes: slice, escrowWrappedKey,
+      secretKey: secret, notes: slice,
     });
     total += res.count ?? slice.length;
   }
