@@ -1,4 +1,6 @@
-// Cloud restore endpoint - returns all encrypted notes for a given secret key.
+// Cloud restore endpoint — returns the encrypted notes stored under a Cloud ID,
+// newest first (chronological order by the client's last-updated timestamp).
+// Only the holder of the Cloud ID can address this data, and only they can decrypt it.
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -7,26 +9,28 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const jsonRes = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 async function sha256Hex(s: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
+function isValidCloudId(s: unknown): s is string {
+  return typeof s === "string" && s.length >= 32 && s.length <= 256 && /^[A-Za-z0-9\-_]+$/.test(s);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  if (req.method !== "POST") return jsonRes({ error: "Method not allowed" }, 405);
 
   try {
     const { secretKey, metadataOnly } = await req.json();
-    if (typeof secretKey !== "string" || secretKey.length < 32 || secretKey.length > 256) {
-      return new Response(JSON.stringify({ error: "Invalid secret key" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!isValidCloudId(secretKey)) return jsonRes({ error: "Invalid Cloud ID" }, 400);
 
     const userHash = await sha256Hex(secretKey + ":auth");
     const supabase = createClient(
@@ -34,7 +38,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const select = metadataOnly
+    const select = metadataOnly === true
       ? "note_id, client_updated_at, updated_at"
       : "note_id, ciphertext, nonce, client_updated_at, updated_at";
 
@@ -46,18 +50,12 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error("select error", error);
-      return new Response(JSON.stringify({ error: "Restore failed" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonRes({ error: "Restore failed" }, 500);
     }
 
-    return new Response(JSON.stringify({ ok: true, notes: data ?? [] }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonRes({ ok: true, notes: data ?? [] });
   } catch (e) {
     console.error(e);
-    return new Response(JSON.stringify({ error: "Bad request" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonRes({ error: "Bad request" }, 400);
   }
 });
