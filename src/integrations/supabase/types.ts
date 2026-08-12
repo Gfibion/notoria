@@ -87,27 +87,6 @@ export type Database = {
           },
         ]
       }
-      admin_escrow: {
-        Row: {
-          created_at: string
-          created_by: string
-          id: number
-          public_key_jwk: Json
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          id?: number
-          public_key_jwk: Json
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          id?: number
-          public_key_jwk?: Json
-        }
-        Relationships: []
-      }
       admin_invites: {
         Row: {
           created_at: string
@@ -320,7 +299,6 @@ export type Database = {
           ciphertext: string
           client_updated_at: string
           created_at: string
-          escrow_wrapped_key: string | null
           id: string
           nonce: string
           note_id: string
@@ -331,7 +309,6 @@ export type Database = {
           ciphertext: string
           client_updated_at: string
           created_at?: string
-          escrow_wrapped_key?: string | null
           id?: string
           nonce: string
           note_id: string
@@ -342,7 +319,6 @@ export type Database = {
           ciphertext?: string
           client_updated_at?: string
           created_at?: string
-          escrow_wrapped_key?: string | null
           id?: string
           nonce?: string
           note_id?: string

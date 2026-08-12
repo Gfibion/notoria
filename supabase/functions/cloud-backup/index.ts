@@ -1,8 +1,8 @@
-// Cloud backup endpoint - stores end-to-end-encrypted notes.
-// Auth: caller provides a secret key; server only stores SHA-256(secret + ":auth") as user_hash.
-// Server never sees plaintext note content.
-// Optional: caller may supply `escrowWrappedKey` (base64 RSA-OAEP wrap of the user's enc key)
-// so that an admin can later assist with recovery if the user loses their secret.
+// Cloud backup endpoint — stores end-to-end-encrypted notes.
+// Identity model: a single Cloud ID (the user's secret) is BOTH the identity and
+// the encryption key. The server only ever stores SHA-256(cloudId + ":auth") as
+// user_hash and never sees plaintext or the Cloud ID itself.
+// There is no escrow and no recovery path: lose the Cloud ID, lose the data.
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -11,48 +11,50 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const jsonRes = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 async function sha256Hex(s: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-function isValidSecret(s: unknown): s is string {
-  return typeof s === "string" && s.length >= 32 && s.length <= 256;
+// Cloud ID is an opaque printable token. Restricting the charset removes any
+// chance of control characters reaching the hash input.
+function isValidCloudId(s: unknown): s is string {
+  return typeof s === "string" && s.length >= 32 && s.length <= 256 && /^[A-Za-z0-9\-_]+$/.test(s);
+}
+
+const B64 = /^[A-Za-z0-9+/=]+$/;
+const NOTE_ID = /^[A-Za-z0-9_-]{1,128}$/;
+
+function isIsoDate(s: unknown): s is string {
+  return typeof s === "string" && s.length <= 40 && !Number.isNaN(Date.parse(s));
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  if (req.method !== "POST") return jsonRes({ error: "Method not allowed" }, 405);
 
   try {
     const body = await req.json();
-    const { secretKey, notes, escrowWrappedKey } = body ?? {};
+    const { secretKey, notes } = body ?? {};
 
-    if (!isValidSecret(secretKey)) {
-      return new Response(JSON.stringify({ error: "Invalid secret key" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!isValidCloudId(secretKey)) return jsonRes({ error: "Invalid Cloud ID" }, 400);
     if (!Array.isArray(notes) || notes.length === 0 || notes.length > 500) {
-      return new Response(JSON.stringify({ error: "notes must be an array of 1..500 items" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonRes({ error: "notes must be an array of 1..500 items" }, 400);
     }
-    const wrappedKey = (typeof escrowWrappedKey === "string" && escrowWrappedKey.length < 4096)
-      ? escrowWrappedKey
-      : null;
 
     for (const n of notes) {
-      if (!n || typeof n.id !== "string" || typeof n.ciphertext !== "string"
-          || typeof n.nonce !== "string" || typeof n.clientUpdatedAt !== "string"
-          || n.id.length > 128 || n.ciphertext.length > 5_000_000 || n.nonce.length > 128) {
-        return new Response(JSON.stringify({ error: "Invalid note payload" }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (!n
+        || !NOTE_ID.test(String(n.id ?? ""))
+        || typeof n.ciphertext !== "string" || n.ciphertext.length === 0 || n.ciphertext.length > 5_000_000 || !B64.test(n.ciphertext)
+        || typeof n.nonce !== "string" || n.nonce.length === 0 || n.nonce.length > 128 || !B64.test(n.nonce)
+        || !isIsoDate(n.clientUpdatedAt)) {
+        return jsonRes({ error: "Invalid note payload" }, 400);
       }
     }
 
@@ -64,11 +66,10 @@ Deno.serve(async (req) => {
 
     const rows = notes.map((n: any) => ({
       user_hash: userHash,
-      note_id: n.id,
+      note_id: String(n.id),
       ciphertext: n.ciphertext,
       nonce: n.nonce,
-      client_updated_at: n.clientUpdatedAt,
-      escrow_wrapped_key: wrappedKey,
+      client_updated_at: new Date(n.clientUpdatedAt).toISOString(),
     }));
 
     const { error } = await supabase
@@ -77,18 +78,12 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error("upsert error", error);
-      return new Response(JSON.stringify({ error: "Backup failed" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonRes({ error: "Backup failed" }, 500);
     }
 
-    return new Response(JSON.stringify({ ok: true, count: rows.length, escrowAttached: !!wrappedKey }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonRes({ ok: true, count: rows.length });
   } catch (e) {
     console.error(e);
-    return new Response(JSON.stringify({ error: "Bad request" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonRes({ error: "Bad request" }, 400);
   }
 });
