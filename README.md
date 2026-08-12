@@ -47,7 +47,7 @@ No accounts required to get started. Your data lives on your device by default �
 - Optional end-to-end encrypted cloud backup using your own secret key
 - Restore your notes on any device — just bring your key
 - No account registration required for backup
-- Secure escrow recovery available if you lose your device
+- Single Cloud ID: one key is both your identity and your encryption key, protected by your device keystore (biometrics/PIN). No escrow, no recovery.
 
 ### 🎨 Themes that match your mood
 - **Light** — clean and bright
