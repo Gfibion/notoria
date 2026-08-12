@@ -27,7 +27,6 @@ export interface AdminDeviceInfo {
 export interface AdminInfo {
   user: { id: string; email: string };
   admin: { id: string; user_id: string; email: string; role: "master" | "invited" } | null;
-  escrow: { public_key_jwk: JsonWebKey; created_at: string } | null;
   adminCount: number;
   device: {
     authorized: boolean;
@@ -114,8 +113,6 @@ export const adminApi = {
   users: () => call<{ ok: true; users: any[] }>("admin-users"),
   createInvite: (email: string) => call<{ ok: true; token: string; email: string }>("admin-create-invite", { email }),
   acceptInvite: (token: string) => call<{ ok: true }>("admin-accept-invite", { token }),
-  setEscrow: (publicKeyJwk: JsonWebKey) => call<{ ok: true }>("admin-set-escrow", { publicKeyJwk }),
-  recover: (userHash: string) => call<{ ok: true; userHash: string; wrappedKey: string | null; notes: any[]; recoverable: boolean }>("admin-recover", { userHash }),
   createDeviceLink: () => call<{ ok: true; token: string; expiresInMinutes: number }>("admin-create-device-link"),
   redeemDeviceLink: (token: string) => call<{ ok: true }>("admin-redeem-device-link", { token }),
   coffeeStats: () => call<{

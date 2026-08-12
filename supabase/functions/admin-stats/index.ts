@@ -9,11 +9,6 @@ Deno.serve(async (req) => {
     .from("cloud_backups")
     .select("*", { count: "exact", head: true });
 
-  const { count: recoverableBackups } = await ctx.service
-    .from("cloud_backups")
-    .select("*", { count: "exact", head: true })
-    .not("escrow_wrapped_key", "is", null);
-
   // unique user hashes + storage size (approx)
   const { data: rows } = await ctx.service
     .from("cloud_backups")
@@ -39,7 +34,6 @@ Deno.serve(async (req) => {
     ok: true,
     stats: {
       totalBackups: totalBackups ?? 0,
-      recoverableBackups: recoverableBackups ?? 0,
       uniqueUsers: users.size,
       approxBytes: bytes,
       adminCount: adminCount ?? 0,

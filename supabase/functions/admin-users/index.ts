@@ -8,14 +8,13 @@ Deno.serve(async (req) => {
 
   const { data, error } = await ctx.service
     .from("cloud_backups")
-    .select("user_hash, client_updated_at, updated_at, escrow_wrapped_key, ciphertext");
+    .select("user_hash, client_updated_at, updated_at, ciphertext");
 
   if (error) return json({ error: error.message }, 500);
 
   const map = new Map<string, {
     userHash: string;
     notes: number;
-    recoverable: boolean;
     lastUpdate: string;
     bytes: number;
   }>();
@@ -28,7 +27,6 @@ Deno.serve(async (req) => {
       map.set(k, {
         userHash: k,
         notes: 1,
-        recoverable: !!(r as any).escrow_wrapped_key,
         lastUpdate: t,
         bytes: ct,
       });
@@ -36,7 +34,6 @@ Deno.serve(async (req) => {
       prev.notes += 1;
       prev.bytes += ct;
       if (t > prev.lastUpdate) prev.lastUpdate = t;
-      if ((r as any).escrow_wrapped_key) prev.recoverable = true;
     }
   }
 
