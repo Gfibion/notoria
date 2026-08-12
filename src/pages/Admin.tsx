@@ -2,21 +2,6 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin, adminApi } from "@/lib/admin-client";
-import {
-  generateEscrowKeypair,
-  importEscrowPrivate,
-  unwrapUserKey,
-  decryptWithUserKey,
-  deriveUserKeyBytes,
-  storeEscrowPrivatePinned,
-  loadEscrowPrivatePinned,
-  hasStoredEscrowPrivate,
-  clearStoredEscrowPrivate,
-  downloadEscrowPrivate,
-  importEscrowPublic,
-  wrapUserKey,
-} from "@/lib/admin-escrow";
-import { encryptPayload, generateSecretKey, normalizeSecretKey, deriveUserHash } from "@/lib/cloud-crypto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -183,7 +168,6 @@ function StatsTab() {
   const cards = [
     { label: "Total backups", value: stats.totalBackups, icon: Database, hint: "Encrypted bundles in cloud" },
     { label: "Unique users", value: stats.uniqueUsers, icon: Users, hint: "Distinct anonymous identities" },
-    { label: "Recoverable", value: stats.recoverableBackups, icon: Shield, hint: "Escrow-wrapped backups" },
     { label: "Storage used", value: formatBytes(stats.approxBytes ?? 0), icon: Database, hint: "Approximate cloud footprint" },
     { label: "Admins", value: `${stats.adminCount} / 2`, icon: Shield, hint: "Master + secondary" },
     { label: "Pending invites", value: stats.pendingInvites, icon: UserPlus, hint: "Outstanding admin tokens" },
@@ -223,7 +207,7 @@ function StatsTab() {
   );
 }
 
-function UsersTab({ onRecover }: { onRecover: (userHash: string) => void }) {
+function UsersTab() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const load = async () => {
@@ -248,89 +232,12 @@ function UsersTab({ onRecover }: { onRecover: (userHash: string) => void }) {
                 <span>{u.notes} notes</span>
                 <span>{formatBytes(u.bytes ?? 0)}</span>
                 <span>Last: {new Date(u.lastUpdate).toLocaleString()}</span>
-                {u.recoverable
-                  ? <Badge variant="secondary" className="text-[10px]">Recoverable</Badge>
-                  : <Badge variant="outline" className="text-[10px]">No escrow</Badge>}
               </div>
             </div>
-            <Button size="sm" disabled={!u.recoverable} onClick={() => onRecover(u.userHash)}>
-              <KeyRound className="w-3 h-3 mr-1" /> Recover
-            </Button>
+            <Badge variant="outline" className="text-[10px] shrink-0">Zero-knowledge</Badge>
           </CardContent>
         </Card>
       ))}
-    </div>
-  );
-}
-
-function EscrowTab({ info, onChange }: { info: any; onChange: () => void }) {
-  const isMaster = info?.admin?.role === "master";
-  const [hasLocal, setHasLocal] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [pin, setPin] = useState("");
-
-  useEffect(() => { hasStoredEscrowPrivate().then(setHasLocal); }, []);
-
-  const setupEscrow = async () => {
-    if (!isMaster) return;
-    if (!/^\d{6,12}$/.test(pin)) { toast.error("Enter a 6–12 digit PIN to protect the local copy"); return; }
-    setBusy(true);
-    try {
-      const { publicJwk, privateJwk } = await generateEscrowKeypair();
-      await adminApi.setEscrow(publicJwk);
-      await storeEscrowPrivatePinned(privateJwk, pin);
-      downloadEscrowPrivate(privateJwk);
-      setHasLocal(true);
-      onChange();
-      toast.success("Escrow key generated. Backup the downloaded file in a safe place.");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Failed to set up escrow");
-    } finally { setBusy(false); }
-  };
-
-  return (
-    <div className="space-y-4">
-      <Alert>
-        <AlertTriangle className="w-4 h-4" />
-        <AlertDescription>
-          Escrow only protects backups uploaded <strong>after</strong> it's configured. Existing backups in the cloud cannot be recovered retroactively.
-        </AlertDescription>
-      </Alert>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Escrow status</CardTitle>
-          <CardDescription>Server-side public key used to wrap each user's encryption key.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          {info?.escrow
-            ? <p>Active since {new Date(info.escrow.created_at).toLocaleString()}.</p>
-            : <p className="text-muted-foreground">No escrow key configured yet.</p>}
-          <p>Local escrow private key: {hasLocal ? <Badge variant="secondary">Stored (PIN-locked)</Badge> : <Badge variant="outline">Not stored</Badge>}</p>
-        </CardContent>
-      </Card>
-
-      {isMaster && !info?.escrow && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Generate escrow keypair</CardTitle>
-            <CardDescription>The public key is uploaded; the private key is downloaded as a file and stored locally encrypted with your PIN.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Label htmlFor="setupPin">Local PIN (6–12 digits)</Label>
-            <Input id="setupPin" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, ""))} maxLength={12} />
-            <Button onClick={setupEscrow} disabled={busy}>
-              <KeyRound className="w-4 h-4 mr-1" /> Generate & publish
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {hasLocal && (
-        <Button variant="ghost" size="sm" onClick={async () => { await clearStoredEscrowPrivate(); setHasLocal(false); toast.message("Local escrow key removed"); }}>
-          Remove local key
-        </Button>
-      )}
     </div>
   );
 }
@@ -373,111 +280,6 @@ function InvitesTab({ info, onChange }: { info: any; onChange: () => void }) {
               <p className="font-medium">Invite token (share securely, shown once):</p>
               <code className="block break-all bg-muted p-2 rounded mt-1 text-xs">{token}</code>
               <Button size="sm" variant="outline" className="mt-2" onClick={() => { navigator.clipboard.writeText(token); toast.success("Copied"); }}>Copy</Button>
-            </AlertDescription>
-          </Alert>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function RecoverTab({ initialHash }: { initialHash: string }) {
-  const [userHash, setUserHash] = useState(initialHash);
-  const [pin, setPin] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [newSecret, setNewSecret] = useState<string | null>(null);
-  const [report, setReport] = useState<string | null>(null);
-
-  useEffect(() => { setUserHash(initialHash); }, [initialHash]);
-
-  const run = async () => {
-    setBusy(true); setReport(null); setNewSecret(null);
-    try {
-      if (!/^[0-9a-f]{64}$/.test(userHash.trim())) throw new Error("Invalid user hash");
-
-      // 1. Load escrow private (from local PIN-locked store)
-      const privJwk = await loadEscrowPrivatePinned(pin);
-      const privKey = await importEscrowPrivate(privJwk);
-
-      // 2. Fetch user's backup + wrapped key
-      const r = await adminApi.recover(userHash.trim());
-      if (!r.recoverable || !r.wrappedKey) throw new Error("This user has no escrow-wrapped backups (uploaded before escrow was active).");
-
-      // 3. Unwrap user's enc key bytes
-      const userKey = await unwrapUserKey(privKey, r.wrappedKey);
-
-      // 4. Decrypt every note
-      const decoded: any[] = [];
-      for (const n of r.notes) {
-        try { decoded.push({ id: n.note_id, data: await decryptWithUserKey(userKey, n.ciphertext, n.nonce) }); }
-        catch { /* skip */ }
-      }
-      if (decoded.length === 0) throw new Error("Decryption failed for all notes.");
-
-      // 5. Generate a NEW secret key for the user, re-encrypt + upload
-      const fresh = generateSecretKey();
-      const normalized = normalizeSecretKey(fresh)!;
-      const payload = await Promise.all(decoded.map(async d => {
-        const { ciphertext, nonce } = await encryptPayload(normalized, d.data);
-        return { id: d.id, ciphertext, nonce, clientUpdatedAt: new Date().toISOString() };
-      }));
-
-      // 6. Also wrap the new user key with current escrow public so future recovery works.
-      const escrowPubResp = await (await import("@/integrations/supabase/client")).supabase
-        .from("admin_escrow").select("public_key_jwk").maybeSingle();
-      let escrowWrappedKey: string | undefined;
-      const pubJwk = (escrowPubResp.data as any)?.public_key_jwk;
-      if (pubJwk) {
-        const pub = await importEscrowPublic(pubJwk);
-        const ub = await deriveUserKeyBytes(normalized);
-        escrowWrappedKey = await wrapUserKey(pub, ub);
-      }
-
-      // 7. Upload under the NEW user hash
-      const { supabase } = await import("@/integrations/supabase/client");
-      const newHash = await deriveUserHash(normalized);
-      const { error } = await supabase.functions.invoke("cloud-backup", {
-        body: { secretKey: normalized, notes: payload, escrowWrappedKey },
-      });
-      if (error) throw new Error(error.message);
-
-      setNewSecret(normalized);
-      setReport(`Recovered ${payload.length} notes. The user must use the NEW secret key below. New user ID: ${newHash}`);
-      toast.success("Recovery complete");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Recovery failed");
-    } finally { setBusy(false); }
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Restore lost-key data</CardTitle>
-        <CardDescription>
-          Decrypts a user's escrow-wrapped backups locally using the escrow private key,
-          then re-encrypts them under a fresh secret key that you deliver to the user out-of-band.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div>
-          <Label htmlFor="rhash">User ID (anonymous hash)</Label>
-          <Input id="rhash" value={userHash} onChange={e => setUserHash(e.target.value)} placeholder="64-char hex" className="font-mono text-xs" />
-        </div>
-        <div>
-          <Label htmlFor="rpin">Escrow PIN</Label>
-          <Input id="rpin" type="password" inputMode="numeric" value={pin} onChange={e => setPin(e.target.value)} />
-        </div>
-        <Button onClick={run} disabled={busy || !userHash || !pin}>
-          <KeyRound className="w-4 h-4 mr-1" /> Recover & re-key
-        </Button>
-
-        {report && <Alert><AlertDescription>{report}</AlertDescription></Alert>}
-        {newSecret && (
-          <Alert>
-            <AlertDescription>
-              <p className="font-medium mb-1">New secret key (deliver securely to the user):</p>
-              <code className="block break-all bg-muted p-2 rounded text-xs">{newSecret}</code>
-              <Button size="sm" variant="outline" className="mt-2" onClick={() => { navigator.clipboard.writeText(newSecret); toast.success("Copied"); }}>Copy</Button>
             </AlertDescription>
           </Alert>
         )}
@@ -899,7 +701,6 @@ function PasskeysTab({ info, onChange }: { info: any; onChange: () => void }) {
 export default function AdminPage() {
   const { loading, session, info, error, refresh } = useAdmin();
   const [activeTab, setActiveTab] = useState("stats");
-  const [recoverHash, setRecoverHash] = useState("");
   const [faqEditor, setFaqEditor] = useState<FaqEditorState>({ open: false, question: "", answer: "", published: true, sortOrder: 0 });
 
   const signOut = async () => { await supabase.auth.signOut(); refresh(); };
@@ -910,8 +711,6 @@ export default function AdminPage() {
     { value: "support", label: "Support", icon: MessageSquare },
     { value: "faqs", label: "FAQs", icon: HelpCircle },
     { value: "coffee", label: "Coffee", icon: CoffeeIcon },
-    { value: "recover", label: "Recover", icon: KeyRound },
-    { value: "escrow", label: "Escrow", icon: Shield },
     { value: "invites", label: "Invites", icon: UserPlus },
     { value: "devices", label: "Device", icon: Smartphone },
     { value: "passkeys", label: "Passkeys", icon: Fingerprint },
@@ -1033,7 +832,7 @@ export default function AdminPage() {
                 </div>
 
                 <TabsContent value="stats" className="mt-4 md:mt-0"><StatsTab /></TabsContent>
-                <TabsContent value="users" className="mt-4 md:mt-0"><UsersTab onRecover={(h) => { setRecoverHash(h); setActiveTab("recover"); }} /></TabsContent>
+                <TabsContent value="users" className="mt-4 md:mt-0"><UsersTab /></TabsContent>
                 <TabsContent value="support" className="mt-4 md:mt-0">
                   <SupportTab openFaqEditor={(seed) => {
                     setFaqEditor({ open: true, question: seed.question, answer: seed.answer, published: true, sortOrder: 0, sourceTicketId: seed.sourceTicketId });
@@ -1042,8 +841,6 @@ export default function AdminPage() {
                 </TabsContent>
                 <TabsContent value="faqs" className="mt-4 md:mt-0"><FaqsTab editor={faqEditor} setEditor={setFaqEditor} /></TabsContent>
                 <TabsContent value="coffee" className="mt-4 md:mt-0"><CoffeeTab /></TabsContent>
-                <TabsContent value="recover" className="mt-4 md:mt-0"><RecoverTab initialHash={recoverHash} /></TabsContent>
-                <TabsContent value="escrow" className="mt-4 md:mt-0"><EscrowTab info={info} onChange={refresh} /></TabsContent>
                 <TabsContent value="invites" className="mt-4 md:mt-0"><InvitesTab info={info} onChange={refresh} /></TabsContent>
                 <TabsContent value="devices" className="mt-4 md:mt-0"><DevicesTab info={info} onChange={refresh} /></TabsContent>
                 <TabsContent value="passkeys" className="mt-4 md:mt-0"><PasskeysTab info={info} onChange={refresh} /></TabsContent>
