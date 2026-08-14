@@ -11,9 +11,10 @@ const json = (b: unknown, s = 200) =>
 const REASONS = new Set(["issue", "concern", "recommend", "other"]);
 
 function genTicketNumber(): string {
-  // 8-digit, no leading zero
-  const n = 10000000 + Math.floor(Math.random() * 90000000);
-  return String(n);
+  // 8-digit, no leading zero, cryptographically random
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  return String(10000000 + (buf[0] % 90000000));
 }
 function genToken(): string {
   const bytes = new Uint8Array(24);
