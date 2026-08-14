@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
           amount: typeof tx.amount === "number" ? tx.amount : null,
           currency: (tx.currency ?? "").toString().toLowerCase() || null,
           status: normalizedStatus,
-          customer_email: tx.customer?.email ?? null,
+          customer_email: maskEmail(tx.customer?.email),
         }, { onConflict: "checkout_id" });
       } catch (e) {
         console.error("coffee_supports upsert failed", e);
