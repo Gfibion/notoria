@@ -3,16 +3,22 @@ import { supabase } from "@/integrations/supabase/client";
 
 const DEVICE_ID_KEY = "notoria_admin_device_id";
 
+function randomId(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export function getAdminDeviceId(): string {
   try {
     let id = localStorage.getItem(DEVICE_ID_KEY);
     if (!id) {
-      id = (crypto as any).randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36);
+      id = crypto.randomUUID?.() ?? randomId();
       localStorage.setItem(DEVICE_ID_KEY, id);
     }
     return id;
   } catch {
-    return "ephemeral-" + Math.random().toString(36).slice(2);
+    return "ephemeral-" + randomId();
   }
 }
 

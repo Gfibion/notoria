@@ -440,15 +440,41 @@ export function exportNoteAsTxt(note: Note): void {
   URL.revokeObjectURL(url);
 }
 
+const MAX_IMPORT_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_TITLE_CHARS = 200;
+const MAX_CONTENT_CHARS = 500_000;
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/** Strip control characters (binary junk) while keeping tabs/newlines. */
+function stripControlChars(s: string): string {
+  // eslint-disable-next-line no-control-regex
+  return s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+}
+
 export async function importFromTxt(file: File): Promise<{ title: string; content: string }> {
+  if (file.size > MAX_IMPORT_BYTES) {
+    throw new Error('File is too large. Maximum size is 5 MB.');
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const lines = text.split('\n');
-      const title = lines[0]?.trim() || 'Imported Note';
-      const content = lines.slice(1).join('<br>').trim();
-      resolve({ title, content });
+      try {
+        const raw = stripControlChars(String(e.target?.result ?? ''));
+        const lines = raw.split('\n');
+        const title = escapeHtml((lines[0]?.trim() || 'Imported Note').slice(0, MAX_TITLE_CHARS));
+        const body = lines.slice(1).map(escapeHtml).join('<br>').trim();
+        resolve({ title, content: body.slice(0, MAX_CONTENT_CHARS) });
+      } catch (err) {
+        reject(err instanceof Error ? err : new Error('Failed to parse file'));
+      }
     };
     reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsText(file);

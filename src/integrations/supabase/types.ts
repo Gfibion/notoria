@@ -396,6 +396,30 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          bucket: string
+          count: number
+          subject: string
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          count?: number
+          subject: string
+          updated_at?: string
+          window_start?: string
+        }
+        Update: {
+          bucket?: string
+          count?: number
+          subject?: string
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       ticket_messages: {
         Row: {
           body: string
@@ -472,6 +496,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bump_rate_limit: {
+        Args: { _bucket: string; _limit: number; _subject: string }
+        Returns: boolean
+      }
       is_admin: { Args: { _uid: string }; Returns: boolean }
       is_master_admin: { Args: { _uid: string }; Returns: boolean }
     }

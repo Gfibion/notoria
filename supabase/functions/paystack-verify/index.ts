@@ -1,8 +1,23 @@
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
+/** Store only a non-identifying, masked form of the payer email. */
+function maskEmail(email: unknown): string | null {
+  if (typeof email !== "string" || !email.includes("@")) return null;
+  const [local, domain] = email.trim().toLowerCase().split("@");
+  if (!local || !domain) return null;
+  const head = local.slice(0, 1);
+  return `${head}${"*".repeat(Math.max(2, local.length - 1))}@${domain}`.slice(0, 255);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const token = Deno.env.get("PAYSTACK_SECRET_KEY");
@@ -13,14 +28,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    const url = new URL(req.url);
-    const reference = url.searchParams.get("reference") || url.searchParams.get("trxref");
-    if (!reference || !/^[A-Za-z0-9_-]{6,}$/.test(reference)) {
+    const body = await req.json().catch(() => ({}));
+    const reference = String(body?.reference ?? "");
+    if (!reference || !/^[A-Za-z0-9_-]{6,100}$/.test(reference)) {
       return new Response(JSON.stringify({ error: "Invalid reference" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -51,7 +67,7 @@ Deno.serve(async (req) => {
           amount: typeof tx.amount === "number" ? tx.amount : null,
           currency: (tx.currency ?? "").toString().toLowerCase() || null,
           status: normalizedStatus,
-          customer_email: tx.customer?.email ?? null,
+          customer_email: maskEmail(tx.customer?.email),
         }, { onConflict: "checkout_id" });
       } catch (e) {
         console.error("coffee_supports upsert failed", e);

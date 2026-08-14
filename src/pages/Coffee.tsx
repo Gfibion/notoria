@@ -54,10 +54,9 @@ export default function CoffeePage() {
     setVerifying(true);
     (async () => {
       try {
-        const { data, error } = await supabase.functions.invoke(
-          `paystack-verify?reference=${encodeURIComponent(reference)}`,
-          { method: "GET" }
-        );
+        const { data, error } = await supabase.functions.invoke("paystack-verify", {
+          body: { reference },
+        });
         if (error) throw error;
         setVerifyState({
           status: data.status,
