@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,6 +20,8 @@ Deno.serve(async (req) => {
     if (messageBody.length < 1 || messageBody.length > 5000) return json({ error: "Message must be 1–5000 chars" }, 400);
 
     const service = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const rl = await checkRateLimit(service, req, "contact_add_message", 60);
+    if (!rl.allowed) return json({ error: rl.message }, 429);
     const { data: ticket } = await service
       .from("tickets")
       .select("id, access_token, status")

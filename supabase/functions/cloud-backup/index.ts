@@ -4,6 +4,7 @@
 // user_hash and never sees plaintext or the Cloud ID itself.
 // There is no escrow and no recovery path: lose the Cloud ID, lose the data.
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,6 +44,13 @@ function isIsoDate(s: unknown): s is string {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return jsonRes({ error: "Method not allowed" }, 405);
+
+  const supabaseRL = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+  const rl = await checkRateLimit(supabaseRL, req, "cloud_backup", 60);
+  if (!rl.allowed) return jsonRes({ error: rl.message }, 429);
 
   try {
     const body = await req.json();
