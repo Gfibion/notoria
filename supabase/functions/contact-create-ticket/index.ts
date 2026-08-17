@@ -62,8 +62,8 @@ Deno.serve(async (req) => {
       _subject: ipHash,
       _limit: MAX_TICKETS_PER_IP_PER_HOUR,
     });
-    if (rlErr) console.error("rate limit check failed", rlErr);
-    if (allowed === false) {
+    if (rlErr || allowed !== true) {
+      if (rlErr) console.error("rate limit check failed", rlErr);
       return json({ error: "Too many tickets created. Please try again in an hour." }, 429);
     }
 

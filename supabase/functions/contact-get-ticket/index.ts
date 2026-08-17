@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +18,8 @@ Deno.serve(async (req) => {
     if (!ticketNumber || !accessToken) return json({ error: "Missing credentials" }, 400);
 
     const service = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const rl = await checkRateLimit(service, req, "contact_get_ticket", 120);
+    if (!rl.allowed) return json({ error: rl.message }, 429);
     const { data: ticket, error } = await service
       .from("tickets")
       .select("id, ticket_number, reason, subject, status, contact_email, created_at, updated_at, access_token")

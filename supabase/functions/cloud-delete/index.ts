@@ -1,5 +1,6 @@
 // Cloud delete endpoint — removes backups (some or all) stored under a Cloud ID.
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,6 +28,13 @@ const NOTE_ID = /^[A-Za-z0-9_-]{1,128}$/;
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return jsonRes({ error: "Method not allowed" }, 405);
+
+  const supabaseRL = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+  const rl = await checkRateLimit(supabaseRL, req, "cloud_delete", 60);
+  if (!rl.allowed) return jsonRes({ error: rl.message }, 429);
 
   try {
     const { secretKey, noteIds, all } = await req.json();

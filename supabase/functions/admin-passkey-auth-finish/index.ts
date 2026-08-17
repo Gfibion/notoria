@@ -6,6 +6,7 @@
 //   next admin-bootstrap call consumes to set webauthn_verified_at.
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 import { corsHeaders, json } from "../_shared/admin-auth.ts";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { verifyAuthenticationResponse, getRp } from "../_shared/webauthn.ts";
 
 const VERIFICATION_TTL_MS = 5 * 60 * 1000;
@@ -39,6 +40,9 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
+
+  const rl = await checkRateLimit(service, req, "passkey_auth_finish", 60);
+  if (!rl.allowed) return json({ error: rl.message }, 429);
 
   const body = await req.clone().json().catch(() => ({} as any));
   const response = body?.response as any;
@@ -107,7 +111,15 @@ Deno.serve(async (req) => {
   }
   if (!verification.verified) return json({ error: "Verification failed" }, 400);
 
+  const prevCounter = Number(cred.counter ?? 0);
   const newCounter = (verification as any).authenticationInfo?.newCounter ?? 0;
+  // Clone detection: a non-zero counter must strictly increase.
+  if (newCounter !== 0 && newCounter <= prevCounter) {
+    console.error("possible cloned authenticator", { credId: cred.id, prevCounter, newCounter });
+    await service.from("admin_webauthn_challenges")
+      .update({ consumed_at: new Date().toISOString() }).eq("id", ch.id);
+    return json({ error: "Credential may have been cloned. Contact support." }, 403);
+  }
   await service.from("admin_passkeys").update({
     counter: newCounter,
     last_used_at: new Date().toISOString(),

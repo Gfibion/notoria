@@ -14,16 +14,29 @@ import type {
 
 export const RP_NAME = "Novaryn Admin";
 
-/** Derive rpID / expected origin from the incoming request. */
+/**
+ * Allowlisted origins for WebAuthn. The Origin header is attacker-controllable,
+ * so it is only trusted when it exactly matches this list — otherwise we fail
+ * closed to the canonical production origin.
+ */
+const ALLOWED_ORIGINS = [
+  "https://notoria.lovable.app",
+  "https://notoria1.netlify.app",
+  "https://id-preview--f825c0ba-a3ad-43d6-8710-02575d74ac61.lovable.app",
+  "http://localhost:8080",
+  "http://localhost:5173",
+];
+
+const DEFAULT_ORIGIN = "https://notoria.lovable.app";
+
+/** Derive rpID / expected origin from the incoming request (allowlisted only). */
 export function getRp(req: Request): { rpID: string; origin: string } {
-  const origin = req.headers.get("origin") ?? "";
-  try {
-    const u = new URL(origin);
-    return { rpID: u.hostname, origin };
-  } catch {
-    // Fallback — production URL, keeps a sane default when Origin is missing.
-    return { rpID: "notoria.lovable.app", origin: "https://notoria.lovable.app" };
+  const origin = (req.headers.get("origin") ?? "").trim();
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    return { rpID: new URL(origin).hostname, origin };
   }
+  // Never fall back to attacker-supplied input.
+  return { rpID: new URL(DEFAULT_ORIGIN).hostname, origin: DEFAULT_ORIGIN };
 }
 
 export {

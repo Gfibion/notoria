@@ -167,24 +167,6 @@ export type Database = {
           },
         ]
       }
-      admin_seeds: {
-        Row: {
-          created_at: string
-          email: string
-          role: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          role: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          role?: string
-        }
-        Relationships: []
-      }
       admin_webauthn_challenges: {
         Row: {
           admin_id: string | null

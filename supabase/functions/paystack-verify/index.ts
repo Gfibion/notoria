@@ -1,5 +1,12 @@
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
+
+/** Currencies the support flow is allowed to record. */
+const ALLOWED_CURRENCIES = new Set(["NGN", "USD", "GHS", "KES", "ZAR"]);
+/** Sanity bounds in minor units (kobo/cents). */
+const MIN_MINOR = 50;
+const MAX_MINOR = 1_000_000_00;
 
 /** Store only a non-identifying, masked form of the payer email. */
 function maskEmail(email: unknown): string | null {
@@ -16,6 +23,17 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const rlService = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+  const rl = await checkRateLimit(rlService, req, "paystack_verify", 60);
+  if (!rl.allowed) {
+    return new Response(JSON.stringify({ error: rl.message }), {
+      status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -54,12 +72,19 @@ Deno.serve(async (req) => {
     // Normalize to our schema ("succeeded" | others). Paystack uses "success".
     const normalizedStatus = paystackStatus === "success" ? "succeeded" : paystackStatus;
 
-    if (normalizedStatus === "succeeded") {
+    const txCurrency = (tx.currency ?? "").toString().toUpperCase();
+    const txAmount = typeof tx.amount === "number" ? tx.amount : NaN;
+    const integrityOk =
+      ALLOWED_CURRENCIES.has(txCurrency) &&
+      Number.isFinite(txAmount) && txAmount >= MIN_MINOR && txAmount <= MAX_MINOR;
+
+    if (normalizedStatus === "succeeded" && !integrityOk) {
+      console.error("payment integrity check failed", { reference, txCurrency, txAmount });
+    }
+
+    if (normalizedStatus === "succeeded" && integrityOk) {
       try {
-        const service = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-        );
+        const service = rlService;
         await service.from("coffee_supports").upsert({
           checkout_id: reference,
           product_id: tx.channel ?? null,

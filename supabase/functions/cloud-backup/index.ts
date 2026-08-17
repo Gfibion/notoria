@@ -4,6 +4,7 @@
 // user_hash and never sees plaintext or the Cloud ID itself.
 // There is no escrow and no recovery path: lose the Cloud ID, lose the data.
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,6 +32,11 @@ function isValidCloudId(s: unknown): s is string {
 const B64 = /^[A-Za-z0-9+/=]+$/;
 const NOTE_ID = /^[A-Za-z0-9_-]{1,128}$/;
 
+/** Decoded byte length of a base64 string, or -1 when it is not valid base64. */
+function b64Len(s: string): number {
+  try { return atob(s).length; } catch { return -1; }
+}
+
 function isIsoDate(s: unknown): s is string {
   return typeof s === "string" && s.length <= 40 && !Number.isNaN(Date.parse(s));
 }
@@ -38,6 +44,13 @@ function isIsoDate(s: unknown): s is string {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return jsonRes({ error: "Method not allowed" }, 405);
+
+  const supabaseRL = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+  const rl = await checkRateLimit(supabaseRL, req, "cloud_backup", 60);
+  if (!rl.allowed) return jsonRes({ error: rl.message }, 429);
 
   try {
     const body = await req.json();
@@ -52,7 +65,8 @@ Deno.serve(async (req) => {
       if (!n
         || !NOTE_ID.test(String(n.id ?? ""))
         || typeof n.ciphertext !== "string" || n.ciphertext.length === 0 || n.ciphertext.length > 5_000_000 || !B64.test(n.ciphertext)
-        || typeof n.nonce !== "string" || n.nonce.length === 0 || n.nonce.length > 128 || !B64.test(n.nonce)
+        || typeof n.nonce !== "string" || !B64.test(n.nonce) || b64Len(n.nonce) !== 12
+        || b64Len(n.ciphertext) <= 0
         || !isIsoDate(n.clientUpdatedAt)) {
         return jsonRes({ error: "Invalid note payload" }, 400);
       }
