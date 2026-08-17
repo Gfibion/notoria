@@ -1,10 +1,36 @@
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
 
 const ALLOWED_CURRENCIES = ["NGN", "USD", "GHS", "KES", "ZAR"] as const;
 const ALLOWED_CHANNELS = ["card", "bank", "ussd", "qr", "mobile_money", "bank_transfer", "eft"] as const;
 
+/** Callbacks may only point back at our own app origins. */
+const ALLOWED_CALLBACK_ORIGINS = [
+  "https://notoria.lovable.app",
+  "https://notoria1.netlify.app",
+  "http://localhost:8080",
+  "http://localhost:5173",
+];
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const service = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+  const rl = await checkRateLimit(service, req, "paystack_initialize", 20);
+  if (!rl.allowed) {
+    return new Response(JSON.stringify({ error: rl.message }), {
+      status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const token = Deno.env.get("PAYSTACK_SECRET_KEY");
@@ -37,7 +63,13 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (!/^https?:\/\//.test(callbackUrl)) {
+    const callbackOk = (() => {
+      try {
+        const u = new URL(callbackUrl);
+        return ALLOWED_CALLBACK_ORIGINS.includes(u.origin);
+      } catch { return false; }
+    })();
+    if (!callbackOk) {
       return new Response(JSON.stringify({ error: "Invalid callback_url" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
