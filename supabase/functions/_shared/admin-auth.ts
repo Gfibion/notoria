@@ -79,7 +79,7 @@ export interface RequireAdminOpts {
   allowAnyAuthed?: boolean;
   /** If true (default when admin), enforce that the request's device matches the admin's bound device. */
   enforceDevice?: boolean;
-  /** If true, auto-claim the device when no binding exists yet. */
+  /** Opt-in only: auto-claim the device when no binding exists yet (defaults to false). */
   autoClaim?: boolean;
   /** If true (default when admin & enforceDevice), require a fresh WebAuthn verification on this device. */
   requireWebauthn?: boolean;
@@ -138,9 +138,16 @@ export async function requireAdmin(
       .maybeSingle();
 
     if (!current) {
-      if (opts.autoClaim === false) {
+      // Fail closed: the first binding must be explicit (passkey verification or
+      // a redeemed one-time device link), never an implicit claim by any caller
+      // holding a JWT.
+      if (opts.autoClaim !== true) {
         ctx.deviceAuthorized = false;
         ctx.currentDevice = null;
+        return json({
+          error: "This device is not yet bound to your admin account. Verify with your passkey or redeem a one-time device link.",
+          code: "device_not_authorized",
+        }, 403);
       } else {
         const claimed: CurrentDeviceRow = {
           device_id: device.device_id,

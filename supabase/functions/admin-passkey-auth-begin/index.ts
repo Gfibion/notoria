@@ -5,6 +5,7 @@
 //   discoverable (resident-key) credentials.
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 import { corsHeaders, json } from "../_shared/admin-auth.ts";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { generateAuthenticationOptions, getRp } from "../_shared/webauthn.ts";
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
@@ -16,6 +17,9 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
+
+  const rl = await checkRateLimit(service, req, "passkey_auth_begin", 60);
+  if (!rl.allowed) return json({ error: rl.message }, 429);
 
   const authHeader = req.headers.get("Authorization");
   let adminId: string | null = null;
