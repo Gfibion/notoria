@@ -107,7 +107,15 @@ Deno.serve(async (req) => {
   }
   if (!verification.verified) return json({ error: "Verification failed" }, 400);
 
+  const prevCounter = Number(cred.counter ?? 0);
   const newCounter = (verification as any).authenticationInfo?.newCounter ?? 0;
+  // Clone detection: a non-zero counter must strictly increase.
+  if (newCounter !== 0 && newCounter <= prevCounter) {
+    console.error("possible cloned authenticator", { credId: cred.id, prevCounter, newCounter });
+    await service.from("admin_webauthn_challenges")
+      .update({ consumed_at: new Date().toISOString() }).eq("id", ch.id);
+    return json({ error: "Credential may have been cloned. Contact support." }, 403);
+  }
   await service.from("admin_passkeys").update({
     counter: newCounter,
     last_used_at: new Date().toISOString(),

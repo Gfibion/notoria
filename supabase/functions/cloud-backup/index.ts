@@ -31,6 +31,11 @@ function isValidCloudId(s: unknown): s is string {
 const B64 = /^[A-Za-z0-9+/=]+$/;
 const NOTE_ID = /^[A-Za-z0-9_-]{1,128}$/;
 
+/** Decoded byte length of a base64 string, or -1 when it is not valid base64. */
+function b64Len(s: string): number {
+  try { return atob(s).length; } catch { return -1; }
+}
+
 function isIsoDate(s: unknown): s is string {
   return typeof s === "string" && s.length <= 40 && !Number.isNaN(Date.parse(s));
 }
@@ -52,7 +57,8 @@ Deno.serve(async (req) => {
       if (!n
         || !NOTE_ID.test(String(n.id ?? ""))
         || typeof n.ciphertext !== "string" || n.ciphertext.length === 0 || n.ciphertext.length > 5_000_000 || !B64.test(n.ciphertext)
-        || typeof n.nonce !== "string" || n.nonce.length === 0 || n.nonce.length > 128 || !B64.test(n.nonce)
+        || typeof n.nonce !== "string" || !B64.test(n.nonce) || b64Len(n.nonce) !== 12
+        || b64Len(n.ciphertext) <= 0
         || !isIsoDate(n.clientUpdatedAt)) {
         return jsonRes({ error: "Invalid note payload" }, 400);
       }
