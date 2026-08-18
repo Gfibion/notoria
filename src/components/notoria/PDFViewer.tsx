@@ -55,7 +55,7 @@ export interface ExtractedTextMetadata {
 export function PDFViewer({ file, fileName, fileSize, notes, onClose, onAddToNote }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [scale, setScale] = useState(1.0);
+  const [scale, setScale] = useState(1.5);
   const [selectedText, setSelectedText] = useState('');
   const [showNoteSelector, setShowNoteSelector] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
