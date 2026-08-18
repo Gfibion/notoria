@@ -355,6 +355,7 @@ export function PDFViewer({ file, fileName, fileSize, notes, onClose, onAddToNot
       <div 
         ref={containerRef}
         className="flex-1 overflow-auto bg-muted/30"
+        onScroll={handleScroll}
         onMouseUp={handleTextSelection}
         onTouchEnd={handleTextSelection}
       >
