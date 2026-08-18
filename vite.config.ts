@@ -43,8 +43,42 @@ export default defineConfig(({ mode }) => ({
             purpose: "any maskable",
           },
         ],
+        // Let the OS offer Novaryn in "Open with" for PDFs (desktop PWA file handling).
+        file_handlers: [
+          {
+            action: "/app",
+            accept: {
+              "application/pdf": [".pdf"],
+            },
+            icons: [{ src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" }],
+            launch_type: "single-client",
+          },
+        ] as any,
+        // Android surfaces installed PWAs through the share sheet ("Open with" / "Share").
+        share_target: {
+          action: "/share-pdf",
+          method: "POST",
+          enctype: "multipart/form-data",
+          params: {
+            title: "title",
+            text: "text",
+            url: "url",
+            files: [
+              {
+                name: "file",
+                accept: ["application/pdf", ".pdf"],
+              },
+            ],
+          },
+        } as any,
+        launch_handler: {
+          client_mode: "navigate-existing",
+        } as any,
       },
       workbox: {
+        // Handles POSTed PDFs from the OS share sheet before falling through to the app shell.
+        importScripts: ["/share-target-handler.js"],
+        navigateFallbackDenylist: [/^\/share-pdf/],
         // Include .mjs so the PDF.js worker (pdf.worker.min.mjs) is precached and works offline.
         globPatterns: ["**/*.{js,mjs,css,html,ico,png,svg,woff2,wasm}"],
         // WatermelonDB + LokiJS + PDF.js push the main chunk past the default 2 MiB.

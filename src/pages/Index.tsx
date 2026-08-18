@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import SEO from '@/components/SEO';
+import { listenForExternalPdf } from '@/lib/pdf-open-with';
 
 const Index = () => {
   const [selectedWorkspace, setSelectedWorkspace] = useState<string | null>(null);
@@ -218,6 +219,15 @@ const Index = () => {
     }
     if (pdfInputRef.current) pdfInputRef.current.value = '';
   }, [toast]);
+
+  // PDFs opened from the OS ("Open with" / share sheet)
+  useEffect(() => {
+    const cleanup = listenForExternalPdf((file) => {
+      setPdfFile(file);
+      setIsPdfViewerOpen(true);
+    });
+    return cleanup;
+  }, []);
 
   // Handle adding extracted text to note
   const handleAddExtractedTextToNote = useCallback(async (noteId: string, text: string, metadata: ExtractedTextMetadata) => {
