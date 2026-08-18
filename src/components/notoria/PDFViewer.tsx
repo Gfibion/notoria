@@ -53,9 +53,10 @@ export interface ExtractedTextMetadata {
 }
 
 export function PDFViewer({ file, fileName, fileSize, notes, onClose, onAddToNote }: PDFViewerProps) {
+  const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [scale, setScale] = useState(1.0);
+  const [scale, setScale] = useState(1.5);
   const [selectedText, setSelectedText] = useState('');
   const [showNoteSelector, setShowNoteSelector] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -229,12 +230,38 @@ export function PDFViewer({ file, fileName, fileSize, notes, onClose, onAddToNot
     }, 10);
   }, []);
 
+  // Continuous scroll: scroll a given page into view
+  const scrollToPage = useCallback((page: number) => {
+    const target = pageRefs.current[page - 1];
+    const container = containerRef.current;
+    if (!target || !container) return;
+    const top = target.offsetTop - container.offsetTop - 8;
+    container.scrollTo({ top, behavior: 'smooth' });
+    setCurrentPage(page);
+  }, []);
+
   // Navigation
-  const goToPrevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
-  const goToNextPage = () => setCurrentPage((p) => Math.min(numPages, p + 1));
+  const goToPrevPage = () => scrollToPage(Math.max(1, currentPage - 1));
+  const goToNextPage = () => scrollToPage(Math.min(numPages, currentPage + 1));
+
+  // Track visible page while scrolling
+  const handleScroll = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const mid = container.scrollTop + container.clientHeight / 2;
+    let visible = 1;
+    for (let i = 0; i < pageRefs.current.length; i++) {
+      const el = pageRefs.current[i];
+      if (!el) continue;
+      const top = el.offsetTop - container.offsetTop;
+      if (top <= mid) visible = i + 1;
+      else break;
+    }
+    setCurrentPage((p) => (p === visible ? p : visible));
+  }, []);
 
   // Zoom
-  const zoomIn = () => setScale((s) => Math.min(2.5, s + 0.25));
+  const zoomIn = () => setScale((s) => Math.min(3, s + 0.25));
   const zoomOut = () => setScale((s) => Math.max(0.5, s - 0.25));
 
   // Add selected text to note
@@ -328,6 +355,7 @@ export function PDFViewer({ file, fileName, fileSize, notes, onClose, onAddToNot
       <div 
         ref={containerRef}
         className="flex-1 overflow-auto bg-muted/30"
+        onScroll={handleScroll}
         onMouseUp={handleTextSelection}
         onTouchEnd={handleTextSelection}
       >
@@ -372,13 +400,23 @@ export function PDFViewer({ file, fileName, fileSize, notes, onClose, onAddToNot
                 </div>
               }
             >
-              <Page
-                pageNumber={currentPage}
-                scale={scale}
-                className="shadow-lg pdf-page"
-                renderTextLayer={true}
-                renderAnnotationLayer={true}
-              />
+              <div className="flex flex-col items-center gap-4">
+                {Array.from({ length: numPages }, (_, i) => (
+                  <div
+                    key={i}
+                    ref={(el) => { pageRefs.current[i] = el; }}
+                    data-page={i + 1}
+                  >
+                    <Page
+                      pageNumber={i + 1}
+                      scale={scale}
+                      className="shadow-lg pdf-page"
+                      renderTextLayer={true}
+                      renderAnnotationLayer={true}
+                    />
+                  </div>
+                ))}
+              </div>
             </Document>
           ) : (
             <div className="flex flex-col items-center justify-center h-96 text-muted-foreground">
