@@ -343,49 +343,7 @@ export function Sidebar({
             </div>
           )}
           <nav className="px-2 space-y-1">
-            <button
-              onClick={() => {
-                onSelectSubcategory(null);
-                onSelectWorkspace(null);
-              }}
-              className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                selectedWorkspace === null && !showStarred && !selectedSubcategory
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-              )}
-            >
-              <img src={logoImage} alt="" className="w-4 h-4 object-contain flex-shrink-0" />
-              {!collapsed && <span>All Notes</span>}
-            </button>
-            
-            {/* Starred Notes */}
-            <button
-              onClick={onShowStarred}
-              className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                showStarred
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-              )}
-            >
-              <Star className="w-4 h-4 flex-shrink-0 text-gold" />
-              {!collapsed && <span>Starred</span>}
-            </button>
-
-            {/* Tasks */}
-            <Link
-              to="/tasks"
-              className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                'text-sidebar-foreground hover:bg-sidebar-accent/50 group'
-              )}
-            >
-              <div className="relative">
-                <CheckSquare className="w-4 h-4 flex-shrink-0 text-primary" />
-              </div>
-              {!collapsed && <span>Tasks</span>}
-            </Link>
+            {/* Priority navigation: Search already lives in the top Actions area */}
 
             {/* Novaryn Coffee - Buy Me Coffee */}
             <Link
@@ -423,22 +381,18 @@ export function Sidebar({
               )}
             </Link>
 
-            {/* Contact & support */}
+            {/* Tasks */}
             <Link
-              to="/contact"
+              to="/tasks"
               className={cn(
                 'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                'text-sidebar-foreground hover:bg-sidebar-accent/50 group'
               )}
-              title="Contact & support"
             >
-              <MessageSquare className="w-4 h-4 flex-shrink-0 text-primary" />
-              {!collapsed && (
-                <div className="flex flex-col leading-tight">
-                  <span>Contact</span>
-                  <span className="text-[10px] text-muted-foreground">FAQs & support tickets</span>
-                </div>
-              )}
+              <div className="relative">
+                <CheckSquare className="w-4 h-4 flex-shrink-0 text-primary" />
+              </div>
+              {!collapsed && <span>Tasks</span>}
             </Link>
 
             {/* Admin panel */}
@@ -460,6 +414,50 @@ export function Sidebar({
                 )}
               </Link>
             )}
+
+            {/* Note browsing & workspace categories */}
+            {!collapsed && (
+              <div className="pt-4 pb-1 px-3">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Workspaces
+                </span>
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                onSelectSubcategory(null);
+                onSelectWorkspace(null);
+              }}
+              className={cn(
+                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                selectedWorkspace === null && !showStarred && !selectedSubcategory
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+              )}
+            >
+              <img src={logoImage} alt="" className="w-4 h-4 object-contain flex-shrink-0" />
+              {!collapsed && <span>All Notes</span>}
+            </button>
+
+            {/* Starred Notes */}
+            <button
+              onClick={onShowStarred}
+              className={cn(
+                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                showStarred
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+              )}
+            >
+              <Star className="w-4 h-4 flex-shrink-0 text-gold" />
+              {!collapsed && <span>Starred</span>}
+            </button>
+
+
+
+
+
 
 
 
