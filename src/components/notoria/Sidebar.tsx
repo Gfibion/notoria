@@ -324,24 +324,7 @@ export function Sidebar({
           </Button>
         </div>
 
-        {/* Workspaces */}
         <div className="flex-1 overflow-y-auto scrollbar-thin">
-          {!collapsed && (
-            <div className="px-4 py-2 flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Workspaces
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                onClick={handleNewWorkspace}
-                title="Add workspace"
-              >
-                <Plus className="w-3 h-3" />
-              </Button>
-            </div>
-          )}
           <nav className="px-2 space-y-1">
             {/* Priority navigation: Search already lives in the top Actions area */}
 
