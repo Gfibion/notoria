@@ -76,6 +76,9 @@ export default defineConfig(({ mode }) => ({
         } as any,
       },
       workbox: {
+        // Handles POSTed PDFs from the OS share sheet before falling through to the app shell.
+        importScripts: ["/share-target-handler.js"],
+        navigateFallbackDenylist: [/^\/share-pdf/],
         // Include .mjs so the PDF.js worker (pdf.worker.min.mjs) is precached and works offline.
         globPatterns: ["**/*.{js,mjs,css,html,ico,png,svg,woff2,wasm}"],
         // WatermelonDB + LokiJS + PDF.js push the main chunk past the default 2 MiB.
