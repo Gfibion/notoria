@@ -229,12 +229,38 @@ export function PDFViewer({ file, fileName, fileSize, notes, onClose, onAddToNot
     }, 10);
   }, []);
 
+  // Continuous scroll: scroll a given page into view
+  const scrollToPage = useCallback((page: number) => {
+    const target = pageRefs.current[page - 1];
+    const container = containerRef.current;
+    if (!target || !container) return;
+    const top = target.offsetTop - container.offsetTop - 8;
+    container.scrollTo({ top, behavior: 'smooth' });
+    setCurrentPage(page);
+  }, []);
+
   // Navigation
-  const goToPrevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
-  const goToNextPage = () => setCurrentPage((p) => Math.min(numPages, p + 1));
+  const goToPrevPage = () => scrollToPage(Math.max(1, currentPage - 1));
+  const goToNextPage = () => scrollToPage(Math.min(numPages, currentPage + 1));
+
+  // Track visible page while scrolling
+  const handleScroll = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const mid = container.scrollTop + container.clientHeight / 2;
+    let visible = 1;
+    for (let i = 0; i < pageRefs.current.length; i++) {
+      const el = pageRefs.current[i];
+      if (!el) continue;
+      const top = el.offsetTop - container.offsetTop;
+      if (top <= mid) visible = i + 1;
+      else break;
+    }
+    setCurrentPage((p) => (p === visible ? p : visible));
+  }, []);
 
   // Zoom
-  const zoomIn = () => setScale((s) => Math.min(2.5, s + 0.25));
+  const zoomIn = () => setScale((s) => Math.min(3, s + 0.25));
   const zoomOut = () => setScale((s) => Math.max(0.5, s - 0.25));
 
   // Add selected text to note
