@@ -399,13 +399,23 @@ export function PDFViewer({ file, fileName, fileSize, notes, onClose, onAddToNot
                 </div>
               }
             >
-              <Page
-                pageNumber={currentPage}
-                scale={scale}
-                className="shadow-lg pdf-page"
-                renderTextLayer={true}
-                renderAnnotationLayer={true}
-              />
+              <div className="flex flex-col items-center gap-4">
+                {Array.from({ length: numPages }, (_, i) => (
+                  <div
+                    key={i}
+                    ref={(el) => { pageRefs.current[i] = el; }}
+                    data-page={i + 1}
+                  >
+                    <Page
+                      pageNumber={i + 1}
+                      scale={scale}
+                      className="shadow-lg pdf-page"
+                      renderTextLayer={true}
+                      renderAnnotationLayer={true}
+                    />
+                  </div>
+                ))}
+              </div>
             </Document>
           ) : (
             <div className="flex flex-col items-center justify-center h-96 text-muted-foreground">
