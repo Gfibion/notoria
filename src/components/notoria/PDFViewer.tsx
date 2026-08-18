@@ -53,6 +53,7 @@ export interface ExtractedTextMetadata {
 }
 
 export function PDFViewer({ file, fileName, fileSize, notes, onClose, onAddToNote }: PDFViewerProps) {
+  const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [scale, setScale] = useState(1.5);
