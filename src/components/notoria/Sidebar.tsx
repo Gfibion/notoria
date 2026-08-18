@@ -400,10 +400,19 @@ export function Sidebar({
 
             {/* Note browsing & workspace categories */}
             {!collapsed && (
-              <div className="pt-4 pb-1 px-3">
+              <div className="pt-4 pb-1 px-3 flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Workspaces
                 </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onClick={handleNewWorkspace}
+                  title="Add workspace"
+                >
+                  <Plus className="w-3 h-3" />
+                </Button>
               </div>
             )}
 
