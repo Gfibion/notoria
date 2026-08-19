@@ -276,6 +276,108 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_messages: {
+        Row: {
+          action: string
+          content: string
+          created_at: string
+          id: string
+          result: Json | null
+          role: string
+          session_id: string
+          used_history: boolean
+        }
+        Insert: {
+          action?: string
+          content: string
+          created_at?: string
+          id?: string
+          result?: Json | null
+          role: string
+          session_id: string
+          used_history?: boolean
+        }
+        Update: {
+          action?: string
+          content?: string
+          created_at?: string
+          id?: string
+          result?: Json | null
+          role?: string
+          session_id?: string
+          used_history?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_sessions: {
+        Row: {
+          admin_id: string
+          created_at: string
+          id: string
+          note_ids: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          id?: string
+          note_ids?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          id?: string
+          note_ids?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_sessions_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_usage: {
+        Row: {
+          admin_id: string
+          count: number
+          day: string
+        }
+        Insert: {
+          admin_id: string
+          count?: number
+          day?: string
+        }
+        Update: {
+          admin_id?: string
+          count?: number
+          day?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cloud_backups: {
         Row: {
           ciphertext: string
@@ -478,6 +580,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bump_ai_usage: {
+        Args: { _admin_id: string; _limit: number }
+        Returns: boolean
+      }
       bump_rate_limit: {
         Args: { _bucket: string; _limit: number; _subject: string }
         Returns: boolean
