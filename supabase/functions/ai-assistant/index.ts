@@ -4,7 +4,7 @@
 // AI_DAILY_LIMIT forwarded requests per admin per UTC day.
 import { requireAdmin, json, corsHeaders } from "../_shared/admin-auth.ts";
 
-const MODEL = "google/gemini-3.6-flash";
+const MODEL = "google/gemini-3.7-flash";
 const AI_DAILY_LIMIT = 10;
 const MAX_NOTES = 10;
 const MAX_NOTE_CHARS = 20_000;

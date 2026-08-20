@@ -86,3 +86,6 @@ verify_jwt = false
 
 [functions.admin-passkey-auth-finish]
 verify_jwt = false
+
+[functions.ai-assistant]
+verify_jwt = false
