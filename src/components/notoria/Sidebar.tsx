@@ -399,6 +399,28 @@ export function Sidebar({
               </Link>
             )}
 
+            {/* AI assistant (admin pilot) */}
+            {isAdmin && deviceAuthorized && (
+              <button
+                onClick={() => setAiOpen(true)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                  'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                )}
+                title="Novaryn AI"
+              >
+                <Sparkles className="w-4 h-4 flex-shrink-0 text-amber-500" />
+                {!collapsed && (
+                  <div className="flex flex-col leading-tight text-left">
+                    <span>Novaryn AI</span>
+                    <span className="text-[10px] text-muted-foreground">Pilot • admin only</span>
+                  </div>
+                )}
+              </button>
+            )}
+
+
+
             {/* Note browsing & workspace categories */}
             {!collapsed && (
               <div className="pt-4 pb-1 px-3 flex items-center justify-between">
