@@ -686,6 +686,10 @@ export function Sidebar({
         onSave={handleSaveWorkspace}
         onDelete={handleDeleteWorkspace}
       />
+
+      {isAdmin && deviceAuthorized && (
+        <AiAssistantDialog open={aiOpen} onOpenChange={setAiOpen} />
+      )}
     </>
   );
 }
