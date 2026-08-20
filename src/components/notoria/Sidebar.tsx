@@ -36,6 +36,7 @@ import {
   Coffee,
   Cloud,
   Shield,
+  Sparkles,
   MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
