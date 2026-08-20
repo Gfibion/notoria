@@ -124,6 +124,7 @@ export function Sidebar({
   const dragNodeRef = useRef<HTMLDivElement | null>(null);
 
   const { isAdmin, deviceAuthorized } = useIsAdmin();
+  const [aiOpen, setAiOpen] = useState(false);
 
   // Load subcategories for all workspaces
   useEffect(() => {
