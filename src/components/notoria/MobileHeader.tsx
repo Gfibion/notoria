@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useIsAdmin } from '@/lib/useIsAdmin';
 import { Link } from 'react-router-dom';
-import { Menu, Search, Plus, Trash2, Settings, Star, ChevronDown, ChevronRight, Hash, MoreHorizontal, Pencil, GripVertical, FileText, CheckSquare, Coffee, Cloud, Shield } from 'lucide-react';
+import { Menu, Search, Plus, Trash2, Settings, Star, ChevronDown, ChevronRight, Hash, MoreHorizontal, Pencil, GripVertical, FileText, CheckSquare, Coffee, Cloud, Shield, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Workspace, Subcategory, getSubcategoriesByWorkspace } from '@/lib/db';
@@ -47,6 +47,7 @@ interface MobileHeaderProps {
   onNewNoteInWorkspace?: (workspaceId: string, subcategory?: string) => void;
   onOpenSearch: () => void;
   onOpenTrash: () => void;
+  onOpenSafeFolder?: () => void;
   onOpenSettings: () => void;
   onShowStarred?: () => void;
   showStarred?: boolean;
@@ -66,6 +67,7 @@ export function MobileHeader({
   onNewNoteInWorkspace,
   onOpenSearch,
   onOpenTrash,
+  onOpenSafeFolder,
   onOpenSettings,
   onShowStarred,
   showStarred = false,
