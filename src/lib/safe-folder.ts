@@ -9,8 +9,8 @@ import { getSettings, saveSettings } from '@/lib/db';
 
 const ITERATIONS = 150_000;
 
-function toHex(buf: ArrayBuffer): string {
-  return Array.from(new Uint8Array(buf))
+function toHex(buf: ArrayBuffer | Uint8Array): string {
+  return Array.from(buf instanceof Uint8Array ? buf : new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
