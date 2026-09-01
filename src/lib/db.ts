@@ -28,6 +28,7 @@ export interface Note {
   isPinned: boolean;
   isStarred: boolean;
   isDeleted: boolean;
+  isSecret?: boolean;
   deletedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -56,6 +57,9 @@ export interface AppSettings {
   fontFamily: 'cambria' | 'times' | 'calibri' | 'georgia';
   fontSize: 'small' | 'medium' | 'large' | 'xlarge';
   uiLayout: 'auto' | 'desktop' | 'mobile';
+  /** Safe Folder PIN (PBKDF2 hash + salt, hex). Absent until the user sets one. */
+  safePinHash?: string;
+  safePinSalt?: string;
 }
 
 // ---------- row <-> interface mappers ----------
@@ -79,6 +83,7 @@ function rowToNote(rec: any): Note {
     isPinned: !!r.is_pinned,
     isStarred: !!r.is_starred,
     isDeleted: !!r.is_deleted,
+    isSecret: !!r.is_secret,
     deletedAt: r.deleted_at ? new Date(r.deleted_at) : undefined,
     createdAt: new Date(r.created_at ?? Date.now()),
     updatedAt: new Date(r.updated_at ?? Date.now()),
@@ -95,6 +100,7 @@ function writeNoteFields(rec: any, note: Note): void {
   rec._setRaw('is_pinned', note.isPinned ? 1 : 0);
   rec._setRaw('is_starred', note.isStarred ? 1 : 0);
   rec._setRaw('is_deleted', note.isDeleted ? 1 : 0);
+  rec._setRaw('is_secret', note.isSecret ? 1 : 0);
   rec._setRaw('deleted_at', note.deletedAt ? note.deletedAt.getTime() : null);
   rec._setRaw('tags_json', JSON.stringify(Array.isArray(note.tags) ? note.tags : []));
   rec._setRaw('created_at', note.createdAt ? new Date(note.createdAt).getTime() : Date.now());
@@ -132,17 +138,36 @@ function sortNotes(a: Note, b: Note): number {
 
 export async function getAllNotes(): Promise<Note[]> {
   const rows = await notesCollection().query().fetch();
-  return rows.map(rowToNote).filter((n) => !n.isDeleted).sort(sortNotes);
+  return rows.map(rowToNote).filter((n) => !n.isDeleted && !n.isSecret).sort(sortNotes);
 }
 
 export async function getNotesByWorkspace(workspaceId: string): Promise<Note[]> {
   const rows = await notesCollection().query(Q.where('workspace', workspaceId)).fetch();
-  return rows.map(rowToNote).filter((n) => !n.isDeleted).sort(sortNotes);
+  return rows.map(rowToNote).filter((n) => !n.isDeleted && !n.isSecret).sort(sortNotes);
 }
 
 export async function getStarredNotes(): Promise<Note[]> {
   const rows = await notesCollection().query().fetch();
-  return rows.map(rowToNote).filter((n) => n.isStarred && !n.isDeleted).sort(sortNotes);
+  return rows.map(rowToNote).filter((n) => n.isStarred && !n.isDeleted && !n.isSecret).sort(sortNotes);
+}
+
+export async function getSecretNotes(): Promise<Note[]> {
+  const rows = await notesCollection().query().fetch();
+  return rows.map(rowToNote).filter((n) => n.isSecret && !n.isDeleted).sort(sortNotes);
+}
+
+export async function setNoteSecret(id: string, isSecret: boolean): Promise<void> {
+  await database.write(async () => {
+    try {
+      const rec = await notesCollection().find(id);
+      await rec.update((r: any) => {
+        r._setRaw('is_secret', isSecret ? 1 : 0);
+        r._setRaw('updated_at', Date.now());
+      });
+    } catch {
+      /* not found */
+    }
+  });
 }
 
 export async function getDeletedNotes(): Promise<Note[]> {
@@ -171,6 +196,7 @@ export async function saveNote(note: Note): Promise<void> {
     subcategory: note.subcategory || '',
     color: note.color || '',
     isDeleted: note.isDeleted ?? false,
+    isSecret: note.isSecret ?? false,
     isStarred: note.isStarred ?? false,
   };
   await database.write(async () => {
