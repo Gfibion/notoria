@@ -8,6 +8,7 @@ import {
   saveNote,
   softDeleteNote,
   searchNotes,
+  setNoteSecret,
   generateId,
 } from '@/lib/db';
 
@@ -146,6 +147,11 @@ export function useNotes(workspaceId?: string, starredOnly?: boolean) {
     []
   );
 
+  const moveToSafe = useCallback(async (id: string) => {
+    await setNoteSecret(id, true);
+    setNotes(prev => prev.filter(n => n.id !== id));
+  }, []);
+
   const search = useCallback(async (query: string) => {
     if (!query.trim()) {
       return [];
@@ -163,6 +169,7 @@ export function useNotes(workspaceId?: string, starredOnly?: boolean) {
     togglePin,
     toggleStar,
     updateNoteColor,
+    moveToSafe,
     search,
     refresh: () => loadNotes(false),
   };
