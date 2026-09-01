@@ -1,6 +1,7 @@
 import { Database } from '@nozbe/watermelondb';
 import LokiJSAdapter from '@nozbe/watermelondb/adapters/lokijs';
 import { notoriaSchema } from './schema';
+import { notoriaMigrations } from './migrations';
 import {
   NoteModel,
   WorkspaceModel,
@@ -27,6 +28,7 @@ import {
 
 const adapter = new LokiJSAdapter({
   schema: notoriaSchema,
+  migrations: notoriaMigrations,
   dbName: 'notoria-wmdb',
   // Use incremental IndexedDB persistence for resilience against tab crashes.
   useIncrementalIndexedDB: true,
