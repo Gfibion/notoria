@@ -293,6 +293,20 @@ export function MobileHeader({
                   </button>
                 )}
 
+                {/* Safe Folder */}
+                {onOpenSafeFolder && (
+                  <button
+                    onClick={() => {
+                      onOpenSafeFolder();
+                      setIsSheetOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-secondary/50"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    <span>Safe Folder</span>
+                  </button>
+                )}
+
                 {/* Workspaces with subcategories */}
                 {workspaces.map((workspace) => {
                   const Icon = iconMap[workspace.icon] || iconMap.default;
