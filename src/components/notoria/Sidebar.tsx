@@ -15,6 +15,7 @@ import {
   Folder,
   Hash,
   Star,
+  ShieldCheck,
   Trash2,
   Settings,
   ChevronDown,
@@ -81,6 +82,7 @@ interface SidebarProps {
   onNewNoteInWorkspace?: (workspaceId: string, subcategory?: string) => void;
   onOpenSearch: () => void;
   onOpenTrash: () => void;
+  onOpenSafeFolder: () => void;
   onOpenSettings: () => void;
   onShowStarred: () => void;
   showStarred: boolean;
@@ -103,6 +105,7 @@ export function Sidebar({
   onNewNoteInWorkspace,
   onOpenSearch,
   onOpenTrash,
+  onOpenSafeFolder,
   onOpenSettings,
   onShowStarred,
   showStarred,
@@ -469,6 +472,16 @@ export function Sidebar({
             >
               <Star className="w-4 h-4 flex-shrink-0 text-gold" />
               {!collapsed && <span>Starred</span>}
+            </button>
+
+            {/* Safe Folder */}
+            <button
+              onClick={onOpenSafeFolder}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50"
+              title="Safe Folder"
+            >
+              <ShieldCheck className="w-4 h-4 flex-shrink-0 text-emerald-500" />
+              {!collapsed && <span>Safe Folder</span>}
             </button>
 
 

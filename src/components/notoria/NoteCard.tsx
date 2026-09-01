@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { Note, Workspace } from '@/lib/db';
 import { cn } from '@/lib/utils';
-import { Pin, Trash2, Star, Info, X, Calendar, Clock, FileText, Tag as TagIcon, HardDrive, Palette, MoreVertical } from 'lucide-react';
+import { Pin, Trash2, Star, Info, X, Calendar, Clock, FileText, Tag as TagIcon, HardDrive, Palette, MoreVertical, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { ColorPicker } from './ColorPicker';
@@ -26,6 +26,7 @@ interface NoteCardProps {
   onStar: () => void;
   onDelete: () => void;
   onColorChange?: (color: string) => void;
+  onMoveToSafe?: () => void;
 }
 
 // Calculate approximate storage size of a note
@@ -44,7 +45,7 @@ function countWords(content: string): number {
   return text.split(/\s+/).filter(word => word.length > 0).length;
 }
 
-export function NoteCard({ note, workspace, onClick, onPin, onStar, onDelete, onColorChange }: NoteCardProps) {
+export function NoteCard({ note, workspace, onClick, onPin, onStar, onDelete, onColorChange, onMoveToSafe }: NoteCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [infoPopupOpen, setInfoPopupOpen] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
@@ -271,6 +272,18 @@ export function NoteCard({ note, workspace, onClick, onPin, onStar, onDelete, on
               >
                 <Palette className="w-4 h-4" style={note.color ? { color: note.color } : undefined} />
                 Change color
+              </DropdownMenuItem>
+            )}
+            {onMoveToSafe && (
+              <DropdownMenuItem
+                className="flex items-center gap-3 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAction(onMoveToSafe);
+                }}
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Move to Safe Folder</span>
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />

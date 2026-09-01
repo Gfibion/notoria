@@ -9,6 +9,7 @@ interface NotesGridProps {
   onStarNote: (id: string) => void;
   onDeleteNote: (id: string) => void;
   onColorChange?: (id: string, color: string) => void;
+  onMoveToSafe?: (id: string) => void;
 }
 
 export function NotesGrid({
@@ -19,6 +20,7 @@ export function NotesGrid({
   onStarNote,
   onDeleteNote,
   onColorChange,
+  onMoveToSafe,
 }: NotesGridProps) {
   const getWorkspace = (id: string) => workspaces.find((ws) => ws.id === id);
   const pinnedNotes = notes.filter((n) => n.isPinned);
@@ -47,6 +49,7 @@ export function NotesGrid({
                   onStar={() => onStarNote(note.id)}
                   onDelete={() => onDeleteNote(note.id)}
                   onColorChange={onColorChange ? (color) => onColorChange(note.id, color) : undefined}
+                  onMoveToSafe={onMoveToSafe ? () => onMoveToSafe(note.id) : undefined}
                 />
               </div>
             ))}
@@ -77,6 +80,7 @@ export function NotesGrid({
                   onStar={() => onStarNote(note.id)}
                   onDelete={() => onDeleteNote(note.id)}
                   onColorChange={onColorChange ? (color) => onColorChange(note.id, color) : undefined}
+                  onMoveToSafe={onMoveToSafe ? () => onMoveToSafe(note.id) : undefined}
                 />
               </div>
             ))}

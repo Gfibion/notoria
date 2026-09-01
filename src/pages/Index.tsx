@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/notoria/EmptyState';
 import { NotesGrid } from '@/components/notoria/NotesGrid';
 import { InstallBanner } from '@/components/notoria/InstallBanner';
 import { TrashView } from '@/components/notoria/TrashView';
+import { SafeFolderView } from '@/components/notoria/SafeFolderView';
 import { SettingsDialog } from '@/components/notoria/SettingsDialog';
 import { PDFViewer, ExtractedTextMetadata } from '@/components/notoria/PDFViewer';
 import { generateExtractedTextHtml } from '@/components/notoria/ExtractedTextDisplay';
@@ -31,6 +32,8 @@ const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showStarred, setShowStarred] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
+  const [showSafeFolder, setShowSafeFolder] = useState(false);
+  const [safeNote, setSafeNote] = useState<Note | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [isPdfViewerOpen, setIsPdfViewerOpen] = useState(false);
@@ -48,6 +51,7 @@ const Index = () => {
     togglePin,
     toggleStar,
     updateNoteColor,
+    moveToSafe,
     refresh,
   } = useNotes(showStarred ? undefined : (selectedWorkspace || undefined), showStarred);
 
@@ -264,6 +268,29 @@ const Index = () => {
     );
   }
 
+  if (showSafeFolder) {
+    if (safeNote) {
+      return (
+        <NoteEditor
+          note={safeNote}
+          workspaces={workspaces}
+          onSave={async (data) => { await updateNote(safeNote.id, data); }}
+          onClose={() => setSafeNote(null)}
+          defaultWorkspace={safeNote.workspace || undefined}
+          defaultSubcategory={safeNote.subcategory || undefined}
+        />
+      );
+    }
+    return (
+      <SafeFolderView
+        workspaces={workspaces}
+        onClose={() => setShowSafeFolder(false)}
+        onOpenNote={(n) => setSafeNote(n)}
+        onChanged={refresh}
+      />
+    );
+  }
+
   if (showTrash) {
     return (
       <TrashView
@@ -305,6 +332,7 @@ const Index = () => {
           onNewNoteInWorkspace={handleNewNoteFromSidebar}
           onOpenSearch={() => setIsSearchActive(true)}
           onOpenTrash={() => setShowTrash(true)}
+          onOpenSafeFolder={() => setShowSafeFolder(true)}
           onOpenSettings={() => setShowSettings(true)}
           onShowStarred={() => {
             setShowStarred(true);
@@ -343,6 +371,7 @@ const Index = () => {
             onNewNoteInWorkspace={handleNewNoteFromSidebar}
             onOpenSearch={() => setIsSearchActive(true)}
             onOpenTrash={() => setShowTrash(true)}
+            onOpenSafeFolder={() => setShowSafeFolder(true)}
             onOpenSettings={() => setShowSettings(true)}
             onShowStarred={() => {
               setShowStarred(true);

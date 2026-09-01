@@ -12,7 +12,7 @@ import { appSchema, tableSchema } from '@nozbe/watermelondb';
  * cross-platform stability (matches Watermelon SQLite adapter behaviour).
  */
 export const notoriaSchema = appSchema({
-  version: 1,
+  version: 2,
   tables: [
     tableSchema({
       name: 'notes',
@@ -25,6 +25,7 @@ export const notoriaSchema = appSchema({
         { name: 'is_pinned', type: 'boolean' },
         { name: 'is_starred', type: 'boolean' },
         { name: 'is_deleted', type: 'boolean', isIndexed: true },
+        { name: 'is_secret', type: 'boolean', isOptional: true, isIndexed: true },
         { name: 'deleted_at', type: 'number', isOptional: true },
         { name: 'tags_json', type: 'string' },
         { name: 'created_at', type: 'number' },
