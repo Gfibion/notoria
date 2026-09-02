@@ -44,13 +44,39 @@ Deno.serve(async (req) => {
       pendingConsumed = true;
     }
 
+    // Is THIS device/browser already registered for this admin?
     const { data: existing } = await ctx.service
       .from("admin_devices")
       .select("device_id, ip, user_agent, claimed_at, last_seen_at, webauthn_verified_at")
       .eq("admin_id", ctx.admin.id)
+      .eq("device_id", ctx.device.device_id)
       .maybeSingle();
 
-    if (!existing) {
+    const { count: deviceCount } = await ctx.service
+      .from("admin_devices")
+      .select("*", { count: "exact", head: true })
+      .eq("admin_id", ctx.admin.id);
+
+    if (existing) {
+      const patch: Record<string, unknown> = {
+        last_seen_at: new Date().toISOString(),
+        ip: ctx.device.ip,
+        user_agent: ctx.device.user_agent,
+      };
+      if (pendingConsumed) patch.webauthn_verified_at = new Date().toISOString();
+      await ctx.service.from("admin_devices").update(patch)
+        .eq("admin_id", ctx.admin.id).eq("device_id", ctx.device.device_id);
+      deviceAuthorized = true;
+      currentDevice = {
+        ...(existing as any),
+        ip: ctx.device.ip,
+        user_agent: ctx.device.user_agent,
+        last_seen_at: new Date().toISOString(),
+        webauthn_verified_at: pendingConsumed ? new Date().toISOString() : (existing as any).webauthn_verified_at,
+      };
+    } else if (pendingConsumed || (deviceCount ?? 0) === 0) {
+      // Register the device when it was just proven by a passkey assertion, or
+      // when the admin has no registered device at all (first device / recovery).
       const now = new Date().toISOString();
       const claim = {
         admin_id: ctx.admin.id,
@@ -62,25 +88,9 @@ Deno.serve(async (req) => {
       await ctx.service.from("admin_devices").insert(claim);
       deviceAuthorized = true;
       currentDevice = { ...claim, claimed_at: now, last_seen_at: now };
-    } else if (existing.device_id === ctx.device.device_id) {
-      const patch: Record<string, unknown> = {
-        last_seen_at: new Date().toISOString(),
-        ip: ctx.device.ip,
-        user_agent: ctx.device.user_agent,
-      };
-      if (pendingConsumed) patch.webauthn_verified_at = new Date().toISOString();
-      await ctx.service.from("admin_devices").update(patch).eq("admin_id", ctx.admin.id);
-      deviceAuthorized = true;
-      currentDevice = {
-        ...(existing as any),
-        ip: ctx.device.ip,
-        user_agent: ctx.device.user_agent,
-        last_seen_at: new Date().toISOString(),
-        webauthn_verified_at: pendingConsumed ? new Date().toISOString() : (existing as any).webauthn_verified_at,
-      };
     } else {
       deviceAuthorized = false;
-      currentDevice = existing as any;
+      currentDevice = null;
     }
 
     const va = currentDevice?.webauthn_verified_at ? new Date(currentDevice.webauthn_verified_at).getTime() : 0;

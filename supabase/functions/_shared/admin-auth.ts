@@ -131,31 +131,27 @@ export async function requireAdmin(
   if (enforce && admin) {
     if (!device.device_id) return json({ error: "Missing device id", code: "device_missing" }, 400);
 
+    // Multiple devices/browsers can be registered per admin. A device is
+    // trusted once it has been registered (via passkey verification or a
+    // redeemed one-time link).
     const { data: current } = await service
       .from("admin_devices")
       .select("device_id, ip, user_agent, claimed_at, last_seen_at")
       .eq("admin_id", admin.id)
+      .eq("device_id", device.device_id)
       .maybeSingle();
 
+    const { count: deviceCount } = await service
+      .from("admin_devices")
+      .select("*", { count: "exact", head: true })
+      .eq("admin_id", admin.id);
+
     if (!current) {
-      // Fail closed: the first binding must be explicit (passkey verification or
-      // a redeemed one-time device link), never an implicit claim by any caller
-      // holding a JWT.
-      if (opts.autoClaim !== true) {
-        ctx.deviceAuthorized = false;
-        ctx.currentDevice = null;
-        return json({
-          error: "This device is not yet bound to your admin account. Verify with your passkey or redeem a one-time device link.",
-          code: "device_not_authorized",
-        }, 403);
-      } else {
-        const claimed: CurrentDeviceRow = {
-          device_id: device.device_id,
-          ip: device.ip,
-          user_agent: device.user_agent,
-          claimed_at: new Date().toISOString(),
-          last_seen_at: new Date().toISOString(),
-        };
+      // First-ever device for this admin: allow an explicit claim so the account
+      // can never become permanently unreachable. Any later device must be
+      // registered through passkey verification or a one-time device link.
+      if ((deviceCount ?? 0) === 0 && opts.autoClaim === true) {
+        const now = new Date().toISOString();
         await service.from("admin_devices").insert({
           admin_id: admin.id,
           device_id: device.device_id,
@@ -163,24 +159,30 @@ export async function requireAdmin(
           user_agent: device.user_agent,
         });
         ctx.deviceAuthorized = true;
-        ctx.currentDevice = claimed;
+        ctx.currentDevice = {
+          device_id: device.device_id,
+          ip: device.ip,
+          user_agent: device.user_agent,
+          claimed_at: now,
+          last_seen_at: now,
+        };
+      } else {
+        ctx.deviceAuthorized = false;
+        ctx.currentDevice = null;
+        return json({
+          error: "This device or browser is not registered for admin access. Verify with your passkey, or redeem a one-time device link generated from a registered device.",
+          code: "device_not_authorized",
+        }, 403);
       }
-    } else if (current.device_id === device.device_id) {
-      // Touch last_seen + refresh ip/ua
+    } else {
+      // Known device — touch last_seen + refresh ip/ua
       await service.from("admin_devices").update({
         last_seen_at: new Date().toISOString(),
         ip: device.ip,
         user_agent: device.user_agent,
-      }).eq("admin_id", admin.id);
+      }).eq("admin_id", admin.id).eq("device_id", device.device_id);
       ctx.deviceAuthorized = true;
       ctx.currentDevice = { ...current, ip: device.ip, user_agent: device.user_agent, last_seen_at: new Date().toISOString() };
-    } else {
-      ctx.deviceAuthorized = false;
-      ctx.currentDevice = current as CurrentDeviceRow;
-      return json({
-        error: "This device is not authorized for the admin panel. Generate a one-time link from your authorized device to bind this one.",
-        code: "device_not_authorized",
-      }, 403);
     }
 
     // Enforce fresh WebAuthn step-up (default ON for admins).
@@ -191,6 +193,7 @@ export async function requireAdmin(
         .from("admin_devices")
         .select("webauthn_verified_at")
         .eq("admin_id", admin.id)
+        .eq("device_id", device.device_id)
         .maybeSingle();
       const verifiedAt = dev?.webauthn_verified_at ? new Date(dev.webauthn_verified_at).getTime() : 0;
       if (!verifiedAt || Date.now() - verifiedAt > maxAge) {
@@ -211,18 +214,21 @@ export async function requireAdmin(
   return ctx;
 }
 
-/** Claim/replace the device binding for an admin (server-side helper). */
+/** Register (or refresh) a trusted device for an admin (server-side helper). */
 export async function bindAdminDevice(
   service: SupabaseClient,
   adminId: string,
   device: DeviceInfo,
+  webauthnVerified = false,
 ) {
+  const now = new Date().toISOString();
   await service.from("admin_devices").upsert({
     admin_id: adminId,
     device_id: device.device_id,
     ip: device.ip,
     user_agent: device.user_agent,
-    claimed_at: new Date().toISOString(),
-    last_seen_at: new Date().toISOString(),
-  }, { onConflict: "admin_id" });
+    claimed_at: now,
+    last_seen_at: now,
+    ...(webauthnVerified ? { webauthn_verified_at: now } : {}),
+  }, { onConflict: "admin_id,device_id" });
 }

@@ -142,29 +142,26 @@ Deno.serve(async (req) => {
     const { data: userData } = await service.auth.getUser(token);
     if (userData?.user?.id === admin.user_id) {
       if (!device.id) return json({ error: "Missing device id" }, 400);
-      // Only mark verified if the device is (or becomes) this admin's bound device.
+      // A successful passkey assertion proves possession of this device's
+      // authenticator, so the device is registered/refreshed as trusted.
+      const now = new Date().toISOString();
       const { data: bound } = await service
         .from("admin_devices")
         .select("device_id")
         .eq("admin_id", admin.id)
+        .eq("device_id", device.id)
         .maybeSingle();
-      if (bound && bound.device_id !== device.id) {
-        return json({
-          error: "This device is not authorized. Transfer the device binding first.",
-          code: "device_not_authorized",
-        }, 403);
-      }
       if (!bound) {
         await service.from("admin_devices").insert({
           admin_id: admin.id, device_id: device.id, ip, user_agent: device.ua,
-          webauthn_verified_at: new Date().toISOString(),
+          webauthn_verified_at: now,
         });
       } else {
         await service.from("admin_devices").update({
-          webauthn_verified_at: new Date().toISOString(),
-          last_seen_at: new Date().toISOString(),
+          webauthn_verified_at: now,
+          last_seen_at: now,
           ip, user_agent: device.ua,
-        }).eq("admin_id", admin.id);
+        }).eq("admin_id", admin.id).eq("device_id", device.id);
       }
       return json({ ok: true, mode: "step_up" });
     }
