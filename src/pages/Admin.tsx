@@ -369,13 +369,13 @@ function DevicesTab({ info, onChange }: { info: any; onChange: () => void }) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Smartphone className="w-5 h-5" /> This device</CardTitle>
-          <CardDescription>Admin access is bound to one device at a time. The other admin's device is independent.</CardDescription>
+          <CardDescription>Admin access is limited to devices/browsers you have registered. Registered devices stay trusted — you'll only need password + biometric to sign in again.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-1 text-sm">
           <p><span className="text-muted-foreground">Device ID:</span> <code className="text-xs break-all">{cur?.device_id ?? "—"}</code></p>
           <p><span className="text-muted-foreground">IP:</span> {cur?.ip ?? "unknown"}</p>
           <p><span className="text-muted-foreground">Browser:</span> <span className="break-words">{cur?.user_agent ?? "unknown"}</span></p>
-          <p><span className="text-muted-foreground">Bound since:</span> {cur ? new Date(cur.claimed_at).toLocaleString() : "—"}</p>
+          <p><span className="text-muted-foreground">Registered since:</span> {cur ? new Date(cur.claimed_at).toLocaleString() : "—"}</p>
           <p><span className="text-muted-foreground">Last activity:</span> {cur ? new Date(cur.last_seen_at).toLocaleString() : "—"}</p>
           <Button variant="ghost" size="sm" onClick={onChange} className="mt-2"><RotateCcw className="w-3 h-3 mr-1" /> Refresh</Button>
         </CardContent>
@@ -383,10 +383,10 @@ function DevicesTab({ info, onChange }: { info: any; onChange: () => void }) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Link2 className="w-5 h-5" /> Move admin to a new device</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Link2 className="w-5 h-5" /> Add a new device</CardTitle>
           <CardDescription>
-            Generates a one-time link (valid 15 minutes). Sign in with the same admin email on the new device, paste this token, and your admin
-            binding moves there. This device will immediately lose admin access.
+            Generates a one-time link (valid 15 minutes). Sign in with the same admin email on the new device and paste this token to register it.
+            This device stays registered.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
