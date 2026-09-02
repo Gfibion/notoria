@@ -214,18 +214,21 @@ export async function requireAdmin(
   return ctx;
 }
 
-/** Claim/replace the device binding for an admin (server-side helper). */
+/** Register (or refresh) a trusted device for an admin (server-side helper). */
 export async function bindAdminDevice(
   service: SupabaseClient,
   adminId: string,
   device: DeviceInfo,
+  webauthnVerified = false,
 ) {
+  const now = new Date().toISOString();
   await service.from("admin_devices").upsert({
     admin_id: adminId,
     device_id: device.device_id,
     ip: device.ip,
     user_agent: device.user_agent,
-    claimed_at: new Date().toISOString(),
-    last_seen_at: new Date().toISOString(),
-  }, { onConflict: "admin_id" });
+    claimed_at: now,
+    last_seen_at: now,
+    ...(webauthnVerified ? { webauthn_verified_at: now } : {}),
+  }, { onConflict: "admin_id,device_id" });
 }
