@@ -193,6 +193,7 @@ export async function requireAdmin(
         .from("admin_devices")
         .select("webauthn_verified_at")
         .eq("admin_id", admin.id)
+        .eq("device_id", device.device_id)
         .maybeSingle();
       const verifiedAt = dev?.webauthn_verified_at ? new Date(dev.webauthn_verified_at).getTime() : 0;
       if (!verifiedAt || Date.now() - verifiedAt > maxAge) {
