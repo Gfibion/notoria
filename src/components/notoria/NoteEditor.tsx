@@ -2005,6 +2005,25 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
                     </button>
                   </div>
                 </div>
+                
+                {/* Safe Folder Section */}
+                {note && (
+                  <div className="space-y-2">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">Security</span>
+                    <button
+                      onClick={() => { handleMoveToSafe(); setShowExtraTools(false); }}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors group"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <span className="text-sm font-medium text-foreground">Move to Safe Folder</span>
+                        <p className="text-xs text-muted-foreground">Protect this note with your PIN</p>
+                      </div>
+                    </button>
+                  </div>
+                )}
               </div>
               
               {/* Mobile safe area padding */}
