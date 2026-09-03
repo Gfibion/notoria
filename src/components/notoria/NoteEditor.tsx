@@ -623,6 +623,29 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
     onClose();
   };
 
+  // Move current note to Safe Folder
+  const handleMoveToSafe = async () => {
+    if (!note) return;
+    const confirmed = window.confirm(
+      'Move this note to the Safe Folder? It will be hidden from the main notes list and search results until you unlock the Safe Folder with your PIN.'
+    );
+    if (!confirmed) return;
+    try {
+      await setNoteSecret(note.id, true);
+      toast({
+        title: 'Moved to Safe Folder',
+        description: 'The note is now protected by your Safe Folder PIN.',
+      });
+      onClose();
+    } catch (err) {
+      toast({
+        title: 'Could not move note',
+        description: 'Something went wrong. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Handle beforeunload for sudden closure
   useEffect(() => {
     const handleBeforeUnload = () => {
