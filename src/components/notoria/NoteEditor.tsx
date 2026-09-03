@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import DOMPurify from 'dompurify';
-import { Note, Workspace, saveSubcategory, generateId, exportNoteAsTxt } from '@/lib/db';
+import { Note, Workspace, saveSubcategory, generateId, exportNoteAsTxt, setNoteSecret } from '@/lib/db';
 import { useSubcategories } from '@/hooks/useSubcategories';
 import { cn } from '@/lib/utils';
 import hljs from 'highlight.js/lib/core';
@@ -40,6 +40,7 @@ import {
   Crop,
   Trash2,
   Move,
+  ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -620,6 +621,29 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
       performSave(false);
     }
     onClose();
+  };
+
+  // Move current note to Safe Folder
+  const handleMoveToSafe = async () => {
+    if (!note) return;
+    const confirmed = window.confirm(
+      'Move this note to the Safe Folder? It will be hidden from the main notes list and search results until you unlock the Safe Folder with your PIN.'
+    );
+    if (!confirmed) return;
+    try {
+      await setNoteSecret(note.id, true);
+      toast({
+        title: 'Moved to Safe Folder',
+        description: 'The note is now protected by your Safe Folder PIN.',
+      });
+      onClose();
+    } catch (err) {
+      toast({
+        title: 'Could not move note',
+        description: 'Something went wrong. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Handle beforeunload for sudden closure
@@ -1981,6 +2005,25 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
                     </button>
                   </div>
                 </div>
+                
+                {/* Safe Folder Section */}
+                {note && (
+                  <div className="space-y-2">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">Security</span>
+                    <button
+                      onClick={() => { handleMoveToSafe(); setShowExtraTools(false); }}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors group"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <span className="text-sm font-medium text-foreground">Move to Safe Folder</span>
+                        <p className="text-xs text-muted-foreground">Protect this note with your PIN</p>
+                      </div>
+                    </button>
+                  </div>
+                )}
               </div>
               
               {/* Mobile safe area padding */}

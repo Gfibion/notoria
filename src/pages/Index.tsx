@@ -466,6 +466,7 @@ const Index = () => {
                   onStarNote={toggleStar}
                   onDeleteNote={handleDeleteNote}
                   onColorChange={updateNoteColor}
+                  onMoveToSafe={moveToSafe}
                 />
               )}
             </div>
