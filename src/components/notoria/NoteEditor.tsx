@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import DOMPurify from 'dompurify';
-import { Note, Workspace, saveSubcategory, generateId, exportNoteAsTxt } from '@/lib/db';
+import { Note, Workspace, saveSubcategory, generateId, exportNoteAsTxt, setNoteSecret } from '@/lib/db';
 import { useSubcategories } from '@/hooks/useSubcategories';
 import { cn } from '@/lib/utils';
 import hljs from 'highlight.js/lib/core';
