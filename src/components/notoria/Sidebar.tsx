@@ -405,7 +405,7 @@ export function Sidebar({
             )}
 
             {/* AI assistant (admin pilot) */}
-            {isAdmin && deviceAuthorized && (
+            {isAdmin && (
               <button
                 onClick={() => setAiOpen(true)}
                 className={cn(

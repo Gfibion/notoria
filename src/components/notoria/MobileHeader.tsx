@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useIsAdmin } from '@/lib/useIsAdmin';
 import { Link } from 'react-router-dom';
-import { Menu, Search, Plus, Trash2, Settings, Star, ChevronDown, ChevronRight, Hash, MoreHorizontal, Pencil, GripVertical, FileText, CheckSquare, Coffee, Cloud, Shield, ShieldCheck } from 'lucide-react';
+import { Menu, Search, Plus, Trash2, Settings, Star, ChevronDown, ChevronRight, Hash, MoreHorizontal, Pencil, GripVertical, FileText, CheckSquare, Coffee, Cloud, Shield, ShieldCheck, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Workspace, Subcategory, getSubcategoriesByWorkspace } from '@/lib/db';
@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import logoImage from '@/assets/logo.png';
+import { AiAssistantDialog } from '@/components/notoria/AiAssistantDialog';
 
 const iconMap: Record<string, React.ElementType> = {
   user: User,
@@ -83,6 +84,7 @@ export function MobileHeader({
   const [workspaceDialogOpen, setWorkspaceDialogOpen] = useState(false);
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
   const { isAdmin, deviceAuthorized } = useIsAdmin();
+  const [aiOpen, setAiOpen] = useState(false);
 
   // Load subcategories for all workspaces
   useEffect(() => {
@@ -221,6 +223,20 @@ export function MobileHeader({
                     <span className="text-[10px] text-muted-foreground">Encrypted sync</span>
                   </div>
                 </Link>
+
+                {/* Novaryn AI (admin pilot) */}
+                {isAdmin && (
+                  <button
+                    onClick={() => { setIsSheetOpen(false); setAiOpen(true); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-secondary/50 transition-colors"
+                  >
+                    <Sparkles className="w-4 h-4 flex-shrink-0 text-amber-500" />
+                    <div className="flex flex-col leading-tight text-left">
+                      <span>Novaryn AI</span>
+                      <span className="text-[10px] text-muted-foreground">Pilot • admin only</span>
+                    </div>
+                  </button>
+                )}
 
                 {/* Admin panel */}
                 {isAdmin && deviceAuthorized && (
@@ -481,6 +497,8 @@ export function MobileHeader({
       </header>
 
       {/* Workspace Dialog */}
+      <AiAssistantDialog open={aiOpen} onOpenChange={setAiOpen} />
+
       <WorkspaceDialog
         open={workspaceDialogOpen}
         onOpenChange={(open) => {
