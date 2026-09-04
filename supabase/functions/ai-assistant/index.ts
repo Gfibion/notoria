@@ -32,8 +32,9 @@ function str(v: unknown, max: number): string {
 }
 
 function sanitizeNotes(raw: unknown): { notes: NoteInput[]; error?: string } {
+  if (raw === undefined || raw === null) return { notes: [] };
   if (!Array.isArray(raw)) return { notes: [], error: "notes must be an array" };
-  if (raw.length === 0) return { notes: [], error: "Select at least one note" };
+  if (raw.length === 0) return { notes: [] };
   if (raw.length > MAX_NOTES) return { notes: [], error: `At most ${MAX_NOTES} notes per request` };
   let total = 0;
   const notes: NoteInput[] = [];
