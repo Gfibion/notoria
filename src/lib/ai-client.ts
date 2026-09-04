@@ -104,6 +104,44 @@ export function noteEnvelope(note: Note, workspaceName: string) {
   };
 }
 
+export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024; // 5 MB per file
+export const MAX_ATTACHMENTS = 3;
+
+export interface AiAttachment {
+  name: string;
+  mime: string;
+  kind: "text" | "image" | "pdf";
+  /** plain text for kind === "text" */
+  text?: string;
+  /** data URL for image/pdf */
+  dataUrl?: string;
+}
+
+const TEXT_EXT = /\.(txt|md|markdown|csv|json|log|ya?ml|html?|xml|ts|tsx|js|jsx|css)$/i;
+
+export function attachmentKind(file: File): AiAttachment["kind"] | null {
+  if (file.type.startsWith("image/")) return "image";
+  if (file.type === "application/pdf") return "pdf";
+  if (file.type.startsWith("text/") || TEXT_EXT.test(file.name) || file.type === "application/json") return "text";
+  return null;
+}
+
+export async function fileToAttachment(file: File): Promise<AiAttachment> {
+  const kind = attachmentKind(file);
+  if (!kind) throw new Error(`${file.name}: unsupported file type (images, PDF and text files only)`);
+  if (file.size > MAX_ATTACHMENT_BYTES) throw new Error(`${file.name}: file is larger than 5 MB`);
+  if (kind === "text") {
+    return { name: file.name, mime: file.type || "text/plain", kind, text: (await file.text()).slice(0, 200_000) };
+  }
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(new Error(`${file.name}: could not read file`));
+    r.readAsDataURL(file);
+  });
+  return { name: file.name, mime: file.type, kind, dataUrl };
+}
+
 export const aiApi = {
   sessions: () => call<{ ok: true; sessions: AiSession[]; usage: AiUsage }>({ action: "sessions" }),
   session: (sessionId: string) =>
@@ -117,6 +155,7 @@ export const aiApi = {
     prompt: string;
     notes: ReturnType<typeof noteEnvelope>[];
     categories: string[];
+    attachments?: AiAttachment[];
   }) =>
     call<{ ok: true; sessionId: string; usedHistory: boolean; result: AiResult; usage: AiUsage }>({
       action: "send",

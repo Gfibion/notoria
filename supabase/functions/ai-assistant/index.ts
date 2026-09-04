@@ -32,8 +32,9 @@ function str(v: unknown, max: number): string {
 }
 
 function sanitizeNotes(raw: unknown): { notes: NoteInput[]; error?: string } {
+  if (raw === undefined || raw === null) return { notes: [] };
   if (!Array.isArray(raw)) return { notes: [], error: "notes must be an array" };
-  if (raw.length === 0) return { notes: [], error: "Select at least one note" };
+  if (raw.length === 0) return { notes: [] };
   if (raw.length > MAX_NOTES) return { notes: [], error: `At most ${MAX_NOTES} notes per request` };
   let total = 0;
   const notes: NoteInput[] = [];
@@ -56,6 +57,47 @@ function sanitizeNotes(raw: unknown): { notes: NoteInput[]; error?: string } {
   }
   return { notes };
 }
+
+const MAX_ATTACHMENTS = 3;
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+
+interface Attachment {
+  name: string;
+  mime: string;
+  kind: "text" | "image" | "pdf";
+  text?: string;
+  dataUrl?: string;
+}
+
+function sanitizeAttachments(raw: unknown): { files: Attachment[]; error?: string } {
+  if (raw === undefined || raw === null) return { files: [] };
+  if (!Array.isArray(raw)) return { files: [], error: "attachments must be an array" };
+  if (raw.length > MAX_ATTACHMENTS) return { files: [], error: `At most ${MAX_ATTACHMENTS} files per request` };
+  const files: Attachment[] = [];
+  for (const r of raw as Record<string, unknown>[]) {
+    const kind = str(r?.kind, 10);
+    if (kind !== "text" && kind !== "image" && kind !== "pdf") {
+      return { files: [], error: "Unsupported file type" };
+    }
+    const name = str(r?.name, 200) || "file";
+    if (kind === "text") {
+      const text = str(r?.text, 200_000);
+      if (!text) return { files: [], error: `${name}: file is empty` };
+      files.push({ name, mime: str(r?.mime, 100) || "text/plain", kind, text });
+      continue;
+    }
+    const dataUrl = str(r?.dataUrl, 12_000_000);
+    if (!dataUrl.startsWith("data:")) return { files: [], error: `${name}: invalid file data` };
+    const b64 = dataUrl.split(",")[1] ?? "";
+    if (!b64) return { files: [], error: `${name}: file is empty` };
+    if (Math.floor(b64.length * 0.75) > MAX_ATTACHMENT_BYTES) {
+      return { files: [], error: `${name}: file is larger than 5 MB` };
+    }
+    files.push({ name, mime: str(r?.mime, 100), kind, dataUrl });
+  }
+  return { files };
+}
+
 
 /** Cheap, local decision: does this new prompt actually need earlier turns? */
 function needsHistory(task: Task, prompt: string): boolean {
@@ -196,6 +238,14 @@ Deno.serve(async (req) => {
 
   const { notes, error: noteErr } = sanitizeNotes(ctx.body?.notes);
   if (noteErr) return json({ error: noteErr }, 400);
+
+  const { files: attachments, error: fileErr } = sanitizeAttachments(ctx.body?.attachments);
+  if (fileErr) return json({ error: fileErr }, 400);
+
+  // Note-bound tasks still require material; free chat does not.
+  if (task !== "chat" && notes.length === 0 && attachments.length === 0) {
+    return json({ error: "Select at least one note or attach a file for this action" }, 400);
+  }
 
   const existingCategories = Array.isArray(ctx.body?.categories)
     ? (ctx.body!.categories as unknown[]).slice(0, 100).map((c) => str(c, 120))
