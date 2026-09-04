@@ -465,7 +465,23 @@ export function MobileHeader({
               </nav>
 
               {/* Footer */}
-              <div className="p-3 border-t border-border">
+              <div className="p-3 border-t border-border space-y-2">
+                <div className="flex items-center gap-4 px-1">
+                  <Link
+                    to="/privacy"
+                    onClick={() => setIsSheetOpen(false)}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Privacy Policy
+                  </Link>
+                  <Link
+                    to="/terms"
+                    onClick={() => setIsSheetOpen(false)}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Terms of Service
+                  </Link>
+                </div>
                 <ThemeToggle />
               </div>
             </div>
