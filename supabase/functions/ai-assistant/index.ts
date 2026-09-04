@@ -58,6 +58,47 @@ function sanitizeNotes(raw: unknown): { notes: NoteInput[]; error?: string } {
   return { notes };
 }
 
+const MAX_ATTACHMENTS = 3;
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+
+interface Attachment {
+  name: string;
+  mime: string;
+  kind: "text" | "image" | "pdf";
+  text?: string;
+  dataUrl?: string;
+}
+
+function sanitizeAttachments(raw: unknown): { files: Attachment[]; error?: string } {
+  if (raw === undefined || raw === null) return { files: [] };
+  if (!Array.isArray(raw)) return { files: [], error: "attachments must be an array" };
+  if (raw.length > MAX_ATTACHMENTS) return { files: [], error: `At most ${MAX_ATTACHMENTS} files per request` };
+  const files: Attachment[] = [];
+  for (const r of raw as Record<string, unknown>[]) {
+    const kind = str(r?.kind, 10);
+    if (kind !== "text" && kind !== "image" && kind !== "pdf") {
+      return { files: [], error: "Unsupported file type" };
+    }
+    const name = str(r?.name, 200) || "file";
+    if (kind === "text") {
+      const text = str(r?.text, 200_000);
+      if (!text) return { files: [], error: `${name}: file is empty` };
+      files.push({ name, mime: str(r?.mime, 100) || "text/plain", kind, text });
+      continue;
+    }
+    const dataUrl = str(r?.dataUrl, 12_000_000);
+    if (!dataUrl.startsWith("data:")) return { files: [], error: `${name}: invalid file data` };
+    const b64 = dataUrl.split(",")[1] ?? "";
+    if (!b64) return { files: [], error: `${name}: file is empty` };
+    if (Math.floor(b64.length * 0.75) > MAX_ATTACHMENT_BYTES) {
+      return { files: [], error: `${name}: file is larger than 5 MB` };
+    }
+    files.push({ name, mime: str(r?.mime, 100), kind, dataUrl });
+  }
+  return { files };
+}
+
+
 /** Cheap, local decision: does this new prompt actually need earlier turns? */
 function needsHistory(task: Task, prompt: string): boolean {
   if (task !== "chat") return false;
