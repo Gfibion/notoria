@@ -239,6 +239,14 @@ Deno.serve(async (req) => {
   const { notes, error: noteErr } = sanitizeNotes(ctx.body?.notes);
   if (noteErr) return json({ error: noteErr }, 400);
 
+  const { files: attachments, error: fileErr } = sanitizeAttachments(ctx.body?.attachments);
+  if (fileErr) return json({ error: fileErr }, 400);
+
+  // Note-bound tasks still require material; free chat does not.
+  if (task !== "chat" && notes.length === 0 && attachments.length === 0) {
+    return json({ error: "Select at least one note or attach a file for this action" }, 400);
+  }
+
   const existingCategories = Array.isArray(ctx.body?.categories)
     ? (ctx.body!.categories as unknown[]).slice(0, 100).map((c) => str(c, 120))
     : [];
