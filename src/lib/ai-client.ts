@@ -155,6 +155,7 @@ export const aiApi = {
     prompt: string;
     notes: ReturnType<typeof noteEnvelope>[];
     categories: string[];
+    attachments?: AiAttachment[];
   }) =>
     call<{ ok: true; sessionId: string; usedHistory: boolean; result: AiResult; usage: AiUsage }>({
       action: "send",
