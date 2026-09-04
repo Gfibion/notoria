@@ -678,6 +678,8 @@ export default function Landing() {
             <Link to="/cloud-backup" className="hover:text-white transition-colors">Cloud Backup</Link>
             <Link to="/contact" className="hover:text-white transition-colors">Contact</Link>
             <Link to="/coffee" className="hover:text-white transition-colors">Support</Link>
+            <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+            <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
           </div>
         </div>
       </footer>
