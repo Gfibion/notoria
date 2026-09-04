@@ -3,5 +3,7 @@ Allow: /
 Allow: /install
 Allow: /coffee
 Allow: /contact
+Allow: /privacy
+Allow: /terms
 
 Sitemap: https://notoria.lovable.app/sitemap.xml
