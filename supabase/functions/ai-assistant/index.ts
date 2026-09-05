@@ -318,10 +318,32 @@ Deno.serve(async (req) => {
     })),
   };
 
-  messages.push({
-    role: "user",
-    content: `${taskInstruction(task)}\n\nUser request: ${prompt || "(none — perform the task)"}\n\nNotes envelope (JSON):\n${JSON.stringify(envelope)}`,
-  });
+  const textFiles = attachments.filter((a) => a.kind === "text");
+  const binaryFiles = attachments.filter((a) => a.kind !== "text");
+
+  let userText = `${taskInstruction(task)}\n\nUser request: ${prompt || "(none — perform the task)"}`;
+  if (notes.length > 0) {
+    userText += `\n\nNotes envelope (JSON):\n${JSON.stringify(envelope)}`;
+  } else {
+    userText += `\n\nNotes envelope (JSON): ${JSON.stringify({ task, existing_categories: existingCategories, notes: [] })}\n(No notes were attached to this request.)`;
+  }
+  for (const f of textFiles) {
+    userText += `\n\nAttached file "${f.name}" (${f.mime}):\n"""\n${f.text}\n"""`;
+  }
+
+  if (binaryFiles.length > 0) {
+    const parts: unknown[] = [{ type: "text", text: userText }];
+    for (const f of binaryFiles) {
+      if (f.kind === "image") {
+        parts.push({ type: "image_url", image_url: { url: f.dataUrl } });
+      } else {
+        parts.push({ type: "file", file: { filename: f.name, file_data: f.dataUrl } });
+      }
+    }
+    messages.push({ role: "user", content: parts });
+  } else {
+    messages.push({ role: "user", content: userText });
+  }
 
   let res: Response;
   try {
