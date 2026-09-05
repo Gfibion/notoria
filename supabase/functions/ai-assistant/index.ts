@@ -135,7 +135,7 @@ function taskInstruction(task: Task): string {
     case "categorize":
       return "Task: CATEGORIZE. Suggest the best workspace (category), an optional subcategory and up to 5 hashtags per note. Fill categorization[] and explain briefly in answer_markdown.";
     default:
-      return "Task: CHAT. Answer the user's question about the provided note(s).";
+      return "Task: CHAT. Answer the user's question. Use the provided note(s) and attached file(s) as context when present; if none are provided, answer directly and helpfully.";
   }
 }
 
