@@ -4,8 +4,16 @@ import App from "./App.tsx";
 import "./index.css";
 import { runMigrationIfNeeded } from "./lib/watermelon/migrate-from-indexeddb";
 import { initInstallSensors } from "./lib/pwa";
+import { applyUiLayout } from "./lib/ui-layout";
+import { getSettings } from "./lib/db";
 
 initInstallSensors();
+
+// Restore the saved UI layout (desktop / mobile / auto) before first paint.
+void getSettings()
+  .then((s) => applyUiLayout(s.uiLayout || "auto"))
+  .catch(() => applyUiLayout("auto"));
+
 
 
 /**

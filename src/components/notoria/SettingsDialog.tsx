@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { getSettings, saveSettings, AppSettings } from '@/lib/db';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
+import { applyUiLayout } from '@/lib/ui-layout';
 
 interface SettingsDialogProps {
   open: boolean;
@@ -205,6 +206,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     const newSettings = { ...settings, uiLayout: layout.id };
                     setSettings(newSettings);
                     await saveSettings(newSettings);
+                    applyUiLayout(layout.id);
                     window.dispatchEvent(new Event('layout-setting-changed'));
                   }}
                   className={cn(
