@@ -81,8 +81,10 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
   const [busy, setBusy] = useState(false);
   const [usage, setUsage] = useState<AiUsage>({ used: 0, limit: 10 });
   const [filter, setFilter] = useState('');
-  const [showPicker, setShowPicker] = useState(true);
+  const [showPicker, setShowPicker] = useState(false);
+  const [attachments, setAttachments] = useState<AiAttachment[]>([]);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const wsName = useCallback(
     (id: string) => workspaces.find(w => w.id === id)?.name ?? id,
