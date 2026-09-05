@@ -260,7 +260,7 @@ Deno.serve(async (req) => {
   } else {
     const { data: s, error } = await service.from("ai_sessions").insert({
       admin_id: adminId,
-      title: (notes[0]?.title || prompt || "New chat").slice(0, 120),
+      title: (prompt || notes[0]?.title || "New chat").slice(0, 120),
       note_ids: notes.map((n) => n.id),
     }).select("id").single();
     if (error || !s) return json({ error: error?.message ?? "Could not open session" }, 400);
