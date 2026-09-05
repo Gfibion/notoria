@@ -482,8 +482,8 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
                     key={t.key}
                     size="sm"
                     variant="outline"
-                    disabled={busy || selectedNotes.length === 0 || quotaLeft === 0}
-                    title={t.hint}
+                    disabled={busy || !hasMaterial || quotaLeft === 0}
+                    title={hasMaterial ? t.hint : 'Choose a note or attach a file first'}
                     onClick={() => run(t.key)}
                   >
                     <t.icon className="w-3.5 h-3.5 mr-1" /> {t.label}
@@ -494,7 +494,7 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
                 <Textarea
                   value={prompt}
                   onChange={e => setPrompt(e.target.value)}
-                  placeholder={quotaLeft === 0 ? 'Daily limit reached — resets at 00:00 UTC' : 'Ask about the selected note(s)…'}
+                  placeholder={quotaLeft === 0 ? 'Daily limit reached — resets at 00:00 UTC' : (hasMaterial ? 'Ask about the selected note(s) or file(s)…' : 'Ask anything…')}
                   className="min-h-[44px] max-h-32 text-sm"
                   disabled={busy || quotaLeft === 0}
                   onKeyDown={e => {
@@ -503,7 +503,7 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
                 />
                 <Button
                   size="icon"
-                  disabled={busy || !prompt.trim() || selectedNotes.length === 0 || quotaLeft === 0}
+                  disabled={busy || !prompt.trim() || quotaLeft === 0}
                   onClick={() => run('chat')}
                 >
                   {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
