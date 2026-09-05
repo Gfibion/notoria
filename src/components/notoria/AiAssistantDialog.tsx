@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DOMPurify from 'dompurify';
 import {
-  Sparkles, Plus, Trash2, Send, Loader2, History, Check, Wand2, FileText, Tags, X,
+  Sparkles, Plus, Trash2, Send, Loader2, History, Check, Wand2, FileText, Tags, X, Paperclip,
 } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,8 @@ import {
   Note, Workspace, getAllNotes, getAllWorkspaces, saveNote, saveWorkspace, generateId,
 } from '@/lib/db';
 import {
-  aiApi, noteEnvelope, type AiMessage, type AiResult, type AiSession, type AiTask, type AiUsage,
+  aiApi, noteEnvelope, fileToAttachment, MAX_ATTACHMENTS,
+  type AiAttachment, type AiMessage, type AiResult, type AiSession, type AiTask, type AiUsage,
 } from '@/lib/ai-client';
 
 /** Minimal, safe markdown -> HTML (sanitized before render). */
