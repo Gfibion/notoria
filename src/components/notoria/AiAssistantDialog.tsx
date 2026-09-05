@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DOMPurify from 'dompurify';
 import {
-  Sparkles, Plus, Trash2, Send, Loader2, History, Check, Wand2, FileText, Tags, X,
+  Sparkles, Plus, Trash2, Send, Loader2, History, Check, Wand2, FileText, Tags, X, Paperclip,
 } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,8 @@ import {
   Note, Workspace, getAllNotes, getAllWorkspaces, saveNote, saveWorkspace, generateId,
 } from '@/lib/db';
 import {
-  aiApi, noteEnvelope, type AiMessage, type AiResult, type AiSession, type AiTask, type AiUsage,
+  aiApi, noteEnvelope, fileToAttachment, MAX_ATTACHMENTS,
+  type AiAttachment, type AiMessage, type AiResult, type AiSession, type AiTask, type AiUsage,
 } from '@/lib/ai-client';
 
 /** Minimal, safe markdown -> HTML (sanitized before render). */
@@ -80,8 +81,10 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
   const [busy, setBusy] = useState(false);
   const [usage, setUsage] = useState<AiUsage>({ used: 0, limit: 10 });
   const [filter, setFilter] = useState('');
-  const [showPicker, setShowPicker] = useState(true);
+  const [showPicker, setShowPicker] = useState(false);
+  const [attachments, setAttachments] = useState<AiAttachment[]>([]);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const wsName = useCallback(
     (id: string) => workspaces.find(w => w.id === id)?.name ?? id,
@@ -131,7 +134,9 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
     setSessionId(null);
     setMessages([]);
     setPrompt('');
-    setShowPicker(true);
+    setSelected([]);
+    setAttachments([]);
+    setShowPicker(false);
   };
 
   const removeSession = async (id: string) => {
@@ -149,14 +154,35 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
     [notes, selected],
   );
 
+  const hasMaterial = selectedNotes.length > 0 || attachments.length > 0;
+
+  const addFiles = async (list: FileList | null) => {
+    if (!list || list.length === 0) return;
+    const room = MAX_ATTACHMENTS - attachments.length;
+    if (room <= 0) {
+      toast({ title: `Up to ${MAX_ATTACHMENTS} files per message`, variant: 'destructive' });
+      return;
+    }
+    const next: AiAttachment[] = [];
+    for (const file of Array.from(list).slice(0, room)) {
+      try {
+        next.push(await fileToAttachment(file));
+      } catch (e: any) {
+        toast({ title: 'File not added', description: e?.message, variant: 'destructive' });
+      }
+    }
+    if (next.length) setAttachments(a => [...a, ...next]);
+  };
+
   const run = async (task: AiTask) => {
-    if (selectedNotes.length === 0) {
-      toast({ title: 'Select a note first', variant: 'destructive' });
+    if (task !== 'chat' && !hasMaterial) {
+      toast({ title: 'Select a note or attach a file first', variant: 'destructive' });
       return;
     }
     if (task === 'chat' && !prompt.trim()) return;
     setBusy(true);
     const localPrompt = prompt.trim();
+    const localFiles = attachments;
     try {
       const res = await aiApi.send({
         sessionId: sessionId ?? undefined,
@@ -164,17 +190,23 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
         prompt: localPrompt,
         notes: selectedNotes.map(n => noteEnvelope(n, wsName(n.workspace))),
         categories: workspaces.map(w => w.name),
+        attachments: localFiles.length ? localFiles : undefined,
       });
       setSessionId(res.sessionId);
       setUsage(res.usage);
       setPrompt('');
+      setAttachments([]);
       setShowPicker(false);
       const now = new Date().toISOString();
+      const subjects = [
+        ...selectedNotes.map(n => n.title || 'Untitled'),
+        ...localFiles.map(f => f.name),
+      ];
       setMessages(m => [
         ...m,
         {
           id: `u-${now}`, role: 'user', action: task, used_history: res.usedHistory, created_at: now,
-          content: localPrompt || `[${task}] ${selectedNotes.map(n => n.title || 'Untitled').join(', ')}`,
+          content: localPrompt || `[${task}] ${subjects.join(', ') || 'free chat'}`,
           result: null,
         },
         { id: `a-${now}`, role: 'assistant', action: task, content: res.result.answer_markdown, result: res.result, used_history: res.usedHistory, created_at: now },
@@ -298,21 +330,59 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
 
           {/* Main */}
           <div className="flex-1 flex flex-col min-w-0">
-            {/* Note selection */}
+            {/* Context: optional notes + files */}
             <div className="border-b px-4 py-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-1 min-w-0">
-                  {selectedNotes.length === 0 ? (
-                    <span className="text-xs text-muted-foreground">No notes selected</span>
-                  ) : selectedNotes.map(n => (
-                    <Badge key={n.id} variant="outline" className="text-[10px] max-w-[160px] truncate">
-                      {n.title || 'Untitled'}
-                    </Badge>
-                  ))}
+                  {!hasMaterial ? (
+                    <span className="text-xs text-muted-foreground">
+                      Free chat — attach notes or files only if you want to
+                    </span>
+                  ) : (
+                    <>
+                      {selectedNotes.map(n => (
+                        <Badge key={n.id} variant="outline" className="text-[10px] max-w-[160px] truncate">
+                          {n.title || 'Untitled'}
+                        </Badge>
+                      ))}
+                      {attachments.map(f => (
+                        <Badge key={f.name} variant="secondary" className="text-[10px] max-w-[180px] gap-1">
+                          <Paperclip className="w-2.5 h-2.5 flex-shrink-0" />
+                          <span className="truncate">{f.name}</span>
+                          <button
+                            onClick={() => setAttachments(a => a.filter(x => x !== f))}
+                            aria-label={`Remove ${f.name}`}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </>
+                  )}
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => setShowPicker(p => !p)}>
-                  {showPicker ? 'Hide notes' : 'Choose notes'}
-                </Button>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <Button size="sm" variant="ghost" onClick={() => setShowPicker(p => !p)}>
+                    {showPicker ? 'Hide notes' : 'Choose notes'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy || attachments.length >= MAX_ATTACHMENTS}
+                    onClick={() => fileInputRef.current?.click()}
+                    title={`Images, PDFs or text files — max 5 MB each, ${MAX_ATTACHMENTS} files`}
+                  >
+                    <Paperclip className="w-3.5 h-3.5 mr-1" /> Attach
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    accept="image/*,application/pdf,text/*,.md,.csv,.json,.log,.yml,.yaml"
+                    onChange={e => { addFiles(e.target.files); e.target.value = ''; }}
+                  />
+                </div>
               </div>
               {showPicker && (
                 <div className="mt-2">
@@ -358,7 +428,10 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
                 {messages.length === 0 && !busy && (
                   <div className="text-center text-muted-foreground py-10">
                     <Sparkles className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Pick note(s), then summarize, enhance, categorize — or just ask.</p>
+                    <p className="text-sm">Ask anything to get started.</p>
+                    <p className="text-xs mt-1 opacity-80">
+                      Optionally choose notes or attach a file (5 MB max each) to summarize, enhance or categorize.
+                    </p>
                   </div>
                 )}
                 {messages.map(m => (
@@ -409,8 +482,8 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
                     key={t.key}
                     size="sm"
                     variant="outline"
-                    disabled={busy || selectedNotes.length === 0 || quotaLeft === 0}
-                    title={t.hint}
+                    disabled={busy || !hasMaterial || quotaLeft === 0}
+                    title={hasMaterial ? t.hint : 'Choose a note or attach a file first'}
                     onClick={() => run(t.key)}
                   >
                     <t.icon className="w-3.5 h-3.5 mr-1" /> {t.label}
@@ -421,7 +494,7 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
                 <Textarea
                   value={prompt}
                   onChange={e => setPrompt(e.target.value)}
-                  placeholder={quotaLeft === 0 ? 'Daily limit reached — resets at 00:00 UTC' : 'Ask about the selected note(s)…'}
+                  placeholder={quotaLeft === 0 ? 'Daily limit reached — resets at 00:00 UTC' : (hasMaterial ? 'Ask about the selected note(s) or file(s)…' : 'Ask anything…')}
                   className="min-h-[44px] max-h-32 text-sm"
                   disabled={busy || quotaLeft === 0}
                   onKeyDown={e => {
@@ -430,7 +503,7 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
                 />
                 <Button
                   size="icon"
-                  disabled={busy || !prompt.trim() || selectedNotes.length === 0 || quotaLeft === 0}
+                  disabled={busy || !prompt.trim() || quotaLeft === 0}
                   onClick={() => run('chat')}
                 >
                   {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

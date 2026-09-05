@@ -107,12 +107,13 @@ function needsHistory(task: Task, prompt: string): boolean {
 }
 
 const SYSTEM_PROMPT = `You are Novaryn's note intelligence assistant.
-You receive a JSON envelope of one or more notes with their metadata (workspace/category, subcategory, tags, colors, timestamps, media flags) and a task.
+You receive a JSON envelope that may contain zero or more notes with their metadata (workspace/category, subcategory, tags, colors, timestamps, media flags), optional attached files (text, images, PDFs) and a task.
 
 Rules:
-- Preserve the author's voice, facts and intent. Never invent content that is not in the notes.
+- The notes list may be empty. In that case answer the user's question directly as a helpful general assistant, using any attached files as context.
+- Preserve the author's voice, facts and intent. Never invent content that is not in the notes or attached files.
 - Markdown is the rendering format for prose: headings, bullets, bold, tables. Never emit raw HTML or scripts.
-- Keep each note's identity: always reference notes by their note_id.
+- Keep each note's identity: always reference notes by their note_id. Never invent note_ids; if no notes were provided, leave rewritten and categorization null.
 - When suggesting categories, prefer categories that already exist in the provided workspace list; propose a new one only when nothing fits.
 - Be concise and executive in tone: Novaryn users organise thoughts to shape decisions.
 
@@ -134,7 +135,7 @@ function taskInstruction(task: Task): string {
     case "categorize":
       return "Task: CATEGORIZE. Suggest the best workspace (category), an optional subcategory and up to 5 hashtags per note. Fill categorization[] and explain briefly in answer_markdown.";
     default:
-      return "Task: CHAT. Answer the user's question about the provided note(s).";
+      return "Task: CHAT. Answer the user's question. Use the provided note(s) and attached file(s) as context when present; if none are provided, answer directly and helpfully.";
   }
 }
 
@@ -259,7 +260,7 @@ Deno.serve(async (req) => {
   } else {
     const { data: s, error } = await service.from("ai_sessions").insert({
       admin_id: adminId,
-      title: (notes[0]?.title || prompt || "New chat").slice(0, 120),
+      title: (prompt || notes[0]?.title || "New chat").slice(0, 120),
       note_ids: notes.map((n) => n.id),
     }).select("id").single();
     if (error || !s) return json({ error: error?.message ?? "Could not open session" }, 400);
@@ -286,7 +287,7 @@ Deno.serve(async (req) => {
 
   // Memory: only pulled in when the new question actually depends on it.
   const useHistory = needsHistory(task, prompt);
-  const messages: Array<{ role: string; content: string }> = [{ role: "system", content: SYSTEM_PROMPT }];
+  const messages: Array<{ role: string; content: unknown }> = [{ role: "system", content: SYSTEM_PROMPT }];
 
   if (useHistory) {
     const { data: prior } = await service
@@ -317,10 +318,32 @@ Deno.serve(async (req) => {
     })),
   };
 
-  messages.push({
-    role: "user",
-    content: `${taskInstruction(task)}\n\nUser request: ${prompt || "(none — perform the task)"}\n\nNotes envelope (JSON):\n${JSON.stringify(envelope)}`,
-  });
+  const textFiles = attachments.filter((a) => a.kind === "text");
+  const binaryFiles = attachments.filter((a) => a.kind !== "text");
+
+  let userText = `${taskInstruction(task)}\n\nUser request: ${prompt || "(none — perform the task)"}`;
+  if (notes.length > 0) {
+    userText += `\n\nNotes envelope (JSON):\n${JSON.stringify(envelope)}`;
+  } else {
+    userText += `\n\nNotes envelope (JSON): ${JSON.stringify({ task, existing_categories: existingCategories, notes: [] })}\n(No notes were attached to this request.)`;
+  }
+  for (const f of textFiles) {
+    userText += `\n\nAttached file "${f.name}" (${f.mime}):\n"""\n${f.text}\n"""`;
+  }
+
+  if (binaryFiles.length > 0) {
+    const parts: unknown[] = [{ type: "text", text: userText }];
+    for (const f of binaryFiles) {
+      if (f.kind === "image") {
+        parts.push({ type: "image_url", image_url: { url: f.dataUrl } });
+      } else {
+        parts.push({ type: "file", file: { filename: f.name, file_data: f.dataUrl } });
+      }
+    }
+    messages.push({ role: "user", content: parts });
+  } else {
+    messages.push({ role: "user", content: userText });
+  }
 
   let res: Response;
   try {
@@ -359,7 +382,8 @@ Deno.serve(async (req) => {
     ? result.answer_markdown
     : (typeof result.summary === "string" ? result.summary : "The AI returned no readable answer.");
 
-  const userLabel = prompt || `[${task}] ${notes.map((n) => n.title || "Untitled").join(", ")}`;
+  const subjects = [...notes.map((n) => n.title || "Untitled"), ...attachments.map((a) => a.name)];
+  const userLabel = prompt || `[${task}] ${subjects.join(", ") || "free chat"}`;
   await service.from("ai_messages").insert([
     { session_id: sessionId, role: "user", action: task, content: userLabel, used_history: useHistory },
     { session_id: sessionId, role: "assistant", action: task, content: answer, result, used_history: useHistory },
