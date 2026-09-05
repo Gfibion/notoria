@@ -382,7 +382,8 @@ Deno.serve(async (req) => {
     ? result.answer_markdown
     : (typeof result.summary === "string" ? result.summary : "The AI returned no readable answer.");
 
-  const userLabel = prompt || `[${task}] ${notes.map((n) => n.title || "Untitled").join(", ")}`;
+  const subjects = [...notes.map((n) => n.title || "Untitled"), ...attachments.map((a) => a.name)];
+  const userLabel = prompt || `[${task}] ${subjects.join(", ") || "free chat"}`;
   await service.from("ai_messages").insert([
     { session_id: sessionId, role: "user", action: task, content: userLabel, used_history: useHistory },
     { session_id: sessionId, role: "assistant", action: task, content: answer, result, used_history: useHistory },
