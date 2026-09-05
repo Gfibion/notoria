@@ -428,7 +428,10 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
                 {messages.length === 0 && !busy && (
                   <div className="text-center text-muted-foreground py-10">
                     <Sparkles className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Pick note(s), then summarize, enhance, categorize — or just ask.</p>
+                    <p className="text-sm">Ask anything to get started.</p>
+                    <p className="text-xs mt-1 opacity-80">
+                      Optionally choose notes or attach a file (5 MB max each) to summarize, enhance or categorize.
+                    </p>
                   </div>
                 )}
                 {messages.map(m => (
