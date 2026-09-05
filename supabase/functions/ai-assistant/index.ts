@@ -287,7 +287,7 @@ Deno.serve(async (req) => {
 
   // Memory: only pulled in when the new question actually depends on it.
   const useHistory = needsHistory(task, prompt);
-  const messages: Array<{ role: string; content: string }> = [{ role: "system", content: SYSTEM_PROMPT }];
+  const messages: Array<{ role: string; content: unknown }> = [{ role: "system", content: SYSTEM_PROMPT }];
 
   if (useHistory) {
     const { data: prior } = await service
