@@ -330,21 +330,59 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
 
           {/* Main */}
           <div className="flex-1 flex flex-col min-w-0">
-            {/* Note selection */}
+            {/* Context: optional notes + files */}
             <div className="border-b px-4 py-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-1 min-w-0">
-                  {selectedNotes.length === 0 ? (
-                    <span className="text-xs text-muted-foreground">No notes selected</span>
-                  ) : selectedNotes.map(n => (
-                    <Badge key={n.id} variant="outline" className="text-[10px] max-w-[160px] truncate">
-                      {n.title || 'Untitled'}
-                    </Badge>
-                  ))}
+                  {!hasMaterial ? (
+                    <span className="text-xs text-muted-foreground">
+                      Free chat — attach notes or files only if you want to
+                    </span>
+                  ) : (
+                    <>
+                      {selectedNotes.map(n => (
+                        <Badge key={n.id} variant="outline" className="text-[10px] max-w-[160px] truncate">
+                          {n.title || 'Untitled'}
+                        </Badge>
+                      ))}
+                      {attachments.map(f => (
+                        <Badge key={f.name} variant="secondary" className="text-[10px] max-w-[180px] gap-1">
+                          <Paperclip className="w-2.5 h-2.5 flex-shrink-0" />
+                          <span className="truncate">{f.name}</span>
+                          <button
+                            onClick={() => setAttachments(a => a.filter(x => x !== f))}
+                            aria-label={`Remove ${f.name}`}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </>
+                  )}
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => setShowPicker(p => !p)}>
-                  {showPicker ? 'Hide notes' : 'Choose notes'}
-                </Button>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <Button size="sm" variant="ghost" onClick={() => setShowPicker(p => !p)}>
+                    {showPicker ? 'Hide notes' : 'Choose notes'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy || attachments.length >= MAX_ATTACHMENTS}
+                    onClick={() => fileInputRef.current?.click()}
+                    title={`Images, PDFs or text files — max 5 MB each, ${MAX_ATTACHMENTS} files`}
+                  >
+                    <Paperclip className="w-3.5 h-3.5 mr-1" /> Attach
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    accept="image/*,application/pdf,text/*,.md,.csv,.json,.log,.yml,.yaml"
+                    onChange={e => { addFiles(e.target.files); e.target.value = ''; }}
+                  />
+                </div>
               </div>
               {showPicker && (
                 <div className="mt-2">
