@@ -134,7 +134,9 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
     setSessionId(null);
     setMessages([]);
     setPrompt('');
-    setShowPicker(true);
+    setSelected([]);
+    setAttachments([]);
+    setShowPicker(false);
   };
 
   const removeSession = async (id: string) => {
@@ -152,14 +154,35 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
     [notes, selected],
   );
 
+  const hasMaterial = selectedNotes.length > 0 || attachments.length > 0;
+
+  const addFiles = async (list: FileList | null) => {
+    if (!list || list.length === 0) return;
+    const room = MAX_ATTACHMENTS - attachments.length;
+    if (room <= 0) {
+      toast({ title: `Up to ${MAX_ATTACHMENTS} files per message`, variant: 'destructive' });
+      return;
+    }
+    const next: AiAttachment[] = [];
+    for (const file of Array.from(list).slice(0, room)) {
+      try {
+        next.push(await fileToAttachment(file));
+      } catch (e: any) {
+        toast({ title: 'File not added', description: e?.message, variant: 'destructive' });
+      }
+    }
+    if (next.length) setAttachments(a => [...a, ...next]);
+  };
+
   const run = async (task: AiTask) => {
-    if (selectedNotes.length === 0) {
-      toast({ title: 'Select a note first', variant: 'destructive' });
+    if (task !== 'chat' && !hasMaterial) {
+      toast({ title: 'Select a note or attach a file first', variant: 'destructive' });
       return;
     }
     if (task === 'chat' && !prompt.trim()) return;
     setBusy(true);
     const localPrompt = prompt.trim();
+    const localFiles = attachments;
     try {
       const res = await aiApi.send({
         sessionId: sessionId ?? undefined,
@@ -167,17 +190,23 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
         prompt: localPrompt,
         notes: selectedNotes.map(n => noteEnvelope(n, wsName(n.workspace))),
         categories: workspaces.map(w => w.name),
+        attachments: localFiles.length ? localFiles : undefined,
       });
       setSessionId(res.sessionId);
       setUsage(res.usage);
       setPrompt('');
+      setAttachments([]);
       setShowPicker(false);
       const now = new Date().toISOString();
+      const subjects = [
+        ...selectedNotes.map(n => n.title || 'Untitled'),
+        ...localFiles.map(f => f.name),
+      ];
       setMessages(m => [
         ...m,
         {
           id: `u-${now}`, role: 'user', action: task, used_history: res.usedHistory, created_at: now,
-          content: localPrompt || `[${task}] ${selectedNotes.map(n => n.title || 'Untitled').join(', ')}`,
+          content: localPrompt || `[${task}] ${subjects.join(', ') || 'free chat'}`,
           result: null,
         },
         { id: `a-${now}`, role: 'assistant', action: task, content: res.result.answer_markdown, result: res.result, used_history: res.usedHistory, created_at: now },
