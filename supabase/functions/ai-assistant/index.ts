@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
   const today = new Date().toISOString().slice(0, 10);
   const usage = async () => {
     const { data } = await service
-      .from("ai_usage").select("count").eq("admin_id", adminId).eq("day", today).maybeSingle();
+      .from("ai_usage").select("count").eq("owner_key", ownerKey).eq("day", today).maybeSingle();
     return { used: (data as { count?: number } | null)?.count ?? 0, limit: AI_DAILY_LIMIT };
   };
 
@@ -176,7 +176,7 @@ Deno.serve(async (req) => {
     const { data } = await service
       .from("ai_sessions")
       .select("id, title, note_ids, created_at, updated_at")
-      .eq("admin_id", adminId)
+      .eq("owner_key", ownerKey)
       .order("updated_at", { ascending: false })
       .limit(100);
     return json({ ok: true, sessions: data ?? [], usage: await usage() });
@@ -186,7 +186,7 @@ Deno.serve(async (req) => {
     const sessionId = String(ctx.body?.sessionId ?? "");
     if (!sessionId) return json({ error: "sessionId required" }, 400);
     const { data: session } = await service
-      .from("ai_sessions").select("*").eq("id", sessionId).eq("admin_id", adminId).maybeSingle();
+      .from("ai_sessions").select("*").eq("id", sessionId).eq("owner_key", ownerKey).maybeSingle();
     if (!session) return json({ error: "Session not found" }, 404);
     const { data: messages } = await service
       .from("ai_messages")
@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
       ? (ctx.body!.noteIds as unknown[]).slice(0, MAX_NOTES).map((n) => str(n, 100))
       : [];
     const { data, error } = await service
-      .from("ai_sessions").insert({ admin_id: adminId, title, note_ids: noteIds })
+      .from("ai_sessions").insert({ owner_key: ownerKey, title, note_ids: noteIds })
       .select("id, title, note_ids, created_at, updated_at").single();
     if (error) return json({ error: error.message }, 400);
     return json({ ok: true, session: data });
@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
     const sessionId = String(ctx.body?.sessionId ?? "");
     if (!sessionId) return json({ error: "sessionId required" }, 400);
     const { error } = await service
-      .from("ai_sessions").delete().eq("id", sessionId).eq("admin_id", adminId);
+      .from("ai_sessions").delete().eq("id", sessionId).eq("owner_key", ownerKey);
     if (error) return json({ error: error.message }, 400);
     return json({ ok: true });
   }
@@ -222,7 +222,7 @@ Deno.serve(async (req) => {
     const title = str(ctx.body?.title, 120);
     if (!sessionId || !title) return json({ error: "sessionId and title required" }, 400);
     const { error } = await service
-      .from("ai_sessions").update({ title }).eq("id", sessionId).eq("admin_id", adminId);
+      .from("ai_sessions").update({ title }).eq("id", sessionId).eq("owner_key", ownerKey);
     if (error) return json({ error: error.message }, 400);
     return json({ ok: true });
   }
@@ -255,11 +255,11 @@ Deno.serve(async (req) => {
   let sessionId = String(ctx.body?.sessionId ?? "");
   if (sessionId) {
     const { data: s } = await service
-      .from("ai_sessions").select("id").eq("id", sessionId).eq("admin_id", adminId).maybeSingle();
+      .from("ai_sessions").select("id").eq("id", sessionId).eq("owner_key", ownerKey).maybeSingle();
     if (!s) return json({ error: "Session not found" }, 404);
   } else {
     const { data: s, error } = await service.from("ai_sessions").insert({
-      admin_id: adminId,
+      owner_key: ownerKey,
       title: (prompt || notes[0]?.title || "New chat").slice(0, 120),
       note_ids: notes.map((n) => n.id),
     }).select("id").single();
@@ -269,7 +269,7 @@ Deno.serve(async (req) => {
 
   // Daily quota (atomic).
   const { data: allowed, error: quotaErr } = await service.rpc("bump_ai_usage", {
-    _admin_id: adminId, _limit: AI_DAILY_LIMIT,
+    _owner_key: ownerKey, _limit: AI_DAILY_LIMIT,
   });
   if (quotaErr) return json({ error: "Could not verify your AI quota. Try again." }, 500);
   if (allowed !== true) {
@@ -280,9 +280,9 @@ Deno.serve(async (req) => {
   }
   const refund = async () => {
     const { data } = await service
-      .from("ai_usage").select("count").eq("admin_id", adminId).eq("day", today).maybeSingle();
+      .from("ai_usage").select("count").eq("owner_key", ownerKey).eq("day", today).maybeSingle();
     const c = (data as { count?: number } | null)?.count ?? 0;
-    if (c > 0) await service.from("ai_usage").update({ count: c - 1 }).eq("admin_id", adminId).eq("day", today);
+    if (c > 0) await service.from("ai_usage").update({ count: c - 1 }).eq("owner_key", ownerKey).eq("day", today);
   };
 
   // Memory: only pulled in when the new question actually depends on it.
@@ -391,7 +391,7 @@ Deno.serve(async (req) => {
   await service.from("ai_sessions").update({
     updated_at: new Date().toISOString(),
     note_ids: notes.map((n) => n.id),
-  }).eq("id", sessionId).eq("admin_id", adminId);
+  }).eq("id", sessionId).eq("owner_key", ownerKey);
 
   return json({
     ok: true,
