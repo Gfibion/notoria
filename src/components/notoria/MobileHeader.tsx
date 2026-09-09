@@ -224,8 +224,8 @@ export function MobileHeader({
                   </div>
                 </Link>
 
-                {/* Novaryn AI (admin pilot) */}
-                {isAdmin && (
+                {/* Novaryn AI */}
+                {(
                   <button
                     onClick={() => { setIsSheetOpen(false); setAiOpen(true); }}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-secondary/50 transition-colors"
@@ -233,7 +233,7 @@ export function MobileHeader({
                     <Sparkles className="w-4 h-4 flex-shrink-0 text-amber-500" />
                     <div className="flex flex-col leading-tight text-left">
                       <span>Novaryn AI</span>
-                      <span className="text-[10px] text-muted-foreground">Pilot • admin only</span>
+                      <span className="text-[10px] text-muted-foreground">Ask, summarize, organize</span>
                     </div>
                   </button>
                 )}

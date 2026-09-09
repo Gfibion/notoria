@@ -404,8 +404,8 @@ export function Sidebar({
               </Link>
             )}
 
-            {/* AI assistant (admin pilot) */}
-            {isAdmin && (
+            {/* AI assistant */}
+            {(
               <button
                 onClick={() => setAiOpen(true)}
                 className={cn(
@@ -717,7 +717,7 @@ export function Sidebar({
         onDelete={handleDeleteWorkspace}
       />
 
-      {isAdmin && deviceAuthorized && (
+      {(
         <AiAssistantDialog open={aiOpen} onOpenChange={setAiOpen} />
       )}
     </>
