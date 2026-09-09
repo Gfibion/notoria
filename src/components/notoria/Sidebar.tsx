@@ -688,6 +688,22 @@ export function Sidebar({
             <Settings className="w-4 h-4" />
             {!collapsed && <span className="ml-2">Settings</span>}
           </Button>
+          {!collapsed && (
+            <div className="flex items-center gap-4 px-3 mb-2">
+              <Link
+                to="/privacy"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                to="/terms"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Terms of Service
+              </Link>
+            </div>
+          )}
           <ThemeToggle collapsed={collapsed} />
         </div>
       </aside>
