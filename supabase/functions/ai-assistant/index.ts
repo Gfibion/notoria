@@ -157,20 +157,34 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  const ctx = await requireAdmin(req);
-  if (ctx instanceof Response) return ctx;
-  if (!ctx.admin) return json({ error: "Admin only" }, 403);
+  let body: Record<string, unknown> = {};
+  try { body = (await req.json()) ?? {}; } catch { body = {}; }
+  const ctx = { body } as { body: Record<string, unknown> };
 
-  const adminId = ctx.admin.id;
-  const service = ctx.service;
+  const deviceId = str((body?._device as Record<string, unknown> | undefined)?.id, 200);
+  if (!deviceId) return json({ error: "Missing device identity" }, 400);
+  const ownerKey = await sha256Hex(deviceId);
+
+  const service = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { persistSession: false } },
+  );
   const action = String(ctx.body?.action ?? "");
 
   const today = new Date().toISOString().slice(0, 10);
   const usage = async () => {
     const { data } = await service
-      .from("ai_usage").select("count").eq("owner_key", ownerKey).eq("day", today).maybeSingle();
-    return { used: (data as { count?: number } | null)?.count ?? 0, limit: AI_DAILY_LIMIT };
+      .from("ai_user_usage").select("messages, images").eq("owner_key", ownerKey).eq("day", today).maybeSingle();
+    const row = data as { messages?: number; images?: number } | null;
+    return {
+      used: row?.messages ?? 0,
+      limit: AI_MSG_LIMIT,
+      imagesUsed: row?.images ?? 0,
+      imagesLimit: AI_IMG_LIMIT,
+    };
   };
+
 
   if (action === "sessions") {
     const { data } = await service
