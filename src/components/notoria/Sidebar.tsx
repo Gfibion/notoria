@@ -418,7 +418,7 @@ export function Sidebar({
                 {!collapsed && (
                   <div className="flex flex-col leading-tight text-left">
                     <span>Novaryn AI</span>
-                    <span className="text-[10px] text-muted-foreground">Pilot • admin only</span>
+                    <span className="text-[10px] text-muted-foreground">Ask, summarize, organize</span>
                   </div>
                 )}
               </button>
