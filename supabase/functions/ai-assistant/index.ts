@@ -1,11 +1,20 @@
-// Novaryn AI assistant — ADMIN DEVICE ONLY (pilot).
-// Summarize / rewrite / categorize notes with Gemini via the Lovable AI Gateway.
-// Sessions + message memory live in ai_sessions / ai_messages, capped at
-// AI_DAILY_LIMIT forwarded requests per admin per UTC day.
-import { requireAdmin, json, corsHeaders } from "../_shared/admin-auth.ts";
+// Novaryn AI assistant — available to all users.
+// Chat / summarize / rewrite / categorize notes with Gemini via the Lovable AI Gateway.
+// Sessions + message memory live in ai_sessions / ai_messages, scoped by an
+// anonymous per-install owner key, capped at AI_MSG_LIMIT messages and
+// AI_IMG_LIMIT images per user per UTC day.
+import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import { json, corsHeaders } from "../_shared/admin-auth.ts";
+
+async function sha256Hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 const MODEL = "google/gemini-3.7-flash";
-const AI_DAILY_LIMIT = 10;
+const AI_MSG_LIMIT = 50;
+const AI_IMG_LIMIT = 5;
+
 const MAX_NOTES = 10;
 const MAX_NOTE_CHARS = 20_000;
 const MAX_TOTAL_CHARS = 120_000;
