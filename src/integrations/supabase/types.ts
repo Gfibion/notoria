@@ -319,26 +319,29 @@ export type Database = {
       }
       ai_sessions: {
         Row: {
-          admin_id: string
+          admin_id: string | null
           created_at: string
           id: string
           note_ids: string[]
+          owner_key: string | null
           title: string
           updated_at: string
         }
         Insert: {
-          admin_id: string
+          admin_id?: string | null
           created_at?: string
           id?: string
           note_ids?: string[]
+          owner_key?: string | null
           title?: string
           updated_at?: string
         }
         Update: {
-          admin_id?: string
+          admin_id?: string | null
           created_at?: string
           id?: string
           note_ids?: string[]
+          owner_key?: string | null
           title?: string
           updated_at?: string
         }
@@ -377,6 +380,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ai_user_usage: {
+        Row: {
+          day: string
+          images: number
+          messages: number
+          owner_key: string
+        }
+        Insert: {
+          day: string
+          images?: number
+          messages?: number
+          owner_key: string
+        }
+        Update: {
+          day?: string
+          images?: number
+          messages?: number
+          owner_key?: string
+        }
+        Relationships: []
       }
       cloud_backups: {
         Row: {
@@ -584,12 +608,25 @@ export type Database = {
         Args: { _admin_id: string; _limit: number }
         Returns: boolean
       }
+      bump_ai_user_usage: {
+        Args: {
+          _images: number
+          _img_limit: number
+          _msg_limit: number
+          _owner_key: string
+        }
+        Returns: string
+      }
       bump_rate_limit: {
         Args: { _bucket: string; _limit: number; _subject: string }
         Returns: boolean
       }
       is_admin: { Args: { _uid: string }; Returns: boolean }
       is_master_admin: { Args: { _uid: string }; Returns: boolean }
+      refund_ai_user_usage: {
+        Args: { _images: number; _owner_key: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
