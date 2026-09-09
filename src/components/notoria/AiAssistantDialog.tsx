@@ -79,7 +79,7 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
   const [messages, setMessages] = useState<AiMessage[]>([]);
   const [prompt, setPrompt] = useState('');
   const [busy, setBusy] = useState(false);
-  const [usage, setUsage] = useState<AiUsage>({ used: 0, limit: 10 });
+  const [usage, setUsage] = useState<AiUsage>({ used: 0, limit: 50, imagesUsed: 0, imagesLimit: 5 });
   const [filter, setFilter] = useState('');
   const [showPicker, setShowPicker] = useState(false);
   const [attachments, setAttachments] = useState<AiAttachment[]>([]);
@@ -278,12 +278,12 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
             </div>
             <div className="min-w-0">
               <h2 className="text-sm font-semibold leading-none">Novaryn AI</h2>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Admin pilot • note intelligence</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Ask anything • note intelligence</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={quotaLeft > 0 ? 'secondary' : 'destructive'} className="text-[10px]">
-              {quotaLeft}/{usage.limit} left today
+              {quotaLeft}/{usage.limit} messages • {Math.max(0, (usage.imagesLimit ?? 5) - (usage.imagesUsed ?? 0))}/{usage.imagesLimit ?? 5} images left today
             </Badge>
             <Button size="icon" variant="ghost" onClick={() => onOpenChange(false)}>
               <X className="w-4 h-4" />

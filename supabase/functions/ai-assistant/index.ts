@@ -1,11 +1,20 @@
-// Novaryn AI assistant — ADMIN DEVICE ONLY (pilot).
-// Summarize / rewrite / categorize notes with Gemini via the Lovable AI Gateway.
-// Sessions + message memory live in ai_sessions / ai_messages, capped at
-// AI_DAILY_LIMIT forwarded requests per admin per UTC day.
-import { requireAdmin, json, corsHeaders } from "../_shared/admin-auth.ts";
+// Novaryn AI assistant — available to all users.
+// Chat / summarize / rewrite / categorize notes with Gemini via the Lovable AI Gateway.
+// Sessions + message memory live in ai_sessions / ai_messages, scoped by an
+// anonymous per-install owner key, capped at AI_MSG_LIMIT messages and
+// AI_IMG_LIMIT images per user per UTC day.
+import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import { json, corsHeaders } from "../_shared/admin-auth.ts";
+
+async function sha256Hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 const MODEL = "google/gemini-3.7-flash";
-const AI_DAILY_LIMIT = 10;
+const AI_MSG_LIMIT = 50;
+const AI_IMG_LIMIT = 5;
+
 const MAX_NOTES = 10;
 const MAX_NOTE_CHARS = 20_000;
 const MAX_TOTAL_CHARS = 120_000;
@@ -157,26 +166,40 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  const ctx = await requireAdmin(req);
-  if (ctx instanceof Response) return ctx;
-  if (!ctx.admin) return json({ error: "Admin only" }, 403);
+  let body: Record<string, unknown> = {};
+  try { body = (await req.json()) ?? {}; } catch { body = {}; }
+  const ctx = { body } as { body: Record<string, unknown> };
 
-  const adminId = ctx.admin.id;
-  const service = ctx.service;
+  const deviceId = str((body?._device as Record<string, unknown> | undefined)?.id, 200);
+  if (!deviceId) return json({ error: "Missing device identity" }, 400);
+  const ownerKey = await sha256Hex(deviceId);
+
+  const service = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { persistSession: false } },
+  );
   const action = String(ctx.body?.action ?? "");
 
   const today = new Date().toISOString().slice(0, 10);
   const usage = async () => {
     const { data } = await service
-      .from("ai_usage").select("count").eq("admin_id", adminId).eq("day", today).maybeSingle();
-    return { used: (data as { count?: number } | null)?.count ?? 0, limit: AI_DAILY_LIMIT };
+      .from("ai_user_usage").select("messages, images").eq("owner_key", ownerKey).eq("day", today).maybeSingle();
+    const row = data as { messages?: number; images?: number } | null;
+    return {
+      used: row?.messages ?? 0,
+      limit: AI_MSG_LIMIT,
+      imagesUsed: row?.images ?? 0,
+      imagesLimit: AI_IMG_LIMIT,
+    };
   };
+
 
   if (action === "sessions") {
     const { data } = await service
       .from("ai_sessions")
       .select("id, title, note_ids, created_at, updated_at")
-      .eq("admin_id", adminId)
+      .eq("owner_key", ownerKey)
       .order("updated_at", { ascending: false })
       .limit(100);
     return json({ ok: true, sessions: data ?? [], usage: await usage() });
@@ -186,7 +209,7 @@ Deno.serve(async (req) => {
     const sessionId = String(ctx.body?.sessionId ?? "");
     if (!sessionId) return json({ error: "sessionId required" }, 400);
     const { data: session } = await service
-      .from("ai_sessions").select("*").eq("id", sessionId).eq("admin_id", adminId).maybeSingle();
+      .from("ai_sessions").select("*").eq("id", sessionId).eq("owner_key", ownerKey).maybeSingle();
     if (!session) return json({ error: "Session not found" }, 404);
     const { data: messages } = await service
       .from("ai_messages")
@@ -202,7 +225,7 @@ Deno.serve(async (req) => {
       ? (ctx.body!.noteIds as unknown[]).slice(0, MAX_NOTES).map((n) => str(n, 100))
       : [];
     const { data, error } = await service
-      .from("ai_sessions").insert({ admin_id: adminId, title, note_ids: noteIds })
+      .from("ai_sessions").insert({ owner_key: ownerKey, title, note_ids: noteIds })
       .select("id, title, note_ids, created_at, updated_at").single();
     if (error) return json({ error: error.message }, 400);
     return json({ ok: true, session: data });
@@ -212,7 +235,7 @@ Deno.serve(async (req) => {
     const sessionId = String(ctx.body?.sessionId ?? "");
     if (!sessionId) return json({ error: "sessionId required" }, 400);
     const { error } = await service
-      .from("ai_sessions").delete().eq("id", sessionId).eq("admin_id", adminId);
+      .from("ai_sessions").delete().eq("id", sessionId).eq("owner_key", ownerKey);
     if (error) return json({ error: error.message }, 400);
     return json({ ok: true });
   }
@@ -222,7 +245,7 @@ Deno.serve(async (req) => {
     const title = str(ctx.body?.title, 120);
     if (!sessionId || !title) return json({ error: "sessionId and title required" }, 400);
     const { error } = await service
-      .from("ai_sessions").update({ title }).eq("id", sessionId).eq("admin_id", adminId);
+      .from("ai_sessions").update({ title }).eq("id", sessionId).eq("owner_key", ownerKey);
     if (error) return json({ error: error.message }, 400);
     return json({ ok: true });
   }
@@ -255,11 +278,11 @@ Deno.serve(async (req) => {
   let sessionId = String(ctx.body?.sessionId ?? "");
   if (sessionId) {
     const { data: s } = await service
-      .from("ai_sessions").select("id").eq("id", sessionId).eq("admin_id", adminId).maybeSingle();
+      .from("ai_sessions").select("id").eq("id", sessionId).eq("owner_key", ownerKey).maybeSingle();
     if (!s) return json({ error: "Session not found" }, 404);
   } else {
     const { data: s, error } = await service.from("ai_sessions").insert({
-      admin_id: adminId,
+      owner_key: ownerKey,
       title: (prompt || notes[0]?.title || "New chat").slice(0, 120),
       note_ids: notes.map((n) => n.id),
     }).select("id").single();
@@ -267,23 +290,28 @@ Deno.serve(async (req) => {
     sessionId = (s as { id: string }).id;
   }
 
-  // Daily quota (atomic).
-  const { data: allowed, error: quotaErr } = await service.rpc("bump_ai_usage", {
-    _admin_id: adminId, _limit: AI_DAILY_LIMIT,
+  // Daily quota (atomic): messages + images per user per UTC day.
+  const imageCount = attachments.filter((a) => a.kind === "image").length;
+  const { data: verdict, error: quotaErr } = await service.rpc("bump_ai_user_usage", {
+    _owner_key: ownerKey, _images: imageCount, _msg_limit: AI_MSG_LIMIT, _img_limit: AI_IMG_LIMIT,
   });
   if (quotaErr) return json({ error: "Could not verify your AI quota. Try again." }, 500);
-  if (allowed !== true) {
+  if (verdict === "messages") {
     return json({
-      error: `Daily AI limit reached (${AI_DAILY_LIMIT} requests per day). It resets at 00:00 UTC.`,
+      error: `Daily AI limit reached (${AI_MSG_LIMIT} messages per day). It resets at 00:00 UTC.`,
       code: "quota_exceeded",
     }, 429);
   }
+  if (verdict === "images") {
+    return json({
+      error: `Daily image limit reached (${AI_IMG_LIMIT} images per day). It resets at 00:00 UTC.`,
+      code: "image_quota_exceeded",
+    }, 429);
+  }
   const refund = async () => {
-    const { data } = await service
-      .from("ai_usage").select("count").eq("admin_id", adminId).eq("day", today).maybeSingle();
-    const c = (data as { count?: number } | null)?.count ?? 0;
-    if (c > 0) await service.from("ai_usage").update({ count: c - 1 }).eq("admin_id", adminId).eq("day", today);
+    await service.rpc("refund_ai_user_usage", { _owner_key: ownerKey, _images: imageCount });
   };
+
 
   // Memory: only pulled in when the new question actually depends on it.
   const useHistory = needsHistory(task, prompt);
@@ -391,7 +419,7 @@ Deno.serve(async (req) => {
   await service.from("ai_sessions").update({
     updated_at: new Date().toISOString(),
     note_ids: notes.map((n) => n.id),
-  }).eq("id", sessionId).eq("admin_id", adminId);
+  }).eq("id", sessionId).eq("owner_key", ownerKey);
 
   return json({
     ok: true,

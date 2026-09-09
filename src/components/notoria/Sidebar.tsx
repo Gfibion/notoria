@@ -404,8 +404,8 @@ export function Sidebar({
               </Link>
             )}
 
-            {/* AI assistant (admin pilot) */}
-            {isAdmin && (
+            {/* AI assistant */}
+            {(
               <button
                 onClick={() => setAiOpen(true)}
                 className={cn(
@@ -418,7 +418,7 @@ export function Sidebar({
                 {!collapsed && (
                   <div className="flex flex-col leading-tight text-left">
                     <span>Novaryn AI</span>
-                    <span className="text-[10px] text-muted-foreground">Pilot • admin only</span>
+                    <span className="text-[10px] text-muted-foreground">Ask, summarize, organize</span>
                   </div>
                 )}
               </button>
@@ -717,7 +717,7 @@ export function Sidebar({
         onDelete={handleDeleteWorkspace}
       />
 
-      {isAdmin && deviceAuthorized && (
+      {(
         <AiAssistantDialog open={aiOpen} onOpenChange={setAiOpen} />
       )}
     </>

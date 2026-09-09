@@ -46,6 +46,8 @@ export interface AiResult {
 export interface AiUsage {
   used: number;
   limit: number;
+  imagesUsed?: number;
+  imagesLimit?: number;
 }
 
 async function call<T>(body: Record<string, unknown>): Promise<T> {
