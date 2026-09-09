@@ -267,23 +267,28 @@ Deno.serve(async (req) => {
     sessionId = (s as { id: string }).id;
   }
 
-  // Daily quota (atomic).
-  const { data: allowed, error: quotaErr } = await service.rpc("bump_ai_usage", {
-    _owner_key: ownerKey, _limit: AI_DAILY_LIMIT,
+  // Daily quota (atomic): messages + images per user per UTC day.
+  const imageCount = attachments.filter((a) => a.kind === "image").length;
+  const { data: verdict, error: quotaErr } = await service.rpc("bump_ai_user_usage", {
+    _owner_key: ownerKey, _images: imageCount, _msg_limit: AI_MSG_LIMIT, _img_limit: AI_IMG_LIMIT,
   });
   if (quotaErr) return json({ error: "Could not verify your AI quota. Try again." }, 500);
-  if (allowed !== true) {
+  if (verdict === "messages") {
     return json({
-      error: `Daily AI limit reached (${AI_DAILY_LIMIT} requests per day). It resets at 00:00 UTC.`,
+      error: `Daily AI limit reached (${AI_MSG_LIMIT} messages per day). It resets at 00:00 UTC.`,
       code: "quota_exceeded",
     }, 429);
   }
+  if (verdict === "images") {
+    return json({
+      error: `Daily image limit reached (${AI_IMG_LIMIT} images per day). It resets at 00:00 UTC.`,
+      code: "image_quota_exceeded",
+    }, 429);
+  }
   const refund = async () => {
-    const { data } = await service
-      .from("ai_usage").select("count").eq("owner_key", ownerKey).eq("day", today).maybeSingle();
-    const c = (data as { count?: number } | null)?.count ?? 0;
-    if (c > 0) await service.from("ai_usage").update({ count: c - 1 }).eq("owner_key", ownerKey).eq("day", today);
+    await service.rpc("refund_ai_user_usage", { _owner_key: ownerKey, _images: imageCount });
   };
+
 
   // Memory: only pulled in when the new question actually depends on it.
   const useHistory = needsHistory(task, prompt);
