@@ -18,25 +18,7 @@ import {
 import logoImage from '@/assets/logo.png';
 import { AiAssistantDialog } from '@/components/notoria/AiAssistantDialog';
 
-const iconMap: Record<string, React.ElementType> = {
-  user: User,
-  briefcase: Briefcase,
-  lightbulb: Lightbulb,
-  folder: Folder,
-  hash: Hash,
-  star: Star,
-  heart: Heart,
-  home: Home,
-  book: Book,
-  music: Music,
-  camera: Camera,
-  palette: Palette,
-  globe: Globe,
-  zap: Zap,
-  target: Target,
-  trophy: Trophy,
-  default: Hash,
-};
+import { getWorkspaceIcon } from '@/lib/workspace-icons';
 
 interface MobileHeaderProps {
   workspaces: Workspace[];
@@ -325,7 +307,7 @@ export function MobileHeader({
 
                 {/* Workspaces with subcategories */}
                 {workspaces.map((workspace) => {
-                  const Icon = iconMap[workspace.icon] || iconMap.default;
+                  const Icon = getWorkspaceIcon(workspace.icon);
                   const subcats = workspaceSubcategories[workspace.id] || [];
                   const hasSubcats = subcats.length > 0;
                   const isExpanded = expandedWorkspaces.has(workspace.id);

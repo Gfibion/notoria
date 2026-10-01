@@ -52,25 +52,7 @@ import {
 import { WorkspaceDialog } from './WorkspaceDialog';
 import logoImage from '@/assets/logo.png';
 
-const iconMap: Record<string, React.ElementType> = {
-  user: User,
-  briefcase: Briefcase,
-  lightbulb: Lightbulb,
-  folder: Folder,
-  hash: Hash,
-  star: Star,
-  heart: Heart,
-  home: Home,
-  book: Book,
-  music: Music,
-  camera: Camera,
-  palette: Palette,
-  globe: Globe,
-  zap: Zap,
-  target: Target,
-  trophy: Trophy,
-  default: Hash,
-};
+import { getWorkspaceIcon } from '@/lib/workspace-icons';
 
 interface SidebarProps {
   workspaces: Workspace[];
@@ -493,7 +475,7 @@ export function Sidebar({
 
 
             {workspaces.map((workspace) => {
-              const Icon = iconMap[workspace.icon] || iconMap.default;
+              const Icon = getWorkspaceIcon(workspace.icon);
               const subcats = workspaceSubcategories[workspace.id] || [];
               const hasSubcats = subcats.length > 0;
               const isExpanded = expandedWorkspaces.has(workspace.id);
