@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Folder } from 'lucide-react';
 import { WORKSPACE_ICONS } from '@/lib/workspace-icons';
+import { cn } from '@/lib/utils';
 
 // Convert HSL to hex for storage
 function hslToHex(h: number, s: number, l: number): string {
