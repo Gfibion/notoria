@@ -54,7 +54,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { RainbowColorPicker } from './RainbowColorPicker';
+import { HueColorPicker } from './HueColorPicker';
 import jsPDF from 'jspdf';
 
 // Register languages for syntax highlighting
@@ -1671,10 +1671,11 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
       )}
       {showColorPicker && (
         <div className="fixed top-20 right-4 z-50">
-          <RainbowColorPicker
+          <HueColorPicker
             selectedColor={noteColor}
             onSelectColor={handleColorChange}
             onClose={() => setShowColorPicker(false)}
+            title="Note Color"
           />
         </div>
       )}
