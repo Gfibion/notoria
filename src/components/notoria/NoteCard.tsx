@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Pin, Trash2, Star, Info, X, Calendar, Clock, FileText, Tag as TagIcon, HardDrive, Palette, MoreVertical, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { ColorPicker } from './ColorPicker';
+import { HueColorPicker } from './HueColorPicker';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -360,10 +360,11 @@ export function NoteCard({ note, workspace, onClick, onPin, onStar, onDelete, on
           }}
         >
           <div onClick={(e) => e.stopPropagation()}>
-            <ColorPicker
+            <HueColorPicker
               selectedColor={note.color || ''}
               onSelectColor={handleColorSelect}
               onClose={() => setColorPickerOpen(false)}
+              title="Note Color"
             />
           </div>
         </div>
