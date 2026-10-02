@@ -33,6 +33,12 @@ export function useWorkspaces() {
     loadWorkspaces();
   }, [loadWorkspaces]);
 
+  useEffect(() => {
+    const onChanged = () => loadWorkspaces();
+    window.addEventListener('workspaces-changed', onChanged);
+    return () => window.removeEventListener('workspaces-changed', onChanged);
+  }, [loadWorkspaces]);
+
   const createWorkspace = useCallback(
     async (name: string, color: string, icon: string) => {
       const existingWorkspaces = workspaces;
