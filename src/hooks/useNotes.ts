@@ -42,6 +42,12 @@ export function useNotes(workspaceId?: string, starredOnly?: boolean) {
     loadNotes(true);
   }, [loadNotes]);
 
+  useEffect(() => {
+    const onChanged = () => loadNotes(false);
+    window.addEventListener('notes-changed', onChanged);
+    return () => window.removeEventListener('notes-changed', onChanged);
+  }, [loadNotes]);
+
   const createNote = useCallback(
     async (title: string, content: string, workspace: string, tags: string[] = []) => {
       const note: Note = {
