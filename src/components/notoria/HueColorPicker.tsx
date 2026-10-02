@@ -69,9 +69,10 @@ export function HueColorPicker({
       setHue(h);
       setColor(next);
       setCleared(false);
-      onSelectColor(next);
+      // No onSelectColor here — the color is only committed when the
+      // user confirms with "Apply Color" so they can slide freely.
     },
-    [onSelectColor]
+    []
   );
 
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -92,6 +93,10 @@ export function HueColorPicker({
   const handleClear = () => {
     setCleared(true);
     onSelectColor('');
+  };
+
+  const handleApply = () => {
+    onSelectColor(cleared ? '' : color);
   };
 
   const sliderPct = (hue / 360) * 100;
@@ -142,10 +147,15 @@ export function HueColorPicker({
       </div>
 
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">Drag the cursor to pick a color.</p>
-        <Button variant="outline" size="sm" onClick={handleClear}>
-          Clear
-        </Button>
+        <p className="text-xs text-muted-foreground">Slide, then apply your pick.</p>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleClear}>
+            Clear
+          </Button>
+          <Button size="sm" onClick={handleApply} disabled={cleared && !selectedColor}>
+            Apply Color
+          </Button>
+        </div>
       </div>
     </div>
   );
