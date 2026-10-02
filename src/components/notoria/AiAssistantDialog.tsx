@@ -219,46 +219,101 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
     }
   };
 
-  const applyRewrite = async (noteId: string, title: string, contentMd: string) => {
-    const note = notes.find(n => n.id === noteId);
-    if (!note) return;
-    const updated: Note = {
-      ...note,
-      title: title || note.title,
+  const notifyNotesChanged = () => window.dispatchEvent(new Event('notes-changed'));
+
+  const createNoteFromMd = async (title: string, contentMd: string) => {
+    const now = new Date();
+    const fallbackWs = workspaces[0]?.id ?? '';
+    const note: Note = {
+      id: generateId(),
+      title: title?.trim() || 'AI note',
       content: markdownToNoteHtml(contentMd),
-      updatedAt: new Date(),
+      workspace: fallbackWs,
+      subcategory: '',
+      color: '',
+      isPinned: false,
+      isStarred: false,
+      isDeleted: false,
+      createdAt: now,
+      updatedAt: now,
+      tags: [],
     };
-    await saveNote(updated);
-    setNotes(ns => ns.map(n => (n.id === noteId ? updated : n)));
-    toast({ title: 'Note updated', description: 'The enhanced version was saved.' });
+    await saveNote(note);
+    setNotes(ns => [note, ...ns]);
+    notifyNotesChanged();
+    return note;
+  };
+
+  const applyRewrite = async (noteId: string, title: string, contentMd: string) => {
+    try {
+      const fresh = await getAllNotes();
+      const note = fresh.find(n => n.id === noteId) ?? notes.find(n => n.id === noteId);
+      if (!note) {
+        await createNoteFromMd(title, contentMd);
+        toast({ title: 'Note created', description: 'Saved as a new note.' });
+        return;
+      }
+      const updated: Note = {
+        ...note,
+        title: title || note.title,
+        content: markdownToNoteHtml(contentMd),
+        updatedAt: new Date(),
+      };
+      await saveNote(updated);
+      setNotes(ns => ns.map(n => (n.id === note.id ? updated : n)));
+      notifyNotesChanged();
+      toast({ title: 'Note updated', description: 'The enhanced version was saved.' });
+    } catch (e: any) {
+      toast({ title: 'Could not apply', description: e?.message ?? 'Try again', variant: 'destructive' });
+    }
+  };
+
+  const saveAnswerAsNote = async (md: string) => {
+    try {
+      const firstLine = md.split('\n').find(l => l.trim())?.replace(/^#+\s*/, '').replace(/[*`]/g, '').slice(0, 80);
+      await createNoteFromMd(firstLine || 'AI note', md);
+      toast({ title: 'Note created', description: 'The AI answer was saved as a new note.' });
+    } catch (e: any) {
+      toast({ title: 'Could not save', description: e?.message ?? 'Try again', variant: 'destructive' });
+    }
   };
 
   const applyCategory = async (noteId: string, workspaceName: string, subcategory: string, tags: string[]) => {
-    const note = notes.find(n => n.id === noteId);
-    if (!note) return;
-    let ws = workspaces.find(w => w.name.toLowerCase() === workspaceName.trim().toLowerCase());
-    if (!ws && workspaceName.trim()) {
-      ws = {
-        id: generateId(),
-        name: workspaceName.trim(),
-        color: 'hsl(150 30% 28%)',
-        icon: 'Folder',
-        order: workspaces.length,
-        createdAt: new Date(),
+    try {
+      const fresh = await getAllNotes();
+      const note = fresh.find(n => n.id === noteId) ?? notes.find(n => n.id === noteId);
+      if (!note) {
+        toast({ title: 'Note not found', description: 'That note no longer exists.', variant: 'destructive' });
+        return;
+      }
+      let ws = workspaces.find(w => w.name.toLowerCase() === workspaceName.trim().toLowerCase());
+      if (!ws && workspaceName.trim()) {
+        ws = {
+          id: generateId(),
+          name: workspaceName.trim(),
+          color: 'hsl(150 30% 28%)',
+          icon: 'folder',
+          order: workspaces.length,
+          createdAt: new Date(),
+        };
+        await saveWorkspace(ws);
+        setWorkspaces(w => [...w, ws!]);
+        window.dispatchEvent(new Event('workspaces-changed'));
+      }
+      const updated: Note = {
+        ...note,
+        workspace: ws?.id ?? note.workspace,
+        subcategory: subcategory || note.subcategory,
+        tags: Array.from(new Set([...(note.tags ?? []), ...(tags ?? [])])).slice(0, 20),
+        updatedAt: new Date(),
       };
-      await saveWorkspace(ws);
-      setWorkspaces(w => [...w, ws!]);
+      await saveNote(updated);
+      setNotes(ns => ns.map(n => (n.id === note.id ? updated : n)));
+      notifyNotesChanged();
+      toast({ title: 'Category applied', description: `Moved to ${ws?.name ?? 'current workspace'}.` });
+    } catch (e: any) {
+      toast({ title: 'Could not apply', description: e?.message ?? 'Try again', variant: 'destructive' });
     }
-    const updated: Note = {
-      ...note,
-      workspace: ws?.id ?? note.workspace,
-      subcategory: subcategory || note.subcategory,
-      tags: Array.from(new Set([...(note.tags ?? []), ...(tags ?? [])])).slice(0, 20),
-      updatedAt: new Date(),
-    };
-    await saveNote(updated);
-    setNotes(ns => ns.map(n => (n.id === noteId ? updated : n)));
-    toast({ title: 'Category applied', description: `Moved to ${ws?.name ?? 'current workspace'}.` });
   };
 
   const filtered = notes.filter(n =>
@@ -453,6 +508,14 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
                             onApplyRewrite={applyRewrite}
                             onApplyCategory={applyCategory}
                           />
+                          {!(m.result?.rewritten?.length) && m.content?.trim() && (
+                            <div className="mt-2 flex justify-end">
+                              <Button size="sm" variant="secondary" className="h-6 text-[11px]"
+                                onClick={() => saveAnswerAsNote(m.content)}>
+                                Save as note
+                              </Button>
+                            </div>
+                          )}
                           {m.used_history && (
                             <p className="text-[10px] text-muted-foreground mt-2">used earlier context</p>
                           )}
