@@ -19,6 +19,7 @@ import NotFound from "./pages/NotFound";
 import { TasksErrorBoundary } from "./components/tasks/TasksErrorBoundary";
 import SplashLoader from "./components/notoria/SplashLoader";
 import { isStandalone, hasEverInstalled } from "./lib/pwa";
+import { startTaskReminderScheduler } from "./lib/task-reminder-scheduler";
 
 /**
  * Root route decides between marketing Landing and the app.
@@ -42,6 +43,7 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    startTaskReminderScheduler();
     const timer = setTimeout(() => setIsLoading(false), 2200);
     return () => clearTimeout(timer);
   }, []);
