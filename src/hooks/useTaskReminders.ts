@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { Task, getAllTasks } from '@/lib/tasks-db';
+import { REMINDERS_ENABLED_KEY, remindersEnabled, showSystemNotification } from '@/lib/task-reminder-scheduler';
 import { toast } from 'sonner';
 
 interface ReminderSettings {
@@ -20,7 +20,7 @@ const getStoredVolume = (): number => {
 };
 
 const DEFAULT_SETTINGS: ReminderSettings = {
-  enabled: true,
+  enabled: typeof localStorage !== 'undefined' ? remindersEnabled() : true,
   checkIntervalMinutes: 5,
   reminderThresholdMinutes: 30,
   volume: getStoredVolume(),
@@ -126,101 +126,13 @@ export const useTaskReminders = () => {
     }
   }, []);
 
-  // Send notification
-  const sendNotification = useCallback((task: Task) => {
-    if (notificationPermission !== 'granted') return;
-
-    try {
-      const notification = new Notification(`Task Reminder: ${task.title}`, {
-        body: task.description || 'This task is due soon!',
-        icon: '/pwa-192x192.png',
-        badge: '/pwa-192x192.png',
-        tag: `task-${task.id}`,
-        requireInteraction: true,
-      });
-
-      notification.onclick = () => {
-        window.focus();
-        notification.close();
-      };
-
-      // Play sound
-      playNotificationSound();
-
-      // Mark as reminded
-      markTaskAsReminded(task.id);
-    } catch (error) {
-      console.error('Error sending notification:', error);
-    }
-  }, [notificationPermission, playNotificationSound, markTaskAsReminded]);
-
-  // Check for upcoming tasks
-  const checkUpcomingTasks = useCallback(async () => {
-    if (!settings.enabled || notificationPermission !== 'granted') return;
-
-    try {
-      const tasks = await getAllTasks();
-      const now = new Date();
-      const thresholdMs = settings.reminderThresholdMinutes * 60 * 1000;
-      const remindedTasks = getRemindedTasks();
-
-      tasks.forEach(task => {
-        // Skip if already reminded, no due date, or already done
-        if (!task.dueDate || task.status === 'done' || remindedTasks[task.id]) {
-          return;
-        }
-
-        const dueDate = new Date(task.dueDate);
-        const timeDiff = dueDate.getTime() - now.getTime();
-
-        // Check if task is due within threshold and not overdue by more than 1 hour
-        if (timeDiff > 0 && timeDiff <= thresholdMs) {
-          sendNotification(task);
-        }
-
-        // Also check reminder time if set
-        if (task.reminder && task.dueDate) {
-          const reminderDateTime = new Date(`${task.dueDate.split('T')[0]}T${task.reminder}`);
-          const reminderDiff = reminderDateTime.getTime() - now.getTime();
-          
-          // If reminder time is within the next check interval
-          if (reminderDiff > 0 && reminderDiff <= settings.checkIntervalMinutes * 60 * 1000) {
-            sendNotification(task);
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Error checking upcoming tasks:', error);
-    }
-  }, [settings, notificationPermission, getRemindedTasks, sendNotification]);
-
-  // Set up interval to check tasks
-  useEffect(() => {
-    if (settings.enabled && notificationPermission === 'granted') {
-      // Check immediately
-      checkUpcomingTasks();
-      
-      // Set up interval
-      intervalRef.current = setInterval(
-        checkUpcomingTasks,
-        settings.checkIntervalMinutes * 60 * 1000
-      );
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [settings.enabled, settings.checkIntervalMinutes, notificationPermission, checkUpcomingTasks]);
-
   // Enable/disable reminders
   const toggleReminders = useCallback(async (enabled: boolean) => {
     if (enabled && notificationPermission !== 'granted') {
       const granted = await requestPermission();
       if (!granted) return;
     }
+    localStorage.setItem(REMINDERS_ENABLED_KEY, String(enabled));
     setSettings(prev => ({ ...prev, enabled }));
   }, [notificationPermission, requestPermission]);
 
@@ -230,9 +142,8 @@ export const useTaskReminders = () => {
     playNotificationSound();
 
     if (notificationPermission === 'granted') {
-      new Notification('Task Reminder: Test Notification', {
+      showSystemNotification('Task Reminder: Test Notification', {
         body: 'This is a test notification to check if reminders are working.',
-        icon: '/pwa-192x192.png',
         tag: 'test-notification',
       });
     } else {

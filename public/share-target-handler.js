@@ -36,3 +36,18 @@ self.addEventListener("fetch", (event) => {
     })(),
   );
 });
+
+// Open/focus Novaryn when a task alert notification is tapped.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "/tasks";
+  event.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const c of all) {
+        if ("focus" in c) { await c.focus(); if ("navigate" in c) c.navigate(target).catch(() => {}); return; }
+      }
+      if (self.clients.openWindow) await self.clients.openWindow(target);
+    })()
+  );
+});
