@@ -212,7 +212,7 @@ export default function Landing() {
           offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
           description:
             "Novaryn is a private, local-first thinking instrument for executives, researchers, consultants, and entrepreneurs.",
-          url: "https://notoria.lovable.app/",
+          url: "https://notoria1.netlify.app/",
           featureList: [
             "Local-first offline notes",
             "Kanban tasks and projects",
