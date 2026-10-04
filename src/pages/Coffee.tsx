@@ -98,15 +98,26 @@ export default function CoffeePage() {
           channels: ["card", "bank", "ussd", "mobile_money", "bank_transfer", "qr"],
         },
       });
-      if (error) throw error;
+      if (error) {
+        // Surface the real server-side message when available
+        let msg = "Could not start payment. Please try again.";
+        try {
+          const ctx = (error as { context?: Response }).context;
+          if (ctx) {
+            const body = await ctx.json().catch(() => null);
+            if (body?.error) msg = String(body.error);
+          }
+        } catch { /* keep default */ }
+        throw new Error(msg);
+      }
       if (data?.url) {
         window.location.href = data.url;
       } else {
-        throw new Error("No payment URL returned");
+        throw new Error(data?.error || "No payment URL returned");
       }
     } catch (e) {
       console.error(e);
-      toast.error("Could not start payment. Please try again.");
+      toast.error(e instanceof Error ? e.message : "Could not start payment. Please try again.");
       setLoading(false);
     }
   };
