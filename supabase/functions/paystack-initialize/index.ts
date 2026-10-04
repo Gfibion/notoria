@@ -13,6 +13,18 @@ const ALLOWED_CALLBACK_ORIGINS = [
   "http://localhost:5173",
 ];
 
+/** Lovable preview hosts look like https://id-preview--<uuid>.lovable.app */
+const PREVIEW_ORIGIN_RE = /^https:\/\/id-preview--[a-z0-9-]+\.lovable\.app$/;
+
+function isAllowedCallback(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return ALLOWED_CALLBACK_ORIGINS.includes(u.origin) || PREVIEW_ORIGIN_RE.test(u.origin);
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") {
@@ -63,12 +75,7 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const callbackOk = (() => {
-      try {
-        const u = new URL(callbackUrl);
-        return ALLOWED_CALLBACK_ORIGINS.includes(u.origin);
-      } catch { return false; }
-    })();
+    const callbackOk = isAllowedCallback(callbackUrl);
     if (!callbackOk) {
       return new Response(JSON.stringify({ error: "Invalid callback_url" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
