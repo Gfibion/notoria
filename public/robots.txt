@@ -1,9 +1,9 @@
 User-agent: *
 Allow: /
-Allow: /install
-Allow: /coffee
-Allow: /contact
-Allow: /privacy
-Allow: /terms
+Disallow: /admin
+Disallow: /app
+Disallow: /tasks
+Disallow: /cloud-backup
+Disallow: /landing
 
-Sitemap: https://notoria.lovable.app/sitemap.xml
+Sitemap: https://notoria1.netlify.app/sitemap.xml
