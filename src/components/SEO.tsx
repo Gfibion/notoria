@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 
-const SITE_URL = "https://notoria.lovable.app";
+const SITE_URL = "https://notoria1.netlify.app";
 const DEFAULT_TITLE = "Novaryn — Organize Thoughts. Shape Decisions.";
 const DEFAULT_DESC =
   "Novaryn is a private, local-first thinking instrument for executives, researchers, consultants, and entrepreneurs. Capture ideas, structure research, and shape decisions with clarity.";
