@@ -8,6 +8,24 @@ const ALLOWED_CURRENCIES = new Set(["NGN", "USD", "GHS", "KES", "ZAR"]);
 const MIN_MINOR = 50;
 const MAX_MINOR = 1_000_000_00;
 
+/** Support tiers by amount in minor units: [backer, champion] per currency. */
+const TIER_THRESHOLDS: Record<string, [number, number]> = {
+  USD: [500, 1000],
+  NGN: [250_000, 500_000],
+  GHS: [2_500, 5_000],
+  KES: [25_000, 50_000],
+  ZAR: [10_000, 20_000],
+};
+
+function tierForMinor(minor: number, currency: string): string {
+  const t = TIER_THRESHOLDS[currency.toUpperCase()];
+  if (!t) return "supporter";
+  if (minor >= t[1]) return "champion";
+  if (minor >= t[0]) return "backer";
+  return "supporter";
+}
+
+
 /** Store only a non-identifying, masked form of the payer email. */
 function maskEmail(email: unknown): string | null {
   if (typeof email !== "string" || !email.includes("@")) return null;
@@ -78,6 +96,12 @@ Deno.serve(async (req) => {
       ALLOWED_CURRENCIES.has(txCurrency) &&
       Number.isFinite(txAmount) && txAmount >= MIN_MINOR && txAmount <= MAX_MINOR;
 
+    // Cloud ID hash attached at checkout (used for automatic supporter activation).
+    const metaHash = typeof tx.metadata?.user_hash === "string" ? tx.metadata.user_hash : "";
+    const linkedHash = /^[a-f0-9]{64}$/.test(metaHash) ? metaHash : null;
+
+    const tier = tierForMinor(txAmount, txCurrency);
+
     if (normalizedStatus === "succeeded" && !integrityOk) {
       console.error("payment integrity check failed", { reference, txCurrency, txAmount });
     }
@@ -89,10 +113,12 @@ Deno.serve(async (req) => {
           checkout_id: reference,
           product_id: tx.channel ?? null,
           product_name: `Paystack · ${tx.channel ?? "payment"}`,
-          amount: typeof tx.amount === "number" ? tx.amount : null,
-          currency: (tx.currency ?? "").toString().toLowerCase() || null,
+          amount: txAmount,
+          currency: txCurrency.toLowerCase(),
           status: normalizedStatus,
           customer_email: maskEmail(tx.customer?.email),
+          tier,
+          ...(linkedHash ? { user_hash: linkedHash } : {}),
         }, { onConflict: "checkout_id" });
       } catch (e) {
         console.error("coffee_supports upsert failed", e);
@@ -106,10 +132,13 @@ Deno.serve(async (req) => {
         amount: tx.amount,
         currency: tx.currency,
         channel: tx.channel,
+        tier: integrityOk ? tier : null,
+        linked: Boolean(linkedHash),
         reference,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500,

@@ -59,6 +59,14 @@ Deno.serve(async (req) => {
     const currency = typeof body?.currency === "string" ? body.currency.toUpperCase() : "NGN";
     const callbackUrl = typeof body?.callback_url === "string" ? body.callback_url : "";
     const rawChannels: unknown = body?.channels;
+    // Optional Cloud ID hash (sha256 hex) so the supporter tier links automatically.
+    const userHash = typeof body?.user_hash === "string" ? body.user_hash : "";
+    if (userHash && !/^[a-f0-9]{64}$/.test(userHash)) {
+      return new Response(JSON.stringify({ error: "Invalid user_hash" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 255) {
       return new Response(JSON.stringify({ error: "Invalid email" }), {
@@ -100,10 +108,12 @@ Deno.serve(async (req) => {
       callback_url: callbackUrl,
       metadata: {
         source: "notoria_coffee",
+        ...(userHash ? { user_hash: userHash } : {}),
         custom_fields: [
           { display_name: "Purpose", variable_name: "purpose", value: "Support Novaryn" },
         ],
       },
+
     };
     if (channels) payload.channels = channels;
 

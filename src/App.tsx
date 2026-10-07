@@ -10,6 +10,8 @@ import Landing from "./pages/Landing";
 import Install from "./pages/Install";
 import Tasks from "./pages/Tasks";
 import CoffeePage from "./pages/Coffee";
+import PaymentConfirmedPage from "./pages/PaymentConfirmed";
+
 import CloudBackupPage from "./pages/CloudBackup";
 import AdminPage from "./pages/Admin";
 import ContactPage from "./pages/Contact";
@@ -63,6 +65,8 @@ const App = () => {
               <Route path="/install" element={<Install />} />
               <Route path="/tasks" element={<TasksErrorBoundary><Tasks /></TasksErrorBoundary>} />
               <Route path="/coffee" element={<CoffeePage />} />
+              <Route path="/payment-confirmed" element={<PaymentConfirmedPage />} />
+
               <Route path="/cloud-backup" element={<CloudBackupPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/contact" element={<ContactPage />} />
