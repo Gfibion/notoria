@@ -156,33 +156,8 @@ export default function CoffeePage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-8 md:py-10">
-        {(verifying || verifyState) && (
-          <Card className="p-4 mb-6 flex items-start gap-3">
-            {verifying ? (
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground mt-0.5" />
-            ) : verifyState?.status === "succeeded" ? (
-              <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
-            ) : (
-              <XCircle className="w-5 h-5 text-muted-foreground mt-0.5" />
-            )}
-            <div>
-              <p className="font-medium">
-                {verifying
-                  ? "Verifying your payment..."
-                  : verifyState?.status === "succeeded"
-                    ? "Thank you for supporting Novaryn!"
-                    : `Payment status: ${verifyState?.status ?? "unknown"}`}
-              </p>
-              {verifyState?.amount != null && verifyState?.currency && (
-                <p className="text-sm text-muted-foreground">
-                  {formatMoney(verifyState.amount, verifyState.currency.toUpperCase() as Currency)} received
-                </p>
-              )}
-            </div>
-          </Card>
-        )}
-
         <div className="text-center mb-8 space-y-3">
+
           <div className="inline-flex w-16 h-16 rounded-full bg-amber-500/10 items-center justify-center">
             <Heart className="w-8 h-8 text-amber-600" />
           </div>

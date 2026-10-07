@@ -8,6 +8,24 @@ const ALLOWED_CURRENCIES = new Set(["NGN", "USD", "GHS", "KES", "ZAR"]);
 const MIN_MINOR = 50;
 const MAX_MINOR = 1_000_000_00;
 
+/** Support tiers by amount in minor units: [backer, champion] per currency. */
+const TIER_THRESHOLDS: Record<string, [number, number]> = {
+  USD: [500, 1000],
+  NGN: [250_000, 500_000],
+  GHS: [2_500, 5_000],
+  KES: [25_000, 50_000],
+  ZAR: [10_000, 20_000],
+};
+
+function tierForMinor(minor: number, currency: string): string {
+  const t = TIER_THRESHOLDS[currency.toUpperCase()];
+  if (!t) return "supporter";
+  if (minor >= t[1]) return "champion";
+  if (minor >= t[0]) return "backer";
+  return "supporter";
+}
+
+
 /** Store only a non-identifying, masked form of the payer email. */
 function maskEmail(email: unknown): string | null {
   if (typeof email !== "string" || !email.includes("@")) return null;
