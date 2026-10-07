@@ -95,7 +95,7 @@ export default function CoffeePage() {
     }
     setLoading(true);
     try {
-      const callbackUrl = `${window.location.origin}/coffee`;
+      const callbackUrl = `${window.location.origin}/payment-confirmed`;
       const { data, error } = await supabase.functions.invoke("paystack-initialize", {
         body: {
           email: email.trim(),
@@ -103,8 +103,10 @@ export default function CoffeePage() {
           currency,
           callback_url: callbackUrl,
           channels: ["card", "bank", "ussd", "mobile_money", "bank_transfer", "qr"],
+          ...(userHash ? { user_hash: userHash } : {}),
         },
       });
+
       if (error) {
         // Surface the real server-side message when available
         let msg = "Could not start payment. Please try again.";
