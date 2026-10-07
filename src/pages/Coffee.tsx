@@ -226,7 +226,44 @@ export default function CoffeePage() {
             />
           </div>
 
+          {hasStoredKey && !userHash && (
+            <div className="border border-border/60 rounded-lg p-3 space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Paying from a device where your Cloud ID is activated? Unlock it so your support plan
+                is linked automatically after payment.
+              </p>
+              {storedMethod === "webauthn" ? (
+                <Button variant="outline" size="sm" onClick={() => unlockAndLink()} disabled={linking}>
+                  {linking
+                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Unlocking…</>
+                    : <><Link2 className="w-4 h-4 mr-2" /> Unlock Cloud ID</>}
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    type="password"
+                    inputMode="numeric"
+                    value={pinInput}
+                    onChange={(e) => setPinInput(e.target.value)}
+                    placeholder="Cloud ID PIN"
+                    autoComplete="off"
+                    aria-label="Cloud ID PIN"
+                  />
+                  <Button variant="outline" size="sm" onClick={() => unlockAndLink()} disabled={linking || !pinInput}>
+                    {linking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+          {userHash && (
+            <p className="text-sm text-green-600 flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4" /> Linked to this device's Cloud ID
+            </p>
+          )}
+
           <Button
+
             onClick={handleSupport}
             disabled={loading}
             className="w-full bg-amber-600 hover:bg-amber-700 text-white h-11"

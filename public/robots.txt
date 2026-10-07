@@ -5,5 +5,7 @@ Disallow: /app
 Disallow: /tasks
 Disallow: /cloud-backup
 Disallow: /landing
+Disallow: /payment-confirmed
+
 
 Sitemap: https://notoria1.netlify.app/sitemap.xml
