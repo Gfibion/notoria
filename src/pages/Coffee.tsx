@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,11 +9,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  ArrowLeft, Coffee, Loader2, Heart, CheckCircle2, XCircle,
+  ArrowLeft, Coffee, Loader2, Heart, Link2, CheckCircle2,
   ShieldCheck, CreditCard, Smartphone, Landmark, Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import SEO from "@/components/SEO";
+import { loadWrappedSecret } from "@/lib/cloud-keystore";
+import { unwrapSecretWithPin, unwrapSecretWithBiometric, deriveUserHash } from "@/lib/cloud-crypto";
+
 
 type Currency = "NGN" | "USD" | "GHS" | "KES" | "ZAR";
 
@@ -38,9 +41,12 @@ export default function CoffeePage() {
   const [amount, setAmount] = useState<number>(2500);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [verifyState, setVerifyState] = useState<{ status: string; amount?: number; currency?: string } | null>(null);
-  const [verifying, setVerifying] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [hasStoredKey, setHasStoredKey] = useState(false);
+  const [storedMethod, setStoredMethod] = useState<"pin" | "webauthn" | null>(null);
+  const [pinInput, setPinInput] = useState("");
+  const [userHash, setUserHash] = useState<string | null>(null);
+  const [linking, setLinking] = useState(false);
+  const navigate = useNavigate();
 
   const meta = CURRENCIES.find(c => c.code === currency)!;
 
@@ -49,33 +55,34 @@ export default function CoffeePage() {
   }, [currency]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const reference = searchParams.get("reference") || searchParams.get("trxref");
-    if (!reference) return;
-    setVerifying(true);
     (async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke("paystack-verify", {
-          body: { reference },
-        });
-        if (error) throw error;
-        setVerifyState({
-          status: data.status,
-          amount: typeof data.amount === "number" ? data.amount / 100 : undefined,
-          currency: data.currency,
-        });
-        if (data.status === "succeeded") toast.success("Thank you for the support! ☕");
-      } catch (e) {
-        console.error(e);
-        toast.error("Could not verify your payment");
-      } finally {
-        setVerifying(false);
-        searchParams.delete("reference");
-        searchParams.delete("trxref");
-        setSearchParams(searchParams, { replace: true });
+      const w = await loadWrappedSecret();
+      if (w) {
+        setHasStoredKey(true);
+        setStoredMethod(w.method === "webauthn" ? "webauthn" : "pin");
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Unlock the device Cloud ID so the payment is linked automatically.
+  const unlockAndLink = async (pin?: string) => {
+    setLinking(true);
+    try {
+      const w = await loadWrappedSecret();
+      if (!w) throw new Error("No Cloud ID is saved on this device");
+      const secret = w.method === "webauthn"
+        ? await unwrapSecretWithBiometric(w)
+        : await unwrapSecretWithPin(w, pin ?? pinInput);
+      setUserHash(await deriveUserHash(secret));
+      setPinInput("");
+      toast.success("Your support will be linked to this device's Cloud ID");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not unlock your Cloud ID");
+    } finally {
+      setLinking(false);
+    }
+  };
+
 
   const handleSupport = async () => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
