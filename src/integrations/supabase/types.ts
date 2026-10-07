@@ -446,6 +446,8 @@ export type Database = {
           product_id: string | null
           product_name: string | null
           status: string
+          tier: string | null
+          user_hash: string | null
         }
         Insert: {
           amount?: number | null
@@ -457,6 +459,8 @@ export type Database = {
           product_id?: string | null
           product_name?: string | null
           status: string
+          tier?: string | null
+          user_hash?: string | null
         }
         Update: {
           amount?: number | null
@@ -468,6 +472,8 @@ export type Database = {
           product_id?: string | null
           product_name?: string | null
           status?: string
+          tier?: string | null
+          user_hash?: string | null
         }
         Relationships: []
       }
@@ -621,6 +627,7 @@ export type Database = {
         Args: { _bucket: string; _limit: number; _subject: string }
         Returns: boolean
       }
+      get_supporter_tier: { Args: { _user_hash: string }; Returns: string }
       is_admin: { Args: { _uid: string }; Returns: boolean }
       is_master_admin: { Args: { _uid: string }; Returns: boolean }
       refund_ai_user_usage: {
