@@ -108,10 +108,12 @@ Deno.serve(async (req) => {
       callback_url: callbackUrl,
       metadata: {
         source: "notoria_coffee",
+        ...(userHash ? { user_hash: userHash } : {}),
         custom_fields: [
           { display_name: "Purpose", variable_name: "purpose", value: "Support Novaryn" },
         ],
       },
+
     };
     if (channels) payload.channels = channels;
 
