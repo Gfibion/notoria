@@ -4,6 +4,7 @@
 // anonymous per-install owner key, capped at AI_MSG_LIMIT messages and
 // AI_IMG_LIMIT images per user per UTC day.
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import { CLASSIC_LIMITS, REGULAR_LIMITS, planForDevice } from "../_shared/classic.ts";
 import { json, corsHeaders } from "../_shared/admin-auth.ts";
 
 async function sha256Hex(input: string): Promise<string> {
@@ -12,8 +13,7 @@ async function sha256Hex(input: string): Promise<string> {
 }
 
 const MODEL = "google/gemini-3.7-flash";
-const AI_MSG_LIMIT = 50;
-const AI_IMG_LIMIT = 5;
+
 
 const MAX_NOTES = 10;
 const MAX_NOTE_CHARS = 20_000;
@@ -180,6 +180,10 @@ Deno.serve(async (req) => {
     { auth: { persistSession: false } },
   );
   const action = String(ctx.body?.action ?? "");
+  const plan = await planForDevice(service, ownerKey);
+  const lim = plan.plan === "classic" ? CLASSIC_LIMITS : REGULAR_LIMITS;
+  const AI_MSG_LIMIT = lim.messages;
+  const AI_IMG_LIMIT = lim.images;
 
   const today = new Date().toISOString().slice(0, 10);
   const usage = async () => {
@@ -191,6 +195,7 @@ Deno.serve(async (req) => {
       limit: AI_MSG_LIMIT,
       imagesUsed: row?.images ?? 0,
       imagesLimit: AI_IMG_LIMIT,
+      plan: plan.plan,
     };
   };
 

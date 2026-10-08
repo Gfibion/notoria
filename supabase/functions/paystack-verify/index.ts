@@ -1,6 +1,7 @@
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
+import { CLASSIC_CURRENCY, CLASSIC_DAYS, CLASSIC_PRICE_MINOR } from "../_shared/classic.ts";
 
 /** Currencies the support flow is allowed to record. */
 const ALLOWED_CURRENCIES = new Set(["NGN", "USD", "GHS", "KES", "ZAR"]);
@@ -125,8 +126,23 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Classic plan activation (idempotent per reference).
+    const isClassic = tx.metadata?.plan === "classic";
+    let classicExpiresAt: string | null = null;
+    if (isClassic && normalizedStatus === "succeeded" && linkedHash &&
+        txCurrency === CLASSIC_CURRENCY && txAmount >= CLASSIC_PRICE_MINOR) {
+      const { data: exp, error: cErr } = await rlService.rpc("apply_classic_payment", {
+        _reference: reference, _user_hash: linkedHash, _amount: txAmount,
+        _currency: txCurrency, _days: CLASSIC_DAYS,
+      });
+      if (cErr) console.error("apply_classic_payment failed", cErr);
+      else classicExpiresAt = exp as string;
+    }
+
     return new Response(
       JSON.stringify({
+        plan: isClassic ? "classic" : null,
+        classic_expires_at: classicExpiresAt,
         status: normalizedStatus,
         raw_status: paystackStatus,
         amount: tx.amount,
