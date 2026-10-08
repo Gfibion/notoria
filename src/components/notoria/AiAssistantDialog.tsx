@@ -337,6 +337,9 @@ export function AiAssistantDialog({ open, onOpenChange, initialNoteId }: Props) 
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <a href="/classic" className="text-[10px] font-medium px-2 py-0.5 rounded-md border border-primary/40 text-primary hover:bg-primary/10">
+              {usage.plan === 'classic' ? 'Classic' : 'Get Classic'}
+            </a>
             <Badge variant={quotaLeft > 0 ? 'secondary' : 'destructive'} className="text-[10px]">
               {quotaLeft}/{usage.limit} messages • {Math.max(0, (usage.imagesLimit ?? 5) - (usage.imagesUsed ?? 0))}/{usage.imagesLimit ?? 5} images left today
             </Badge>

@@ -1,3 +1,4 @@
+import ClassicPage from "./pages/Classic";
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -65,6 +66,7 @@ const App = () => {
               <Route path="/install" element={<Install />} />
               <Route path="/tasks" element={<TasksErrorBoundary><Tasks /></TasksErrorBoundary>} />
               <Route path="/coffee" element={<CoffeePage />} />
+              <Route path="/classic" element={<ClassicPage />} />
               <Route path="/payment-confirmed" element={<PaymentConfirmedPage />} />
 
               <Route path="/cloud-backup" element={<CloudBackupPage />} />

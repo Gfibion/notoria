@@ -48,6 +48,7 @@ export interface AiUsage {
   limit: number;
   imagesUsed?: number;
   imagesLimit?: number;
+  plan?: "regular" | "classic";
 }
 
 async function call<T>(body: Record<string, unknown>): Promise<T> {
