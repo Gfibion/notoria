@@ -1,6 +1,7 @@
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
+import { CLASSIC_CURRENCY, CLASSIC_PRICE_MAJOR } from "../_shared/classic.ts";
 
 const ALLOWED_CURRENCIES = ["NGN", "USD", "GHS", "KES", "ZAR"] as const;
 const ALLOWED_CHANNELS = ["card", "bank", "ussd", "qr", "mobile_money", "bank_transfer", "eft"] as const;
@@ -55,8 +56,12 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
-    const amount = Number(body?.amount); // in major units (e.g. 5 = 5 NGN)
-    const currency = typeof body?.currency === "string" ? body.currency.toUpperCase() : "NGN";
+    const isClassic = body?.plan === "classic";
+    // Classic plan price is fixed server-side; never trust the client amount.
+    const amount = isClassic ? CLASSIC_PRICE_MAJOR : Number(body?.amount); // major units
+    const currency = isClassic
+      ? CLASSIC_CURRENCY
+      : (typeof body?.currency === "string" ? body.currency.toUpperCase() : "KES");
     const callbackUrl = typeof body?.callback_url === "string" ? body.callback_url : "";
     const rawChannels: unknown = body?.channels;
     // Optional Cloud ID hash (sha256 hex) so the supporter tier links automatically.
@@ -67,6 +72,12 @@ Deno.serve(async (req) => {
       });
     }
 
+
+    if (isClassic && !userHash) {
+      return new Response(JSON.stringify({ error: "Unlock your Cloud ID to buy the Classic plan" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 255) {
       return new Response(JSON.stringify({ error: "Invalid email" }), {
@@ -107,10 +118,11 @@ Deno.serve(async (req) => {
       currency,
       callback_url: callbackUrl,
       metadata: {
-        source: "notoria_coffee",
+        source: isClassic ? "novaryn_classic" : "notoria_coffee",
+        ...(isClassic ? { plan: "classic" } : {}),
         ...(userHash ? { user_hash: userHash } : {}),
         custom_fields: [
-          { display_name: "Purpose", variable_name: "purpose", value: "Support Novaryn" },
+          { display_name: "Purpose", variable_name: "purpose", value: isClassic ? "Novaryn Classic (1 month)" : "Support Novaryn" },
         ],
       },
 

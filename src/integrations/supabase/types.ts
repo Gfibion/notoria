@@ -402,6 +402,78 @@ export type Database = {
         }
         Relationships: []
       }
+      classic_devices: {
+        Row: {
+          bound_at: string
+          label: string | null
+          last_seen_at: string
+          owner_key: string
+          user_hash: string
+        }
+        Insert: {
+          bound_at?: string
+          label?: string | null
+          last_seen_at?: string
+          owner_key: string
+          user_hash: string
+        }
+        Update: {
+          bound_at?: string
+          label?: string | null
+          last_seen_at?: string
+          owner_key?: string
+          user_hash?: string
+        }
+        Relationships: []
+      }
+      classic_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          days: number
+          reference: string
+          user_hash: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency: string
+          days?: number
+          reference: string
+          user_hash: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          days?: number
+          reference?: string
+          user_hash?: string
+        }
+        Relationships: []
+      }
+      classic_subscriptions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          updated_at: string
+          user_hash: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          updated_at?: string
+          user_hash: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          updated_at?: string
+          user_hash?: string
+        }
+        Relationships: []
+      }
       cloud_backups: {
         Row: {
           ciphertext: string
@@ -610,6 +682,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_classic_payment: {
+        Args: {
+          _amount: number
+          _currency: string
+          _days: number
+          _reference: string
+          _user_hash: string
+        }
+        Returns: string
+      }
       bump_ai_usage: {
         Args: { _admin_id: string; _limit: number }
         Returns: boolean
