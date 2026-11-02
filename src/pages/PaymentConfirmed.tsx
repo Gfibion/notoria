@@ -6,13 +6,14 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  ArrowLeft, CheckCircle2, Copy, Fingerprint, Link2, Loader2, XCircle,
+  ArrowLeft, CheckCircle2, Copy, Crown, Fingerprint, Link2, Loader2, XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import SEO from "@/components/SEO";
 import { loadWrappedSecret } from "@/lib/cloud-keystore";
 import { unwrapSecretWithPin, unwrapSecretWithBiometric, deriveUserHash } from "@/lib/cloud-crypto";
 import { SUPPORT_TIERS, tierForAmount, type SupportTierId } from "@/lib/support-tiers";
+import { classicApi } from "@/lib/classic-client";
 
 type Currency = "NGN" | "USD" | "GHS" | "KES" | "ZAR";
 
@@ -33,10 +34,15 @@ export default function PaymentConfirmedPage() {
   const [rawStatus, setRawStatus] = useState<string | null>(null);
   const [verifyError, setVerifyError] = useState<string | null>(null);
 
+  // Classic plan result (paystack-verify returns plan/classic_expires_at for Classic payments).
+  const [classic, setClassic] = useState<{ amount: number; currency: string; expiresAt: string | null } | null>(null);
+  const [classicBound, setClassicBound] = useState(false);
+
   const [hasStoredKey, setHasStoredKey] = useState(false);
   const [storedMethod, setStoredMethod] = useState<"pin" | "webauthn" | null>(null);
   const [pinInput, setPinInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [busyClassic, setBusyClassic] = useState(false);
   const [activatedTier, setActivatedTier] = useState<SupportTierId | null>(null);
 
   useEffect(() => {
@@ -58,10 +64,18 @@ export default function PaymentConfirmedPage() {
       });
       if (error) throw new Error("Could not verify your payment");
       if (data.status === "succeeded") {
-        const tier = (typeof data.tier === "string" && SUPPORT_TIERS[data.tier as SupportTierId]
-          ? data.tier
-          : tierForAmount(data.amount / 100, data.currency)) as SupportTierId;
-        setPaid({ amount: data.amount / 100, currency: data.currency, tier });
+        if (data.plan === "classic") {
+          setClassic({
+            amount: (data.amount ?? 0) / 100,
+            currency: String(data.currency ?? "KES"),
+            expiresAt: typeof data.classic_expires_at === "string" ? data.classic_expires_at : null,
+          });
+        } else {
+          const tier = (typeof data.tier === "string" && SUPPORT_TIERS[data.tier as SupportTierId]
+            ? data.tier
+            : tierForAmount(data.amount / 100, data.currency)) as SupportTierId;
+          setPaid({ amount: data.amount / 100, currency: data.currency, tier });
+        }
       } else {
         setRawStatus(String(data.status ?? "unknown"));
       }
@@ -112,6 +126,27 @@ export default function PaymentConfirmedPage() {
     }
   };
 
+  // ─── Activate Classic on this device: unlock Cloud ID → bind device ──
+  const activateClassicHere = async (pin?: string) => {
+    setBusyClassic(true);
+    try {
+      const w = await loadWrappedSecret();
+      if (!w) throw new Error("No Cloud ID is saved on this device");
+      const secret = w.method === "webauthn"
+        ? await unwrapSecretWithBiometric(w)
+        : await unwrapSecretWithPin(w, pin ?? pinInput);
+      const userHash = await deriveUserHash(secret);
+      await classicApi.bind(userHash);
+      setClassicBound(true);
+      setPinInput("");
+      toast.success("This device is now on Classic");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not activate Classic on this device");
+    } finally {
+      setBusyClassic(false);
+    }
+  };
+
   const tier = activatedTier ?? paid?.tier ?? null;
   const tierInfo = tier ? SUPPORT_TIERS[tier] : null;
 
@@ -127,7 +162,7 @@ export default function PaymentConfirmedPage() {
         <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-10">
           <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/coffee"><ArrowLeft className="w-4 h-4 mr-1" /> Back</Link>
+              <Link to={classic ? "/classic" : "/coffee"}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Link>
             </Button>
             <h1 className="font-display text-lg font-semibold">Payment Confirmation</h1>
           </div>
@@ -168,6 +203,132 @@ export default function PaymentConfirmedPage() {
               </p>
               <Button asChild variant="outline"><Link to="/coffee">Back to Support Novaryn</Link></Button>
             </Card>
+          )}
+
+          {!verifying && classic && (
+            <>
+              <Card className="p-6 md:p-8 text-center space-y-4">
+                <div className="inline-flex w-16 h-16 rounded-full bg-primary/10 items-center justify-center">
+                  <CheckCircle2 className="w-9 h-9 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-display font-bold">Payment received — thank you!</h2>
+                  <p className="text-muted-foreground mt-1">
+                    {formatMoney(classic.amount, classic.currency)} · Ref {reference}
+                  </p>
+                </div>
+              </Card>
+
+              <Card className="p-6 md:p-8 space-y-4">
+                <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Your plan</p>
+                <div className="flex items-center gap-3">
+                  <div className="inline-flex w-12 h-12 rounded-full bg-primary/10 items-center justify-center flex-shrink-0">
+                    <Crown className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-display font-semibold">Novaryn Classic</p>
+                    <p className="text-sm text-muted-foreground">
+                      {classic.expiresAt
+                        ? `Active on your Cloud ID key until ${new Date(classic.expiresAt).toLocaleDateString(undefined, { dateStyle: "medium" })}`
+                        : "Active on your Cloud ID key"}
+                    </p>
+                  </div>
+                </div>
+                <ul className="space-y-1.5 text-sm text-muted-foreground">
+                  <li className="flex gap-2"><CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    300 AI messages and 30 images every day (Regular is 50 and 5)
+                  </li>
+                  <li className="flex gap-2"><CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    Use Classic on up to 3 devices with the same Cloud ID
+                  </li>
+                </ul>
+              </Card>
+
+              <Card className="p-6 md:p-8 space-y-4">
+                <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+                  Turn Classic on for this device
+                </p>
+
+                {classicBound ? (
+                  <div className="flex items-start gap-3 text-sm bg-green-500/10 border border-green-600/20 rounded-lg p-4">
+                    <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    <p>
+                      <span className="font-medium">Activated.</span> This device now uses your key's Classic plan —
+                      your higher AI limits are already in effect here.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <ol className="space-y-3 text-sm">
+                      <li className="flex gap-3">
+                        <span className="font-semibold text-primary">1.</span>
+                        <span>
+                          You paid from this device's Cloud ID, so Classic is already tied to your key.
+                          Unlock it below to switch this device onto the plan.
+                        </span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="font-semibold text-primary">2.</span>
+                        <span>
+                          Paid on a different device? Open Novaryn there, go to the Classic page and
+                          unlock your Cloud ID — the plan follows your key, not the browser.
+                        </span>
+                      </li>
+                    </ol>
+                    <div className="border border-border/60 rounded-lg p-4 space-y-3">
+                      {hasStoredKey ? (
+                        storedMethod === "webauthn" ? (
+                          <Button onClick={() => activateClassicHere()} disabled={busyClassic} className="w-full">
+                            {busyClassic
+                              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Activating…</>
+                              : <><Fingerprint className="w-4 h-4 mr-2" /> Unlock Cloud ID & turn on Classic here</>}
+                          </Button>
+                        ) : (
+                          <div className="space-y-2">
+                            <Label htmlFor="classic-pin">Enter your Cloud ID PIN to turn on Classic here</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                id="classic-pin"
+                                type="password"
+                                inputMode="numeric"
+                                value={pinInput}
+                                onChange={(e) => setPinInput(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && activateClassicHere()}
+                                placeholder="Cloud ID PIN"
+                                autoComplete="off"
+                              />
+                              <Button onClick={() => activateClassicHere()} disabled={busyClassic || !pinInput}>
+                                {busyClassic ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crown className="w-4 h-4" />}
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No Cloud ID is saved on this device yet. Open Novaryn → Settings → Cloud Backup to
+                          activate one, then come back here to turn Classic on.
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="font-mono">Ref {reference}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2"
+                    onClick={() => {
+                      navigator.clipboard.writeText(reference);
+                      toast.success("Reference copied");
+                    }}
+                  >
+                    <Copy className="w-3 h-3 mr-1" /> Copy
+                  </Button>
+                </div>
+              </Card>
+            </>
           )}
 
           {!verifying && paid && (
