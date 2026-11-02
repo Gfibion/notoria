@@ -6,13 +6,14 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  ArrowLeft, CheckCircle2, Copy, Fingerprint, Link2, Loader2, XCircle,
+  ArrowLeft, CheckCircle2, Copy, Crown, Fingerprint, Link2, Loader2, XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import SEO from "@/components/SEO";
 import { loadWrappedSecret } from "@/lib/cloud-keystore";
 import { unwrapSecretWithPin, unwrapSecretWithBiometric, deriveUserHash } from "@/lib/cloud-crypto";
 import { SUPPORT_TIERS, tierForAmount, type SupportTierId } from "@/lib/support-tiers";
+import { classicApi } from "@/lib/classic-client";
 
 type Currency = "NGN" | "USD" | "GHS" | "KES" | "ZAR";
 
@@ -33,10 +34,15 @@ export default function PaymentConfirmedPage() {
   const [rawStatus, setRawStatus] = useState<string | null>(null);
   const [verifyError, setVerifyError] = useState<string | null>(null);
 
+  // Classic plan result (paystack-verify returns plan/classic_expires_at for Classic payments).
+  const [classic, setClassic] = useState<{ amount: number; currency: string; expiresAt: string | null } | null>(null);
+  const [classicBound, setClassicBound] = useState(false);
+
   const [hasStoredKey, setHasStoredKey] = useState(false);
   const [storedMethod, setStoredMethod] = useState<"pin" | "webauthn" | null>(null);
   const [pinInput, setPinInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [busyClassic, setBusyClassic] = useState(false);
   const [activatedTier, setActivatedTier] = useState<SupportTierId | null>(null);
 
   useEffect(() => {
