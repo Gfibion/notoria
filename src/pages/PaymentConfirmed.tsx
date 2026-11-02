@@ -64,10 +64,18 @@ export default function PaymentConfirmedPage() {
       });
       if (error) throw new Error("Could not verify your payment");
       if (data.status === "succeeded") {
-        const tier = (typeof data.tier === "string" && SUPPORT_TIERS[data.tier as SupportTierId]
-          ? data.tier
-          : tierForAmount(data.amount / 100, data.currency)) as SupportTierId;
-        setPaid({ amount: data.amount / 100, currency: data.currency, tier });
+        if (data.plan === "classic") {
+          setClassic({
+            amount: (data.amount ?? 0) / 100,
+            currency: String(data.currency ?? "KES"),
+            expiresAt: typeof data.classic_expires_at === "string" ? data.classic_expires_at : null,
+          });
+        } else {
+          const tier = (typeof data.tier === "string" && SUPPORT_TIERS[data.tier as SupportTierId]
+            ? data.tier
+            : tierForAmount(data.amount / 100, data.currency)) as SupportTierId;
+          setPaid({ amount: data.amount / 100, currency: data.currency, tier });
+        }
       } else {
         setRawStatus(String(data.status ?? "unknown"));
       }
