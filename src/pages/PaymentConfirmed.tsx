@@ -126,6 +126,27 @@ export default function PaymentConfirmedPage() {
     }
   };
 
+  // ─── Activate Classic on this device: unlock Cloud ID → bind device ──
+  const activateClassicHere = async (pin?: string) => {
+    setBusyClassic(true);
+    try {
+      const w = await loadWrappedSecret();
+      if (!w) throw new Error("No Cloud ID is saved on this device");
+      const secret = w.method === "webauthn"
+        ? await unwrapSecretWithBiometric(w)
+        : await unwrapSecretWithPin(w, pin ?? pinInput);
+      const userHash = await deriveUserHash(secret);
+      await classicApi.bind(userHash);
+      setClassicBound(true);
+      setPinInput("");
+      toast.success("This device is now on Classic");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not activate Classic on this device");
+    } finally {
+      setBusyClassic(false);
+    }
+  };
+
   const tier = activatedTier ?? paid?.tier ?? null;
   const tierInfo = tier ? SUPPORT_TIERS[tier] : null;
 
@@ -141,7 +162,7 @@ export default function PaymentConfirmedPage() {
         <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-10">
           <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/coffee"><ArrowLeft className="w-4 h-4 mr-1" /> Back</Link>
+              <Link to={classic ? "/classic" : "/coffee"}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Link>
             </Button>
             <h1 className="font-display text-lg font-semibold">Payment Confirmation</h1>
           </div>
