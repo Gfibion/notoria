@@ -220,9 +220,6 @@ function ImageCropDialog({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [cropRect, setCropRect] = useState({ x: 0, y: 0, width: 100, height: 100 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [dragType, setDragType] = useState<'move' | 'resize' | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
 
@@ -248,49 +245,42 @@ function ImageCropDialog({
     img.src = imageUrl;
   }, [imageUrl]);
 
-  const handleMouseDown = (e: React.MouseEvent, type: 'move' | 'resize') => {
+  type DragType = 'move' | 'nw' | 'ne' | 'sw' | 'se';
+  const dragRef = useRef<{ type: DragType; sx: number; sy: number; start: typeof cropRect } | null>(null);
+
+  const startDrag = (e: React.PointerEvent, type: DragType) => {
     e.preventDefault();
-    setIsDragging(true);
-    setDragType(type);
-    setDragStart({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging || !dragType) return;
-    
-    const deltaX = e.clientX - dragStart.x;
-    const deltaY = e.clientY - dragStart.y;
-    
-    setCropRect(prev => {
-      if (dragType === 'move') {
-        const newX = Math.max(0, Math.min(imageDimensions.width - prev.width, prev.x + deltaX));
-        const newY = Math.max(0, Math.min(imageDimensions.height - prev.height, prev.y + deltaY));
-        return { ...prev, x: newX, y: newY };
+    dragRef.current = { type, sx: e.clientX, sy: e.clientY, start: cropRect };
+    const onMove = (ev: PointerEvent) => {
+      const d = dragRef.current;
+      if (!d) return;
+      const dx = ev.clientX - d.sx;
+      const dy = ev.clientY - d.sy;
+      const W = imageDimensions.width, H = imageDimensions.height, MIN = 30;
+      let { x, y, width, height } = d.start;
+      if (d.type === 'move') {
+        x = Math.max(0, Math.min(W - width, x + dx));
+        y = Math.max(0, Math.min(H - height, y + dy));
       } else {
-        const newWidth = Math.max(50, Math.min(imageDimensions.width - prev.x, prev.width + deltaX));
-        const newHeight = Math.max(50, Math.min(imageDimensions.height - prev.y, prev.height + deltaY));
-        return { ...prev, width: newWidth, height: newHeight };
+        let l = x, t = y, r = x + width, b = y + height;
+        if (d.type.includes('w')) l = Math.max(0, Math.min(r - MIN, l + dx));
+        if (d.type.includes('e')) r = Math.min(W, Math.max(l + MIN, r + dx));
+        if (d.type.includes('n')) t = Math.max(0, Math.min(b - MIN, t + dy));
+        if (d.type.includes('s')) b = Math.min(H, Math.max(t + MIN, b + dy));
+        x = l; y = t; width = r - l; height = b - t;
       }
-    });
-    
-    setDragStart({ x: e.clientX, y: e.clientY });
-  }, [isDragging, dragType, dragStart, imageDimensions]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-    setDragType(null);
-  }, []);
-
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+      setCropRect({ x, y, width, height });
+    };
+    const onUp = () => {
+      dragRef.current = null;
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+  };
 
   const handleApplyCrop = () => {
     const img = new Image();
@@ -339,47 +329,40 @@ function ImageCropDialog({
         
         {imageLoaded ? (
           <div 
-            className="relative mb-4 mx-auto bg-muted rounded-lg overflow-hidden"
+            className="relative mb-4 mx-auto rounded-lg overflow-hidden select-none touch-none"
             style={{ width: imageDimensions.width, height: imageDimensions.height }}
           >
             <img 
               ref={imageRef}
               src={imageUrl} 
               alt="Crop preview" 
-              className="absolute inset-0 w-full h-full object-contain opacity-50"
+              className="absolute inset-0 w-full h-full pointer-events-none"
               draggable={false}
             />
-            
-            {/* Crop overlay */}
+            {/* Crop box: dims everything outside it with a shadow, single image only */}
             <div 
-              className="absolute border-2 border-primary bg-transparent cursor-move"
+              className="absolute border-2 border-primary cursor-move touch-none"
               style={{
                 left: cropRect.x,
                 top: cropRect.y,
                 width: cropRect.width,
                 height: cropRect.height,
+                boxShadow: '0 0 0 9999px hsl(var(--background) / 0.6)',
               }}
-              onMouseDown={(e) => handleMouseDown(e, 'move')}
+              onPointerDown={(e) => startDrag(e, 'move')}
             >
-              {/* Clear area showing the cropped portion */}
-              <img 
-                src={imageUrl} 
-                alt="Crop area" 
-                className="absolute object-contain"
-                style={{
-                  width: imageDimensions.width,
-                  height: imageDimensions.height,
-                  left: -cropRect.x,
-                  top: -cropRect.y,
-                }}
-                draggable={false}
-              />
-              
-              {/* Resize handle */}
-              <div 
-                className="absolute bottom-0 right-0 w-4 h-4 bg-primary cursor-se-resize transform translate-x-1/2 translate-y-1/2 rounded-sm"
-                onMouseDown={(e) => { e.stopPropagation(); handleMouseDown(e, 'resize'); }}
-              />
+              <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3">
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <div key={i} className="border border-primary/30" />
+                ))}
+              </div>
+              {(['nw','ne','sw','se'] as const).map((h) => (
+                <div
+                  key={h}
+                  onPointerDown={(e) => { e.stopPropagation(); startDrag(e, h); }}
+                  className={`absolute w-5 h-5 bg-primary rounded-sm touch-none ${h==='nw'?'-left-2.5 -top-2.5 cursor-nw-resize':h==='ne'?'-right-2.5 -top-2.5 cursor-ne-resize':h==='sw'?'-left-2.5 -bottom-2.5 cursor-sw-resize':'-right-2.5 -bottom-2.5 cursor-se-resize'}`}
+                />
+              ))}
             </div>
           </div>
         ) : (
