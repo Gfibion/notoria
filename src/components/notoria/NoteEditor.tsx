@@ -41,7 +41,9 @@ import {
   Trash2,
   Move,
   ShieldCheck,
+  PictureInPicture2,
 } from 'lucide-react';
+import { openQuickNoteOverlay, isOverlaySupported } from '@/lib/quick-note-overlay';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -621,6 +623,19 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
       performSave(false);
     }
     onClose();
+  };
+
+  // Minimize into the floating "display over other apps" window
+  const handleMinimizeToOverlay = async () => {
+    if (!isOverlaySupported()) {
+      toast({ title: 'Floating window not supported', description: 'Use Chrome or Edge on a computer to open notes over other apps.', variant: 'destructive' });
+      return;
+    }
+    const html = contentRef.current?.innerHTML || '';
+    if (hasChanges || checkChanges()) performSave(false);
+    const res = await openQuickNoteOverlay({ noteId: note?.id ?? null, title, html });
+    if (res.ok) onClose();
+    else toast({ title: 'Could not open floating window', description: res.ok === false ? res.message : undefined, variant: 'destructive' });
   };
 
   // Move current note to Safe Folder
@@ -1768,6 +1783,9 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={handleClose}>
             <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleMinimizeToOverlay} title="Minimize to floating window (over other apps)" aria-label="Minimize to floating window">
+            <PictureInPicture2 className="w-5 h-5" />
           </Button>
           {/* Workspace (Category) selector */}
           <Select value={workspace || 'none'} onValueChange={handleWorkspaceChange}>

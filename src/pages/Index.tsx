@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Note, Workspace, getSettings, cleanupOldDeletedNotes } from '@/lib/db';
+import { Note, Workspace, getSettings, cleanupOldDeletedNotes, getNote } from '@/lib/db';
+import { initQuickNoteHost, QUICK_NOTE_SESSION_KEY } from '@/lib/quick-note-overlay';
 import { useNotes } from '@/hooks/useNotes';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
 import { Sidebar } from '@/components/notoria/Sidebar';
@@ -59,6 +60,23 @@ const Index = () => {
   const notes = selectedSubcategory
     ? allNotes.filter(note => note.subcategory === selectedSubcategory)
     : allNotes;
+
+  // Quick-note overlay: Maximize reopens the note in the full editor
+  useEffect(() => {
+    initQuickNoteHost();
+    const w = window as any;
+    w.__novarynIndexActive = true;
+    const openPending = async () => {
+      let id: string | null = null;
+      try { id = sessionStorage.getItem(QUICK_NOTE_SESSION_KEY); sessionStorage.removeItem(QUICK_NOTE_SESSION_KEY); } catch { /* ignore */ }
+      if (!id) return;
+      const n = await getNote(id);
+      if (n) { setSelectedNote(n); setSearchQuery(''); setIsEditorOpen(true); setSidebarCollapsed(true); }
+    };
+    void openPending();
+    window.addEventListener('novaryn-open-note', openPending);
+    return () => { w.__novarynIndexActive = false; window.removeEventListener('novaryn-open-note', openPending); };
+  }, []);
 
   // Initialize settings and cleanup on load
   useEffect(() => {
