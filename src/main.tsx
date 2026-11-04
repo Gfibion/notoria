@@ -6,6 +6,9 @@ import { runMigrationIfNeeded } from "./lib/watermelon/migrate-from-indexeddb";
 import { initInstallSensors } from "./lib/pwa";
 import { applyUiLayout } from "./lib/ui-layout";
 import { getSettings } from "./lib/db";
+import { initQuickNoteHost } from "./lib/quick-note-overlay";
+
+initQuickNoteHost();
 
 initInstallSensors();
 
