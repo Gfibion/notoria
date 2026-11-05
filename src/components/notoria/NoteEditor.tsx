@@ -450,36 +450,38 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
     }
   }, []);
 
-  // Highlight search query when opening a note from search
+  // Highlight search query (yellow) and scroll to the first match
+  const applySearchHighlight = useCallback((query: string) => {
+    if (!query || !contentRef.current) return;
+    const content = contentRef.current;
+    const text = content.innerHTML;
+
+    // Escape special RegEx characters to prevent XSS/injection attacks
+    const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+
+    // First, remove any existing highlights
+    const cleanHtml = text.replace(/<mark class="search-highlight"[^>]*>([^<]+)<\/mark>/gi, '$1');
+
+    // Then add new highlights (safe because escapedQuery contains no special chars)
+    const highlightedHtml = cleanHtml.replace(regex, '<mark class="search-highlight" style="background-color: #fde047; color: #1c1917; padding: 0 2px; border-radius: 2px;">$1</mark>');
+    content.innerHTML = DOMPurify.sanitize(highlightedHtml, {
+      ALLOWED_TAGS: ['p','br','b','i','u','h1','h2','h3','ul','ol','li','a','span','div','mark','code','pre','blockquote','strong','em','img','sup'],
+      ALLOWED_ATTR: ['href','target','rel','class','style','src','alt','width','height','data-pdf-metadata','title'],
+    });
+
+    // Scroll to the first match
+    setTimeout(() => {
+      const firstMatch = content.querySelector('.search-highlight');
+      if (firstMatch) {
+        firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+  }, []);
+
   useEffect(() => {
-    if (searchQuery && contentRef.current) {
-      const content = contentRef.current;
-      const text = content.innerHTML;
-      
-      // Escape special RegEx characters to prevent XSS/injection attacks
-      const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const escapedQuery = escapeRegex(searchQuery);
-      const regex = new RegExp(`(${escapedQuery})`, 'gi');
-      
-      // First, remove any existing highlights
-      const cleanHtml = text.replace(/<mark class="search-highlight"[^>]*>([^<]+)<\/mark>/gi, '$1');
-      
-      // Then add new highlights (safe because escapedQuery contains no special chars)
-      const highlightedHtml = cleanHtml.replace(regex, '<mark class="search-highlight" style="background-color: #86efac; padding: 0 2px; border-radius: 2px;">$1</mark>');
-      content.innerHTML = DOMPurify.sanitize(highlightedHtml, {
-        ALLOWED_TAGS: ['p','br','b','i','u','h1','h2','h3','ul','ol','li','a','span','div','mark','code','pre','blockquote','strong','em','img','sup'],
-        ALLOWED_ATTR: ['href','target','rel','class','style','src','alt','width','height','data-pdf-metadata','title'],
-      });
-      
-      // Scroll to the first match
-      setTimeout(() => {
-        const firstMatch = content.querySelector('.search-highlight');
-        if (firstMatch) {
-          firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 100);
-    }
-  }, [searchQuery]);
+    if (searchQuery) applySearchHighlight(searchQuery);
+  }, [searchQuery, applySearchHighlight]);
 
   // Update when note changes (switching between notes)
   useEffect(() => {
@@ -491,6 +493,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
       setTags([...note.tags]);
       if (contentRef.current) {
         contentRef.current.innerHTML = note.content;
+        if (searchQuery) applySearchHighlight(searchQuery);
       }
       lastSavedRef.current = { 
         title: note.title, 
@@ -505,7 +508,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
     } else {
       setIsEditMode(true);
     }
-  }, [note?.id]);
+  }, [note?.id, searchQuery, applySearchHighlight]);
 
   // Refresh subcategories when workspace changes
   useEffect(() => {
