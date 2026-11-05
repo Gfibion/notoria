@@ -493,6 +493,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
       setTags([...note.tags]);
       if (contentRef.current) {
         contentRef.current.innerHTML = note.content;
+        if (searchQuery) applySearchHighlight(searchQuery);
       }
       lastSavedRef.current = { 
         title: note.title, 
@@ -507,7 +508,7 @@ export function NoteEditor({ note, workspaces, onSave, onClose, searchQuery, def
     } else {
       setIsEditMode(true);
     }
-  }, [note?.id]);
+  }, [note?.id, searchQuery, applySearchHighlight]);
 
   // Refresh subcategories when workspace changes
   useEffect(() => {

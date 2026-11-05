@@ -146,10 +146,13 @@ const Index = () => {
         handleNewNote();
       }
       if (e.key === 'Escape') {
-        if (isSearchActive) setIsSearchActive(false);
-        else if (isEditorOpen) {
+        if (isEditorOpen) {
           setIsEditorOpen(false);
           setSelectedNote(null);
+          if (!isSearchActive) setSearchQuery('');
+        } else if (isSearchActive) {
+          setIsSearchActive(false);
+          setSearchQuery('');
         }
       }
     };
@@ -406,17 +409,20 @@ const Index = () => {
           />
         )}
 
-        {/* Inline Search */}
+        {/* Inline Search: stays mounted (hidden) while a note opened from search is
+            open, so the query and results are preserved for when the user returns */}
         {isSearchActive && (
-          <InlineSearch
-            isActive={isSearchActive}
-            onClose={() => setIsSearchActive(false)}
-            workspaces={workspaces}
-            onSelectNote={handleNoteClick}
-          />
+          <div className={isEditorOpen ? 'hidden' : 'contents'}>
+            <InlineSearch
+              isActive={isSearchActive}
+              onClose={() => setIsSearchActive(false)}
+              workspaces={workspaces}
+              onSelectNote={handleNoteClick}
+            />
+          </div>
         )}
 
-        {isEditorOpen && !isSearchActive ? (
+        {isEditorOpen ? (
           <NoteEditor
             note={selectedNote}
             workspaces={workspaces}
@@ -424,7 +430,7 @@ const Index = () => {
             onClose={() => {
               setIsEditorOpen(false);
               setSelectedNote(null);
-              setSearchQuery('');
+              if (!isSearchActive) setSearchQuery('');
               refresh();
             }}
             searchQuery={searchQuery}
