@@ -30,14 +30,6 @@ export function InlineSearch({
       if (searchQuery.trim()) {
         const found = await search(searchQuery);
         setResults(found);
-        
-        // Auto-open if only one result
-        if (found.length === 1) {
-          onSelectNote(found[0], searchQuery);
-          onClose();
-          setQuery('');
-          setResults([]);
-        }
       } else {
         setResults([]);
       }
@@ -99,17 +91,12 @@ export function InlineSearch({
             <p>Type to search your notes</p>
           </div>
         )}
-        {results.length > 1 && results.map((note) => {
+        {results.length > 0 && results.map((note) => {
           const workspace = getWorkspace(note.workspace);
           return (
             <button
               key={note.id}
-              onClick={() => {
-                onSelectNote(note, query);
-                onClose();
-                setQuery('');
-                setResults([]);
-              }}
+              onClick={() => onSelectNote(note, query)}
               className="w-full p-4 text-left hover:bg-muted/50 transition-colors border-b border-border last:border-b-0"
             >
               <div className="flex items-start justify-between gap-2">
