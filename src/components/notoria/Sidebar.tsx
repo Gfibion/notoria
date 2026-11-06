@@ -8,7 +8,6 @@ import {
   PanelLeftClose,
   PanelLeft,
   Plus,
-  Search,
   User,
   Briefcase,
   Lightbulb,
@@ -60,9 +59,7 @@ interface SidebarProps {
   selectedSubcategory: string | null;
   onSelectWorkspace: (id: string | null) => void;
   onSelectSubcategory: (subcategory: string | null) => void;
-  onNewNote: () => void;
   onNewNoteInWorkspace?: (workspaceId: string, subcategory?: string) => void;
-  onOpenSearch: () => void;
   onOpenTrash: () => void;
   onOpenSafeFolder: () => void;
   onOpenSettings: () => void;
@@ -83,9 +80,7 @@ export function Sidebar({
   selectedSubcategory,
   onSelectWorkspace,
   onSelectSubcategory,
-  onNewNote,
   onNewNoteInWorkspace,
-  onOpenSearch,
   onOpenTrash,
   onOpenSafeFolder,
   onOpenSettings,
@@ -282,39 +277,9 @@ export function Sidebar({
           </Button>
         </div>
 
-        {/* Actions */}
-        <div className={cn('p-3 space-y-2', collapsed && 'flex flex-col items-center')}>
-          <Button
-            onClick={onNewNote}
-            className={cn(
-              'bg-primary text-primary-foreground hover:bg-primary/90 transition-all',
-              collapsed ? 'w-10 h-10 p-0' : 'w-full justify-start gap-2'
-            )}
-          >
-            <Plus className="w-4 h-4" />
-            {!collapsed && <span>New Note</span>}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={onOpenSearch}
-            className={cn(
-              'border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-all',
-              collapsed ? 'w-10 h-10 p-0' : 'w-full justify-start gap-2'
-            )}
-          >
-            <Search className="w-4 h-4" />
-            {!collapsed && (
-              <>
-                <span>Search</span>
-                <kbd className="ml-auto text-xs bg-muted px-1.5 py-0.5 rounded">⌘K</kbd>
-              </>
-            )}
-          </Button>
-        </div>
-
         <div className="flex-1 overflow-y-auto scrollbar-thin">
           <nav className="px-2 space-y-1">
-            {/* Priority navigation: Search already lives in the top Actions area */}
+            {/* Primary note actions are available in the top ribbon. */}
 
             {/* Novaryn Coffee - Buy Me Coffee */}
             <Link
