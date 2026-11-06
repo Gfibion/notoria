@@ -285,7 +285,7 @@ export function Sidebar({
             <Link
               to="/coffee"
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors',
                 'text-sidebar-foreground hover:bg-sidebar-accent/50'
               )}
               title="Buy Me Coffee"
@@ -303,7 +303,7 @@ export function Sidebar({
             <Link
               to="/cloud-backup"
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors',
                 'text-sidebar-foreground hover:bg-sidebar-accent/50'
               )}
               title="Cloud Backup"
@@ -321,7 +321,7 @@ export function Sidebar({
             <Link
               to="/tasks"
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors',
                 'text-sidebar-foreground hover:bg-sidebar-accent/50 group'
               )}
             >
@@ -336,7 +336,7 @@ export function Sidebar({
               <Link
                 to="/admin"
                 className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                  'w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors',
                   'text-sidebar-foreground hover:bg-sidebar-accent/50'
                 )}
                 title="Admin panel"
@@ -356,7 +356,7 @@ export function Sidebar({
               <button
                 onClick={() => setAiOpen(true)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                  'w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors',
                   'text-sidebar-foreground hover:bg-sidebar-accent/50'
                 )}
                 title="Novaryn AI"
@@ -397,7 +397,7 @@ export function Sidebar({
                 onSelectWorkspace(null);
               }}
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors',
                 selectedWorkspace === null && !showStarred && !selectedSubcategory
                   ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                   : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
@@ -411,7 +411,7 @@ export function Sidebar({
             <button
               onClick={onShowStarred}
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors',
                 showStarred
                   ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                   : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
@@ -424,7 +424,7 @@ export function Sidebar({
             {/* Safe Folder */}
             <button
               onClick={onOpenSafeFolder}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50"
+              className="w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50"
               title="Safe Folder"
             >
               <ShieldCheck className="w-4 h-4 flex-shrink-0 text-emerald-500" />
@@ -466,7 +466,7 @@ export function Sidebar({
                 >
                   <div
                     className={cn(
-                      'w-full flex items-center gap-1 px-2 py-2 rounded-md text-sm transition-colors group',
+                      'w-full flex items-center gap-1 px-2 py-1.5 rounded-md text-[13px] transition-colors group',
                       isWorkspaceSelected
                         ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                         : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
@@ -570,7 +570,7 @@ export function Sidebar({
             <Link
               to="/contact"
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors',
                 'text-sidebar-foreground hover:bg-sidebar-accent/50'
               )}
               title="Contact & support"
@@ -601,7 +601,7 @@ export function Sidebar({
             <div className="px-2 mt-4">
               <button
                 onClick={onOpenPdf}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50"
+                className="w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50"
               >
                 <FileText className="w-4 h-4 flex-shrink-0" />
                 {!collapsed && <span>Open PDF</span>}
@@ -613,7 +613,7 @@ export function Sidebar({
           <div className="px-2 mt-2">
             <button
               onClick={onOpenTrash}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50"
+              className="w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50"
             >
               <Trash2 className="w-4 h-4 flex-shrink-0" />
               {!collapsed && <span>Trash</span>}
