@@ -8,7 +8,6 @@ import {
   PanelLeftClose,
   PanelLeft,
   Plus,
-  Search,
   User,
   Briefcase,
   Lightbulb,
@@ -60,9 +59,7 @@ interface SidebarProps {
   selectedSubcategory: string | null;
   onSelectWorkspace: (id: string | null) => void;
   onSelectSubcategory: (subcategory: string | null) => void;
-  onNewNote: () => void;
   onNewNoteInWorkspace?: (workspaceId: string, subcategory?: string) => void;
-  onOpenSearch: () => void;
   onOpenTrash: () => void;
   onOpenSafeFolder: () => void;
   onOpenSettings: () => void;
@@ -83,9 +80,7 @@ export function Sidebar({
   selectedSubcategory,
   onSelectWorkspace,
   onSelectSubcategory,
-  onNewNote,
   onNewNoteInWorkspace,
-  onOpenSearch,
   onOpenTrash,
   onOpenSafeFolder,
   onOpenSettings,
@@ -282,45 +277,15 @@ export function Sidebar({
           </Button>
         </div>
 
-        {/* Actions */}
-        <div className={cn('p-3 space-y-2', collapsed && 'flex flex-col items-center')}>
-          <Button
-            onClick={onNewNote}
-            className={cn(
-              'bg-primary text-primary-foreground hover:bg-primary/90 transition-all',
-              collapsed ? 'w-10 h-10 p-0' : 'w-full justify-start gap-2'
-            )}
-          >
-            <Plus className="w-4 h-4" />
-            {!collapsed && <span>New Note</span>}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={onOpenSearch}
-            className={cn(
-              'border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-all',
-              collapsed ? 'w-10 h-10 p-0' : 'w-full justify-start gap-2'
-            )}
-          >
-            <Search className="w-4 h-4" />
-            {!collapsed && (
-              <>
-                <span>Search</span>
-                <kbd className="ml-auto text-xs bg-muted px-1.5 py-0.5 rounded">⌘K</kbd>
-              </>
-            )}
-          </Button>
-        </div>
-
         <div className="flex-1 overflow-y-auto scrollbar-thin">
           <nav className="px-2 space-y-1">
-            {/* Priority navigation: Search already lives in the top Actions area */}
+            {/* Primary note actions are available in the top ribbon. */}
 
             {/* Novaryn Coffee - Buy Me Coffee */}
             <Link
               to="/coffee"
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors',
                 'text-sidebar-foreground hover:bg-sidebar-accent/50'
               )}
               title="Buy Me Coffee"
@@ -338,7 +303,7 @@ export function Sidebar({
             <Link
               to="/cloud-backup"
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors',
                 'text-sidebar-foreground hover:bg-sidebar-accent/50'
               )}
               title="Cloud Backup"
@@ -356,7 +321,7 @@ export function Sidebar({
             <Link
               to="/tasks"
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors',
                 'text-sidebar-foreground hover:bg-sidebar-accent/50 group'
               )}
             >
@@ -371,7 +336,7 @@ export function Sidebar({
               <Link
                 to="/admin"
                 className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                  'w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors',
                   'text-sidebar-foreground hover:bg-sidebar-accent/50'
                 )}
                 title="Admin panel"
@@ -391,7 +356,7 @@ export function Sidebar({
               <button
                 onClick={() => setAiOpen(true)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                  'w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors',
                   'text-sidebar-foreground hover:bg-sidebar-accent/50'
                 )}
                 title="Novaryn AI"
@@ -432,7 +397,7 @@ export function Sidebar({
                 onSelectWorkspace(null);
               }}
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors',
                 selectedWorkspace === null && !showStarred && !selectedSubcategory
                   ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                   : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
@@ -446,7 +411,7 @@ export function Sidebar({
             <button
               onClick={onShowStarred}
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors',
                 showStarred
                   ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                   : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
@@ -459,7 +424,7 @@ export function Sidebar({
             {/* Safe Folder */}
             <button
               onClick={onOpenSafeFolder}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50"
+              className="w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50"
               title="Safe Folder"
             >
               <ShieldCheck className="w-4 h-4 flex-shrink-0 text-emerald-500" />
@@ -501,7 +466,7 @@ export function Sidebar({
                 >
                   <div
                     className={cn(
-                      'w-full flex items-center gap-1 px-2 py-2 rounded-md text-sm transition-colors group',
+                      'w-full flex items-center gap-1 px-2 py-1.5 rounded-md text-[13px] transition-colors group',
                       isWorkspaceSelected
                         ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                         : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
@@ -605,7 +570,7 @@ export function Sidebar({
             <Link
               to="/contact"
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors',
                 'text-sidebar-foreground hover:bg-sidebar-accent/50'
               )}
               title="Contact & support"
@@ -636,7 +601,7 @@ export function Sidebar({
             <div className="px-2 mt-4">
               <button
                 onClick={onOpenPdf}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50"
+                className="w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50"
               >
                 <FileText className="w-4 h-4 flex-shrink-0" />
                 {!collapsed && <span>Open PDF</span>}
@@ -648,7 +613,7 @@ export function Sidebar({
           <div className="px-2 mt-2">
             <button
               onClick={onOpenTrash}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50"
+              className="w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50"
             >
               <Trash2 className="w-4 h-4 flex-shrink-0" />
               {!collapsed && <span>Trash</span>}

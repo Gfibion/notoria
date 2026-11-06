@@ -349,9 +349,7 @@ const Index = () => {
             setSelectedSubcategory(subcat);
             setShowStarred(false);
           }}
-          onNewNote={handleNewNote}
           onNewNoteInWorkspace={handleNewNoteFromSidebar}
-          onOpenSearch={() => setIsSearchActive(true)}
           onOpenTrash={() => setShowTrash(true)}
           onOpenSafeFolder={() => setShowSafeFolder(true)}
           onOpenSettings={() => setShowSettings(true)}
